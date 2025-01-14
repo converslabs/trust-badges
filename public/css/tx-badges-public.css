@@ -1,0 +1,30 @@
+.tx-badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.tx-badge {
+    flex: 0 0 auto;
+    max-width: 150px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.tx-badge:hover {
+    transform: scale(1.05);
+}
+
+.tx-badge img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 768px) {
+    .tx-badge {
+        max-width: 100px;
+    }
+}
