@@ -3,30 +3,48 @@ import { Card } from "./ui/card";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Switch } from "./ui/switch";
-import { BadgeSelector } from "./BadgeSelector";
 import { Checkbox } from "./ui/checkbox";
-import { PlayIcon } from "lucide-react";
+import { BadgeSelector } from "./BadgeSelector";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { PlayIcon, AlignCenter, AlignLeft, AlignRight } from "lucide-react";
+import { ColorPicker } from "./ui/color-picker";
+
+// Define payment badges data
+const paymentBadges = [
+	{ id: "mastercard", name: "Mastercard", image: "https://cdn.worldvectorlogo.com/logos/mastercard-2.svg" },
+	{ id: "visa", name: "Visa", image: "https://cdn.worldvectorlogo.com/logos/visa.svg" },
+	{ id: "amex", name: "American Express", image: "https://cdn.worldvectorlogo.com/logos/american-express-2.svg" },
+	{ id: "apple-pay", name: "Apple Pay", image: "https://cdn.worldvectorlogo.com/logos/apple-pay.svg" },
+	{ id: "paypal", name: "PayPal", image: "https://cdn.worldvectorlogo.com/logos/paypal-3.svg" },
+	{ id: "google-pay", name: "Google Pay", image: "https://cdn.worldvectorlogo.com/logos/google-pay.svg" },
+	{ id: "stripe", name: "Stripe", image: "https://cdn.worldvectorlogo.com/logos/stripe-4.svg" },
+	{ id: "klarna", name: "Klarna", image: "https://cdn.worldvectorlogo.com/logos/klarna-1.svg" },
+	{ id: "bitcoin", name: "Bitcoin", image: "https://cdn.worldvectorlogo.com/logos/bitcoin.svg" },
+	{ id: "ethereum", name: "Ethereum", image: "https://cdn.worldvectorlogo.com/logos/ethereum-1.svg" },
+	{ id: "shopify", name: "Shopify Pay", image: "https://cdn.worldvectorlogo.com/logos/shopify.svg" },
+	{ id: "alipay", name: "Alipay", image: "https://cdn.worldvectorlogo.com/logos/alipay.svg" },
+];
 
 export function Settings() {
 	const [settings, setSettings] = useState({
+		enabled: false,
 		showHeader: true,
 		headerText: "Secure Checkout With",
 		font: "Asap",
+		fontSize: "18",
 		alignment: "center",
-		fontSize: "17",
-		textColor: "#3A3A3A",
-		selectedBadges: [] as string[],
+		textColor: "#000000",
 		badgeStyle: "original",
-		badgeSizeDesktop: "small",
+		badgeSizeDesktop: "medium",
 		badgeSizeMobile: "small",
-		badgeColor: "#0000FF",
+		badgeColor: "#0066FF",
 		customMargin: false,
 		marginTop: "0",
 		marginBottom: "0",
-		animation: "groove",
-		showOnProductPage: false,
+		animation: "fade",
+		showOnProductPage: true,
+		selectedBadges: ["stripe", "shopify", "paypal", "apple-pay"],
 	});
 
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -43,134 +61,117 @@ export function Settings() {
 
 	const toggleAnimation = () => {
 		setIsPlaying(!isPlaying);
-		// Add animation logic here
-		setTimeout(() => setIsPlaying(false), 2000); // Reset after 2 seconds
+		setTimeout(() => setIsPlaying(false), 2000);
 	};
 
 	return (
-		<div className="space-y-8">
-			<h1 className="text-4xl font-bold">Trust Badges</h1>
+		<div className="max-w-[1200px] mx-auto p-6">
+			<div className="bg-background border rounded-lg p-4 mb-6 flex items-center gap-2">
+				<div className="flex-1">
+					<div className="flex items-center gap-2">
+						<div className="h-2 w-2 rounded-full bg-destructive"></div>
+						<span className="font-medium">Ultimate Trust Badges is disabled</span>
+					</div>
+					<p className="text-sm text-muted-foreground">Click Enable to add Ultimate Trust Badges to your store.</p>
+				</div>
+				<Button onClick={() => handleChange("enabled", !settings.enabled)}>Enable</Button>
+			</div>
 
 			<div className="flex gap-8">
-				<div className="flex-1 space-y-8">
-					<Card className="p-6">
-						<h2 className="text-lg font-semibold mb-4">Header Settings</h2>
-
-						<div className="space-y-4">
-							<div className="flex items-center gap-2">
+				<div className="flex-1 space-y-6">
+					<Card className="p-6 shadow-sm">
+						<h2 className="text-lg font-semibold mb-6 border-b pb-2">Header Settings</h2>
+						<div className="space-y-5">
+							<div className="flex items-center justify-between">
+								<Label htmlFor="show-header" className="font-medium">
+									Show header
+								</Label>
 								<Switch id="show-header" checked={settings.showHeader} onCheckedChange={(checked) => handleChange("showHeader", checked)} />
-								<Label htmlFor="show-header">Show header</Label>
 							</div>
 
-							<div className="space-y-2">
-								<Label>Header text</Label>
-								<Input value={settings.headerText} onChange={(e) => handleChange("headerText", e.target.value)} />
-							</div>
-
-							<div className="space-y-2">
-								<Label>Font</Label>
-								<select value={settings.font} onChange={(e) => handleChange("font", e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2">
-									<option value="Asap">Asap</option>
-									<option value="Arial">Arial</option>
-									<option value="Helvetica">Helvetica</option>
-								</select>
-							</div>
-
-							<div className="space-y-2">
-								<Label>Alignment</Label>
-								<RadioGroup value={settings.alignment} onValueChange={(value) => handleChange("alignment", value)} className="flex gap-1 border rounded-md p-1 w-fit">
-									<div className="flex items-center">
-										<RadioGroupItem value="left" id="left" className="sr-only" />
-										<Label htmlFor="left">
-											<Button variant={settings.alignment === "left" ? "default" : "ghost"} size="sm" type="button" className="h-8 w-8">
-												<svg className="w-4 h-4" viewBox="0 0 24 24">
-													<path fill="currentColor" d="M3 5h18v2H3V5zm0 4h12v2H3V9zm0 4h18v2H3v-2zm0 4h12v2H3v-2z" />
-												</svg>
-											</Button>
-										</Label>
-									</div>
-
-									<div className="flex items-center">
-										<RadioGroupItem value="center" id="center" className="sr-only" />
-										<Label htmlFor="center">
-											<Button variant={settings.alignment === "center" ? "default" : "ghost"} size="sm" type="button" className="h-8 w-8">
-												<svg className="w-4 h-4" viewBox="0 0 24 24">
-													<path fill="currentColor" d="M3 5h18v2H3V5zm4 4h10v2H7V9zm-4 4h18v2H3v-2zm4 4h10v2H7v-2z" />
-												</svg>
-											</Button>
-										</Label>
-									</div>
-
-									<div className="flex items-center">
-										<RadioGroupItem value="right" id="right" className="sr-only" />
-										<Label htmlFor="right">
-											<Button variant={settings.alignment === "right" ? "default" : "ghost"} size="sm" type="button" className="h-8 w-8">
-												<svg className="w-4 h-4" viewBox="0 0 24 24">
-													<path fill="currentColor" d="M3 5h18v2H3V5zm6 4h12v2H9V9zm-6 4h18v2H3v-2zm6 4h12v2H9v-2z" />
-												</svg>
-											</Button>
-										</Label>
-									</div>
-								</RadioGroup>
-							</div>
-
-							<div className="space-y-2">
-								<Label>Font size</Label>
-								<div className="flex items-center gap-2">
-									<Input type="number" value={settings.fontSize} onChange={(e) => handleChange("fontSize", e.target.value)} className="w-20" />
-									<Button variant="outline" size="sm" onClick={() => handleChange("fontSize", String(Number(settings.fontSize) - 1))} className="h-8 w-8 p-0">
-										-
-									</Button>
-									<Button variant="outline" size="sm" onClick={() => handleChange("fontSize", String(Number(settings.fontSize) + 1))} className="h-8 w-8 p-0">
-										+
-									</Button>
+							<div className="flex flex-col gap-4 p-6">
+								<div className="space-y-2">
+									<Label className="font-medium">Header text</Label>
+									<Input value={settings.headerText} onChange={(e) => handleChange("headerText", e.target.value)} />
 								</div>
-							</div>
 
-							<div className="space-y-2">
-								<Label>Text color</Label>
-								<Input type="color" value={settings.textColor} onChange={(e) => handleChange("textColor", e.target.value)} className="w-20 h-10" />
+								<div className="space-y-2">
+									<Label className="font-medium">Fonts</Label>
+									<Select value={settings.font} onValueChange={(value) => handleChange("font", value)}>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Select Font" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="Asap">Asap</SelectItem>
+											<SelectItem value="Arial">Arial</SelectItem>
+											<SelectItem value="Helvetica">Helvetica</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+
+								<div className="space-y-2">
+									<Label className="font-medium">Font Size (px)</Label>
+									<div>
+										<Input type="number" value={settings.fontSize} onChange={(e) => handleChange("fontSize", e.target.value)} className="w-32" />
+									</div>
+								</div>
+
+								<div className="space-y-2">
+									<Label className="font-medium">Alignment</Label>
+									<div className="flex gap-2 border rounded-md p-1 w-[150px]">
+										<Button variant={settings.alignment === "left" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "left")} className="h-8 w-10">
+											<AlignLeft />
+										</Button>
+										<Button variant={settings.alignment === "center" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "center")} className="h-8 w-10">
+											<AlignCenter />
+										</Button>
+										<Button variant={settings.alignment === "right" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "right")} className="h-8 w-10">
+											<AlignRight />
+										</Button>
+									</div>
+								</div>
+
+								<div className="space-y-2">
+									<Label className="font-medium">Text Color</Label>
+									<ColorPicker value={settings.textColor} onChange={(value) => handleChange("textColor", value)} />
+								</div>
+
+								<div className="space-y-2">
+									<Label className="font-medium">Margin (px)</Label>
+									<div className="flex items-center gap-2">
+										<Input type="number" value={settings.marginTop} onChange={(e) => handleChange("marginTop", e.target.value)} className="w-20" />
+										<Input type="number" value={settings.marginBottom} onChange={(e) => handleChange("marginBottom", e.target.value)} className="w-20" />
+									</div>
+								</div>
 							</div>
 						</div>
 					</Card>
 
-					<Card className="p-6">
-						<h2 className="text-lg font-semibold mb-4">Badge Settings</h2>
-
+					<Card className="p-6 shadow-sm">
+						<h2 className="text-lg font-semibold mb-6 border-b pb-2">Badge Settings</h2>
 						<div className="space-y-6">
 							<div className="space-y-2">
-								<Label>Badge style</Label>
-								<div className="grid grid-cols-2 gap-2">
-									<button className={`border rounded-lg p-4 flex flex-col items-center gap-2 ${settings.badgeStyle === "mono" ? "border-primary" : "border-input"}`} onClick={() => handleChange("badgeStyle", "mono")}>
-										<div className="w-12 h-8 bg-gray-400 rounded" />
-										<span>Mono</span>
-									</button>
-									<button className={`border rounded-lg p-4 flex flex-col items-center gap-2 ${settings.badgeStyle === "original" ? "border-primary" : "border-input"}`} onClick={() => handleChange("badgeStyle", "original")}>
-										<div className="w-12 h-8 bg-blue-500 rounded" />
-										<span>Original</span>
-									</button>
-									<button className={`border rounded-lg p-4 flex flex-col items-center gap-2 ${settings.badgeStyle === "mono-card" ? "border-primary" : "border-input"}`} onClick={() => handleChange("badgeStyle", "mono-card")}>
-										<div className="w-12 h-8 bg-gray-400 rounded shadow-sm" />
-										<span>Mono Card</span>
-									</button>
-									<button className={`border rounded-lg p-4 flex flex-col items-center gap-2 ${settings.badgeStyle === "card" ? "border-primary" : "border-input"}`} onClick={() => handleChange("badgeStyle", "card")}>
-										<div className="w-12 h-8 bg-blue-500 rounded shadow-sm" />
-										<span>Card</span>
-									</button>
+								<Label className="font-medium">Badge style</Label>
+								<div className="grid grid-cols-2 gap-4">
+									{[
+										{ id: "mono", label: "Mono" },
+										{ id: "original", label: "Original" },
+										{ id: "mono-card", label: "Mono Card" },
+										{ id: "card", label: "Card" },
+									].map((style) => (
+										<button
+											key={style.id}
+											onClick={() => handleChange("badgeStyle", style.id)}
+											className={`border rounded-lg p-4 flex flex-col items-center gap-2 transition-colors ${settings.badgeStyle === style.id ? "border-primary bg-primary/5" : "border-input hover:border-primary/50"}`}>
+											<div className={`w-12 h-8 rounded ${style.id.includes("mono") ? "bg-gray-400" : "bg-blue-500"} ${style.id.includes("card") ? "shadow-sm" : ""}`} />
+											<span className="text-sm font-medium">{style.label}</span>
+										</button>
+									))}
 								</div>
 							</div>
 
 							<div className="space-y-2">
-								<Label>Badge size desktop</Label>
-								<select value={settings.badgeSizeDesktop} onChange={(e) => handleChange("badgeSizeDesktop", e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2">
-									<option value="small">Small</option>
-									<option value="medium">Medium</option>
-									<option value="large">Large</option>
-								</select>
-							</div>
-
-							<div className="space-y-2">
-								<Label>Badge size mobile</Label>
+								<Label className="font-medium">Badge size mobile</Label>
 								<div className="space-y-1">
 									<select value={settings.badgeSizeMobile} onChange={(e) => handleChange("badgeSizeMobile", e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2">
 										<option value="small">Small</option>
@@ -182,14 +183,18 @@ export function Settings() {
 							</div>
 
 							<div className="space-y-2">
-								<Label>Badge color</Label>
-								<Input type="color" value={settings.badgeColor} onChange={(e) => handleChange("badgeColor", e.target.value)} className="w-20 h-10" />
+								<Label className="font-medium">Badge color</Label>
+								<div className="flex items-center gap-2">
+									<ColorPicker value={settings.badgeColor} onChange={(value) => handleChange("badgeColor", value)} />
+								</div>
 							</div>
 
 							<div className="space-y-4">
 								<div className="flex items-center gap-2">
 									<Checkbox id="custom-margin" checked={settings.customMargin} onCheckedChange={(checked) => handleChange("customMargin", checked)} />
-									<Label htmlFor="custom-margin">Custom Margin</Label>
+									<Label htmlFor="custom-margin" className="font-medium">
+										Custom Margin
+									</Label>
 								</div>
 
 								{settings.customMargin && (
@@ -198,14 +203,14 @@ export function Settings() {
 											<Label>Top</Label>
 											<div className="flex items-center gap-2">
 												<Input type="number" value={settings.marginTop} onChange={(e) => handleChange("marginTop", e.target.value)} className="w-20" />
-												<span>px</span>
+												<span className="text-muted-foreground">px</span>
 											</div>
 										</div>
 										<div className="space-y-2">
 											<Label>Bottom</Label>
 											<div className="flex items-center gap-2">
 												<Input type="number" value={settings.marginBottom} onChange={(e) => handleChange("marginBottom", e.target.value)} className="w-20" />
-												<span>px</span>
+												<span className="text-muted-foreground">px</span>
 											</div>
 										</div>
 										<p className="text-sm text-muted-foreground">This setting will only appear in your live store</p>
@@ -215,13 +220,12 @@ export function Settings() {
 						</div>
 					</Card>
 
-					<Card className="p-6">
-						<h2 className="text-lg font-semibold mb-4">Animation</h2>
-
+					<Card className="p-6 shadow-sm">
+						<h2 className="text-lg font-semibold mb-6 border-b pb-2">Animation</h2>
 						<div className="space-y-6">
 							<div className="space-y-2">
 								<div className="flex items-center justify-between">
-									<Label>Animation</Label>
+									<Label className="font-medium">Animation</Label>
 									<Button variant="outline" size="sm" onClick={toggleAnimation} disabled={isPlaying}>
 										<PlayIcon className="h-4 w-4 mr-2" />
 										{isPlaying ? "Playing..." : "Play animation"}
@@ -237,28 +241,18 @@ export function Settings() {
 						</div>
 					</Card>
 
-					<Card className="p-6">
-						<h2 className="text-lg font-semibold mb-4">Bar Placement</h2>
-
+					<Card className="p-6 shadow-sm">
+						<h2 className="text-lg font-semibold mb-6 border-b pb-2">Bar Placement</h2>
 						<div className="space-y-6">
 							<div className="flex items-center gap-2">
 								<Checkbox id="show-product-page" checked={settings.showOnProductPage} onCheckedChange={(checked) => handleChange("showOnProductPage", checked)} />
-								<Label htmlFor="show-product-page">Product page</Label>
-								<Button variant="ghost" size="icon" className="ml-auto rounded-full" asChild>
-									<a href="#" className="text-muted-foreground hover:text-foreground">
-										<svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4">
-											<path
-												d="M7.5 1.5C4.18629 1.5 1.5 4.18629 1.5 7.5C1.5 10.8137 4.18629 13.5 7.5 13.5C10.8137 13.5 13.5 10.8137 13.5 7.5C13.5 4.18629 10.8137 1.5 7.5 1.5ZM7.5 2.5C10.2614 2.5 12.5 4.73858 12.5 7.5C12.5 10.2614 10.2614 12.5 7.5 12.5C4.73858 12.5 2.5 10.2614 2.5 7.5C2.5 4.73858 4.73858 2.5 7.5 2.5ZM7 4.5V5.5H8V4.5H7ZM7 6.5V10.5H8V6.5H7Z"
-												fill="currentColor"
-												fillRule="evenodd"
-												clipRule="evenodd"></path>
-										</svg>
-									</a>
-								</Button>
+								<Label htmlFor="show-product-page" className="font-medium">
+									Product page
+								</Label>
 							</div>
 
 							<div className="space-y-2">
-								<Label>To display the bar in a custom location place the following code inside the template file.</Label>
+								<Label className="font-medium">To display the bar in a custom location place the following code inside the template file.</Label>
 								<div className="relative">
 									<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{'<div class="ultimate-badges"></div>'}</div>
 									<Button
@@ -282,50 +276,58 @@ export function Settings() {
 					</Card>
 				</div>
 
-				<Card className="flex-1 p-6">
-					<h2 className="text-lg font-semibold mb-4">Bar Preview</h2>
+				<Card className="w-[400px] sticky top-6 self-start">
+					<div className="p-6 border-b">
+						<h2 className="text-lg font-semibold">Bar Preview</h2>
+					</div>
 					<div
-						className="border rounded-lg p-4 mb-4"
+						className="p-6 border rounded-lg space-y-4"
 						style={{
-							textAlign: settings.alignment as any,
 							fontFamily: settings.font,
 							fontSize: `${settings.fontSize}px`,
+							textAlign: settings.alignment as any,
 							color: settings.textColor,
 							marginTop: settings.customMargin ? `${settings.marginTop}px` : undefined,
 							marginBottom: settings.customMargin ? `${settings.marginBottom}px` : undefined,
 						}}>
 						{settings.showHeader && settings.headerText}
-						<div className={`flex justify-center gap-4 mt-2 ${isPlaying ? "animate-" + settings.animation : ""}`}>
-							{settings.selectedBadges.length > 0 ? (
-								settings.selectedBadges.map((badgeId) => (
-									<div
+						<div className={`grid grid-cols-4 gap-4 mt-2 ${isPlaying ? "animate-" + settings.animation : ""}`}>
+							{settings.selectedBadges.map((badgeId) => {
+								const badge = paymentBadges.find((b) => b.id === badgeId);
+								return badge ? (
+									<img
 										key={badgeId}
-										className={`h-8 w-12 rounded ${settings.badgeStyle === "mono" || settings.badgeStyle === "mono-card" ? "bg-gray-400" : ""} ${
-											settings.badgeStyle === "card" || settings.badgeStyle === "mono-card" ? "shadow-sm" : ""
-										}`}
+										src={badge.image}
+										alt={badge.name}
+										className={`h-8 w-auto object-contain ${settings.badgeStyle === "card" || settings.badgeStyle === "mono-card" ? "shadow-sm" : ""}`}
 										style={{
-											backgroundColor: settings.badgeStyle === "original" || settings.badgeStyle === "card" ? settings.badgeColor : undefined,
+											filter: settings.badgeStyle === "mono" || settings.badgeStyle === "mono-card" ? "grayscale(100%)" : "none",
 										}}
 									/>
-								))
-							) : (
-								<>
-									<div className="h-8 w-12 bg-gray-200 rounded" />
-									<div className="h-8 w-12 bg-gray-200 rounded" />
-									<div className="h-8 w-12 bg-gray-200 rounded" />
-									<div className="h-8 w-12 bg-gray-200 rounded" />
-									<div className="h-8 w-12 bg-gray-200 rounded" />
-								</>
-							)}
+								) : null;
+							})}
 						</div>
 					</div>
-					<Button className="w-full" onClick={() => setBadgeSelectorOpen(true)}>
-						Select Badges
-					</Button>
+					<div className="p-6 pt-0">
+						<Button className="w-full" onClick={() => setBadgeSelectorOpen(true)}>
+							Select Badges
+						</Button>
+					</div>
 				</Card>
 			</div>
 
-			<BadgeSelector open={badgeSelectorOpen} onOpenChange={setBadgeSelectorOpen} onSave={handleSaveBadges} />
+			<BadgeSelector
+				open={badgeSelectorOpen}
+				onOpenChange={setBadgeSelectorOpen}
+				badges={paymentBadges}
+				initialSelected={settings.selectedBadges}
+				onSave={(selectedBadges) => {
+					setSettings((prev) => ({
+						...prev,
+						selectedBadges,
+					}));
+				}}
+			/>
 		</div>
 	);
 }

@@ -3,13 +3,12 @@
 /**
  * Plugin Name: TX Trust Badges
  * Plugin URI: https://yourwebsite.com/tx-badges
- * Description: Display customizable trust badges on your WordPress site to boost customer confidence.
+ * Description: Display customizable trust badges on your website to boost visitor confidence and increase conversions.
  * Version: 1.0.0
- * Author: Your Name
+ * Author: ThemeXpert
  * Author URI: https://yourwebsite.com
  * Text Domain: tx-badges
  * Domain Path: /languages
- * Requires at least: 5.8
  * Requires PHP: 7.4
  */
 
