@@ -7,23 +7,36 @@ import { Switch } from "./ui/switch";
 import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { PlayIcon, AlignCenter, AlignLeft, AlignRight } from "lucide-react";
+import { PlayIcon, AlignCenter, AlignLeft, AlignRight, Copy, Check } from "lucide-react";
 import { ColorPicker } from "./ui/color-picker";
+
+declare global {
+	interface Window {
+		txBadgesSettings: {
+			pluginUrl: string;
+			ajaxUrl: string;
+			nonce: string;
+			restUrl: string;
+			mediaTitle: string;
+			mediaButton: string;
+		};
+	}
+}
 
 // Define payment badges data
 const paymentBadges = [
-	{ id: "mastercard", name: "Mastercard", image: "https://cdn.worldvectorlogo.com/logos/mastercard-2.svg" },
-	{ id: "visa", name: "Visa", image: "https://cdn.worldvectorlogo.com/logos/visa.svg" },
-	{ id: "amex", name: "American Express", image: "https://cdn.worldvectorlogo.com/logos/american-express-2.svg" },
-	{ id: "apple-pay", name: "Apple Pay", image: "https://cdn.worldvectorlogo.com/logos/apple-pay.svg" },
-	{ id: "paypal", name: "PayPal", image: "https://cdn.worldvectorlogo.com/logos/paypal-3.svg" },
-	{ id: "google-pay", name: "Google Pay", image: "https://cdn.worldvectorlogo.com/logos/google-pay.svg" },
-	{ id: "stripe", name: "Stripe", image: "https://cdn.worldvectorlogo.com/logos/stripe-4.svg" },
-	{ id: "klarna", name: "Klarna", image: "https://cdn.worldvectorlogo.com/logos/klarna-1.svg" },
-	{ id: "bitcoin", name: "Bitcoin", image: "https://cdn.worldvectorlogo.com/logos/bitcoin.svg" },
-	{ id: "ethereum", name: "Ethereum", image: "https://cdn.worldvectorlogo.com/logos/ethereum-1.svg" },
-	{ id: "shopify", name: "Shopify Pay", image: "https://cdn.worldvectorlogo.com/logos/shopify.svg" },
-	{ id: "alipay", name: "Alipay", image: "https://cdn.worldvectorlogo.com/logos/alipay.svg" },
+	{ id: "mastercard", name: "Mastercard", image: `${window.txBadgesSettings.pluginUrl}assets/images/mastercard.svg` },
+	{ id: "visa", name: "Visa", image: `${window.txBadgesSettings.pluginUrl}assets/images/visa.svg` },
+	{ id: "amex", name: "American Express", image: `${window.txBadgesSettings.pluginUrl}assets/images/american-express.svg` },
+	{ id: "apple-pay", name: "Apple Pay", image: `${window.txBadgesSettings.pluginUrl}assets/images/apple-pay.svg` },
+	{ id: "paypal", name: "PayPal", image: `${window.txBadgesSettings.pluginUrl}assets/images/paypal.svg` },
+	{ id: "google-pay", name: "Google Pay", image: `${window.txBadgesSettings.pluginUrl}assets/images/google-pay.svg` },
+	{ id: "stripe", name: "Stripe", image: `${window.txBadgesSettings.pluginUrl}assets/images/stripe.svg` },
+	{ id: "klarna", name: "Klarna", image: `${window.txBadgesSettings.pluginUrl}assets/images/klarna-logo-black.svg` },
+	{ id: "bitcoin", name: "Bitcoin", image: `${window.txBadgesSettings.pluginUrl}assets/images/bitcoin-logo.svg` },
+	{ id: "ethereum", name: "Ethereum", image: `${window.txBadgesSettings.pluginUrl}assets/images/ethereum.svg` },
+	{ id: "shopify", name: "Shopify Pay", image: `${window.txBadgesSettings.pluginUrl}assets/images/shopify.svg` },
+	{ id: "alipay", name: "Alipay", image: `${window.txBadgesSettings.pluginUrl}assets/images/alipay-logo.svg` },
 ];
 
 export function Settings() {
@@ -49,6 +62,7 @@ export function Settings() {
 
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [badgeSelectorOpen, setBadgeSelectorOpen] = useState(false);
+	const [showCopied, setShowCopied] = useState(false);
 
 	const handleChange = (key: string, value: any) => {
 		setSettings((prev) => ({ ...prev, [key]: value }));
@@ -64,8 +78,15 @@ export function Settings() {
 		setTimeout(() => setIsPlaying(false), 2000);
 	};
 
+	const handleCopyColor = () => {
+		navigator.clipboard.writeText(settings.textColor);
+		setShowCopied(true);
+		setTimeout(() => setShowCopied(false), 3000); // Hide after 3 seconds
+	};
+
 	return (
 		<div className="max-w-[1200px] mx-auto p-6">
+			{/* Enable/Disable */}
 			<div className="bg-background border rounded-lg p-4 mb-6 flex items-center gap-2">
 				<div className="flex-1">
 					<div className="flex items-center gap-2">
@@ -77,24 +98,27 @@ export function Settings() {
 				<Button onClick={() => handleChange("enabled", !settings.enabled)}>Enable</Button>
 			</div>
 
+			{/* Main Settings */}
 			<div className="flex gap-8">
 				<div className="flex-1 space-y-6">
+					{/* Header */}
 					<Card className="p-6 shadow-sm">
-						<h2 className="text-lg font-semibold mb-6 border-b pb-2">Header Settings</h2>
+						<h2 className="text-lg font-semibold border-b pb-2">Header Settings</h2>
 						<div className="space-y-5">
-							<div className="flex items-center justify-between">
-								<Label htmlFor="show-header" className="font-medium">
-									Show header
-								</Label>
-								<Switch id="show-header" checked={settings.showHeader} onCheckedChange={(checked) => handleChange("showHeader", checked)} />
-							</div>
-
 							<div className="flex flex-col gap-4 p-6">
+								{/* Show header */}
+								<div className="flex items-center justify-between">
+									<Label className="font-medium">Show header</Label>
+									<Switch checked={settings.showHeader} onCheckedChange={(checked) => handleChange("showHeader", checked)} />
+								</div>
+
+								{/* Header text input */}
 								<div className="space-y-2">
 									<Label className="font-medium">Header text</Label>
 									<Input value={settings.headerText} onChange={(e) => handleChange("headerText", e.target.value)} />
 								</div>
 
+								{/* Fonts */}
 								<div className="space-y-2">
 									<Label className="font-medium">Fonts</Label>
 									<Select value={settings.font} onValueChange={(value) => handleChange("font", value)}>
@@ -109,13 +133,15 @@ export function Settings() {
 									</Select>
 								</div>
 
+								{/* Font Size */}
 								<div className="space-y-2">
 									<Label className="font-medium">Font Size (px)</Label>
 									<div>
-										<Input type="number" value={settings.fontSize} onChange={(e) => handleChange("fontSize", e.target.value)} className="w-32" />
+										<Input type="number" value={settings.fontSize} onChange={(e) => handleChange("fontSize", e.target.value)} className="w-[150px]" />
 									</div>
 								</div>
 
+								{/* Alignment */}
 								<div className="space-y-2">
 									<Label className="font-medium">Alignment</Label>
 									<div className="flex gap-2 border rounded-md p-1 w-[150px]">
@@ -131,25 +157,31 @@ export function Settings() {
 									</div>
 								</div>
 
+								{/* Text Color */}
 								<div className="space-y-2">
 									<Label className="font-medium">Text Color</Label>
-									<ColorPicker value={settings.textColor} onChange={(value) => handleChange("textColor", value)} />
-								</div>
-
-								<div className="space-y-2">
-									<Label className="font-medium">Margin (px)</Label>
-									<div className="flex items-center gap-2">
-										<Input type="number" value={settings.marginTop} onChange={(e) => handleChange("marginTop", e.target.value)} className="w-20" />
-										<Input type="number" value={settings.marginBottom} onChange={(e) => handleChange("marginBottom", e.target.value)} className="w-20" />
+									<div className="flex items-center gap-2 p-2 border w-[250px] rounded-md bg-white">
+										<div className="flex items-center gap-2 flex-1">
+											<Input type="color" value={settings.textColor} onChange={(e) => handleChange("textColor", e.target.value)} className="w-6 h-6 p-0 border-0 mr-2" />
+											<span className="text-sm">{settings.textColor}</span>
+										</div>
+										<div className="flex items-center gap-2">
+											{showCopied && <span className="text-xs text-green-600">Color copied</span>}
+											<Button variant="default" size="icon" className="h-6 w-6" onClick={handleCopyColor}>
+												{showCopied ? <Check className="h-4 w-4 text-white" /> : <Copy className="h-4 w-4" />}
+											</Button>
+										</div>
 									</div>
 								</div>
 							</div>
 						</div>
 					</Card>
 
+					{/* Badges */}
 					<Card className="p-6 shadow-sm">
 						<h2 className="text-lg font-semibold mb-6 border-b pb-2">Badge Settings</h2>
 						<div className="space-y-6">
+							{/* Badge Style */}
 							<div className="space-y-2">
 								<Label className="font-medium">Badge style</Label>
 								<div className="grid grid-cols-2 gap-4">
