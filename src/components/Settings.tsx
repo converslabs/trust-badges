@@ -7,8 +7,7 @@ import { Switch } from "./ui/switch";
 import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { PlayIcon, AlignCenter, AlignLeft, AlignRight, Copy, Check, CheckCircle, AlertCircle } from "lucide-react";
-import { ColorPicker } from "./ui/color-picker";
+import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, AlertCircle } from "lucide-react";
 import { paymentBadges } from "./pages/assist/PaymentBadges";
 
 declare global {
@@ -47,10 +46,34 @@ export function Settings() {
 
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [badgeSelectorOpen, setBadgeSelectorOpen] = useState(false);
-	const [showCopied, setShowCopied] = useState(false);
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
 	const handleChange = (key: string, value: any) => {
 		setSettings((prev) => ({ ...prev, [key]: value }));
+		setHasUnsavedChanges(true);
+	};
+
+	const saveSettings = () => {
+		const formData = new FormData();
+		formData.append("action", "save_tx_badges_settings");
+		formData.append("nonce", window.txBadgesSettings.nonce);
+		formData.append("settings", JSON.stringify(settings));
+
+		fetch(window.txBadgesSettings.ajaxUrl, {
+			method: "POST",
+			body: formData,
+		})
+			.then((response) => response.json())
+			.then((data) => {
+				if (data.success) {
+					setHasUnsavedChanges(false);
+				} else {
+					console.error("Failed to save settings:", data.message);
+				}
+			})
+			.catch((error) => {
+				console.error("Error saving settings:", error);
+			});
 	};
 
 	const handleSaveBadges = (selectedBadges: string[]) => {
@@ -63,24 +86,27 @@ export function Settings() {
 		setTimeout(() => setIsPlaying(false), 2000);
 	};
 
-	const handleCopyColor = () => {
-		navigator.clipboard.writeText(settings.textColor);
-		setShowCopied(true);
-		setTimeout(() => setShowCopied(false), 3000); // Hide after 3 seconds
-	};
-
 	// Helper function to get size classes
-	const getBadgeSize = (size: string) => {
-		switch (size) {
-			case "extra-small":
-				return "h-8 w-8";
-			case "small":
-				return "h-10 w-10";
-			case "large":
-				return "h-16 w-16";
-			default:
-				return "h-12 w-12";
-		}
+	type BadgeSize = "extra-small" | "small" | "medium" | "large";
+
+	const getBadgeSize = (size: BadgeSize, isMobile = false) => {
+		const sizes = {
+			mobile: {
+				"extra-small": "h-6 w-6",
+				small: "h-8 w-8",
+				medium: "h-10 w-10",
+				large: "h-12 w-12",
+			},
+			desktop: {
+				"extra-small": "h-8 w-8",
+				small: "h-10 w-10",
+				medium: "h-12 w-12",
+				large: "h-16 w-16",
+			},
+		} as const;
+
+		const sizeSet = isMobile ? sizes.mobile : sizes.desktop;
+		return sizeSet[size] ?? sizeSet["medium"];
 	};
 
 	return (
@@ -164,16 +190,8 @@ export function Settings() {
 								<div className="space-y-2">
 									<Label className="font-medium">Text Color</Label>
 									<div className="flex items-center gap-2 p-2 border w-[250px] rounded-md bg-white">
-										<div className="flex items-center gap-2 flex-1">
-											<Input type="color" value={settings.textColor} onChange={(e) => handleChange("textColor", e.target.value)} className="w-6 h-6 p-0 border-0 mr-2" />
-											<span className="text-sm">{settings.textColor}</span>
-										</div>
-										<div className="flex items-center gap-2">
-											{showCopied && <span className="text-xs text-green-600">Color copied</span>}
-											<Button variant="default" size="icon" className="h-6 w-6" onClick={handleCopyColor}>
-												{showCopied ? <Check className="h-4 w-4 text-white" /> : <Copy className="h-4 w-4" />}
-											</Button>
-										</div>
+										<Input type="color" value={settings.textColor} onChange={(e) => handleChange("textColor", e.target.value)} className="w-6 h-6 p-0 border-0" />
+										<span className="text-sm">{settings.textColor}</span>
 									</div>
 								</div>
 							</div>
@@ -208,34 +226,44 @@ export function Settings() {
 									</div>
 								</div>
 
+								{/* Badge Size - Desktop */}
 								<div className="space-y-2">
 									<Label className="font-medium">Badge size desktop</Label>
-									<div className="space-y-1">
-										<select value={settings.badgeSizeDesktop} onChange={(e) => handleChange("badgeSizeDesktop", e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2">
-											<option value="extra-small">Extra Small</option>
-											<option value="small">Small</option>
-											<option value="medium">Medium</option>
-											<option value="large">Large</option>
-										</select>
-									</div>
+									<Select value={settings.badgeSizeDesktop} onValueChange={(value) => handleChange("badgeSizeDesktop", value)}>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Select desktop size" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="extra-small">Extra Small</SelectItem>
+											<SelectItem value="small">Small</SelectItem>
+											<SelectItem value="medium">Medium</SelectItem>
+											<SelectItem value="large">Large</SelectItem>
+										</SelectContent>
+									</Select>
 								</div>
 
+								{/* Badge Size - Mobile */}
 								<div className="space-y-2">
 									<Label className="font-medium">Badge size mobile</Label>
-									<div className="space-y-1">
-										<select value={settings.badgeSizeMobile} onChange={(e) => handleChange("badgeSizeMobile", e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2">
-											<option value="extra-small">Extra Small</option>
-											<option value="small">Small</option>
-											<option value="medium">Medium</option>
-											<option value="large">Large</option>
-										</select>
-									</div>
+									<Select value={settings.badgeSizeMobile} onValueChange={(value) => handleChange("badgeSizeMobile", value)}>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Select mobile size" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="extra-small">Extra Small</SelectItem>
+											<SelectItem value="small">Small</SelectItem>
+											<SelectItem value="medium">Medium</SelectItem>
+											<SelectItem value="large">Large</SelectItem>
+										</SelectContent>
+									</Select>
 								</div>
 
+								{/* Badge Color */}
 								<div className="space-y-2">
 									<Label className="font-medium">Badge color</Label>
-									<div className="flex items-center gap-2">
-										<ColorPicker value={settings.badgeColor} onChange={(value) => handleChange("badgeColor", value)} />
+									<div className="flex items-center gap-2 p-2 border w-[250px] rounded-md bg-white">
+										<Input type="color" value={settings.badgeColor} onChange={(e) => handleChange("badgeColor", e.target.value)} className="w-6 h-6 p-0 border-0" />
+										<span className="text-sm">{settings.badgeColor}</span>
 									</div>
 								</div>
 
@@ -327,6 +355,7 @@ export function Settings() {
 					</Card>
 				</div>
 
+				{/* Bar Preview */}
 				<Card className="w-[400px] sticky top-6 self-start">
 					<div className="p-6 border-b">
 						<h2 className="text-lg font-semibold">Bar Preview</h2>
@@ -350,7 +379,11 @@ export function Settings() {
 										key={badgeId}
 										src={badge.image}
 										alt={badge.name}
-										className={`object-contain ${getBadgeSize(settings.badgeSizeDesktop)} ${settings.badgeStyle === "card" || settings.badgeStyle === "mono-card" ? "px-2 bg-gray-400 rounded text-white" : ""}`}
+										className={`object-contain 
+											${getBadgeSize(settings.badgeSizeDesktop as BadgeSize)} 
+											md:${getBadgeSize(settings.badgeSizeDesktop as BadgeSize)} 
+											${getBadgeSize(settings.badgeSizeMobile as BadgeSize, true)}
+											${settings.badgeStyle === "card" || settings.badgeStyle === "mono-card" ? "px-2 bg-gray-400 rounded text-white" : ""}`}
 										style={{
 											filter: settings.badgeStyle === "mono" || settings.badgeStyle === "mono-card" ? "grayscale(100%)" : "none",
 										}}
@@ -367,18 +400,15 @@ export function Settings() {
 				</Card>
 			</div>
 
-			<BadgeSelector
-				open={badgeSelectorOpen}
-				onOpenChange={setBadgeSelectorOpen}
-				badges={paymentBadges}
-				initialSelected={settings.selectedBadges}
-				onSave={(selectedBadges) => {
-					setSettings((prev) => ({
-						...prev,
-						selectedBadges,
-					}));
-				}}
-			/>
+			{/* Badge Selector Modal */}
+			<BadgeSelector open={badgeSelectorOpen} onOpenChange={setBadgeSelectorOpen} badges={paymentBadges} initialSelected={settings.selectedBadges} onSave={handleSaveBadges} />
+
+			{/* Sticky Save Button */}
+			<div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-end">
+				<Button onClick={saveSettings} disabled={!hasUnsavedChanges} className={`${hasUnsavedChanges ? "bg-primary hover:bg-primary/90" : "bg-gray-200"}`}>
+					{hasUnsavedChanges ? "Save Changes" : "All Changes Saved"}
+				</Button>
+			</div>
 		</div>
 	);
 }

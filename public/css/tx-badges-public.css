@@ -9,8 +9,10 @@
 
 .tx-badge {
     flex: 0 0 auto;
-    max-width: 150px;
     transition: transform 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tx-badge:hover {
@@ -19,12 +21,52 @@
 
 .tx-badge img {
     width: 100%;
-    height: auto;
+    height: 100%;
     object-fit: contain;
 }
 
+/* Desktop Sizes */
+@media (min-width: 769px) {
+    .tx-badge[data-desktop-size="extra-small"] {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .tx-badge[data-desktop-size="small"] {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .tx-badge[data-desktop-size="medium"] {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .tx-badge[data-desktop-size="large"] {
+        width: 64px;
+        height: 64px;
+    }
+}
+
+/* Mobile Sizes */
 @media (max-width: 768px) {
-    .tx-badge {
-        max-width: 100px;
+    .tx-badge[data-mobile-size="extra-small"] {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .tx-badge[data-mobile-size="small"] {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .tx-badge[data-mobile-size="medium"] {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .tx-badge[data-mobile-size="large"] {
+        width: 48px;
+        height: 48px;
     }
 }
