@@ -7,8 +7,10 @@ import { Switch } from "./ui/switch";
 import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, AlertCircle } from "lucide-react";
+import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, AlertCircle, Copy, HelpCircle, PlayCircle } from "lucide-react";
 import { paymentBadges } from "./pages/assist/PaymentBadges";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
 
 declare global {
 	interface Window {
@@ -31,6 +33,7 @@ export function Settings() {
 		font: "Asap",
 		fontSize: "18",
 		alignment: "center",
+		badgeAlignment: "center",
 		textColor: "#000000",
 		badgeStyle: "original",
 		badgeSizeDesktop: "medium",
@@ -39,7 +42,10 @@ export function Settings() {
 		customMargin: false,
 		marginTop: "0",
 		marginBottom: "0",
+		marginLeft: "0",
+		marginRight: "0",
 		animation: "fade",
+		animationDuration: 0.6,
 		showOnProductPage: true,
 		selectedBadges: ["stripe", "shopify", "paypal", "apple-pay"],
 	});
@@ -47,6 +53,7 @@ export function Settings() {
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [badgeSelectorOpen, setBadgeSelectorOpen] = useState(false);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+	const [showCopied, setShowCopied] = useState(false);
 
 	const handleChange = (key: string, value: any) => {
 		setSettings((prev) => ({ ...prev, [key]: value }));
@@ -84,6 +91,34 @@ export function Settings() {
 	const toggleAnimation = () => {
 		setIsPlaying(!isPlaying);
 		setTimeout(() => setIsPlaying(false), 2000);
+	};
+
+	const copyToClipboard = async (text: string) => {
+		try {
+			if (navigator.clipboard && window.isSecureContext) {
+				await navigator.clipboard.writeText(text);
+			} else {
+				// Fallback for older browsers
+				const textArea = document.createElement("textarea");
+				textArea.value = text;
+				textArea.style.position = "fixed";
+				textArea.style.left = "-999999px";
+				textArea.style.top = "-999999px";
+				document.body.appendChild(textArea);
+				textArea.focus();
+				textArea.select();
+				try {
+					document.execCommand("copy");
+					textArea.remove();
+				} catch (err) {
+					console.error("Failed to copy text:", err);
+				}
+			}
+			setShowCopied(true);
+			setTimeout(() => setShowCopied(false), 2000);
+		} catch (err) {
+			console.error("Failed to copy text:", err);
+		}
 	};
 
 	// Helper function to get size classes
@@ -189,7 +224,7 @@ export function Settings() {
 								{/* Text Color */}
 								<div className="space-y-2">
 									<Label className="font-medium">Text Color</Label>
-									<div className="flex items-center gap-2 p-2 border w-[250px] rounded-md bg-white">
+									<div className="flex items-center gap-2 p-2 border w-[150px] rounded-md bg-white">
 										<Input type="color" value={settings.textColor} onChange={(e) => handleChange("textColor", e.target.value)} className="w-6 h-6 p-0 border-0" />
 										<span className="text-sm">{settings.textColor}</span>
 									</div>
@@ -226,7 +261,23 @@ export function Settings() {
 									</div>
 								</div>
 
-								{/* Badge Size - Desktop */}
+								{/* Badge Alignment */}
+								<div className="space-y-2">
+									<Label className="font-medium">Badges Alignment</Label>
+									<div className="flex gap-2 border rounded-md p-1 w-[150px]">
+										<Button variant={settings.badgeAlignment === "left" ? "default" : "ghost"} size="sm" onClick={() => handleChange("badgeAlignment", "left")} className="h-8 w-10">
+											<AlignLeft />
+										</Button>
+										<Button variant={settings.badgeAlignment === "center" ? "default" : "ghost"} size="sm" onClick={() => handleChange("badgeAlignment", "center")} className="h-8 w-10">
+											<AlignCenter />
+										</Button>
+										<Button variant={settings.badgeAlignment === "right" ? "default" : "ghost"} size="sm" onClick={() => handleChange("badgeAlignment", "right")} className="h-8 w-10">
+											<AlignRight />
+										</Button>
+									</div>
+								</div>
+
+								{/* Badge Size - Desktop  --  NEED TO FIX ISSUE */}
 								<div className="space-y-2">
 									<Label className="font-medium">Badge size desktop</Label>
 									<Select value={settings.badgeSizeDesktop} onValueChange={(value) => handleChange("badgeSizeDesktop", value)}>
@@ -242,7 +293,7 @@ export function Settings() {
 									</Select>
 								</div>
 
-								{/* Badge Size - Mobile */}
+								{/* Badge Size - Mobile  --  NEED TO FIX ISSUE */}
 								<div className="space-y-2">
 									<Label className="font-medium">Badge size mobile</Label>
 									<Select value={settings.badgeSizeMobile} onValueChange={(value) => handleChange("badgeSizeMobile", value)}>
@@ -258,40 +309,59 @@ export function Settings() {
 									</Select>
 								</div>
 
-								{/* Badge Color */}
+								{/* Badge Color  --  NOT WORKING */}
 								<div className="space-y-2">
 									<Label className="font-medium">Badge color</Label>
-									<div className="flex items-center gap-2 p-2 border w-[250px] rounded-md bg-white">
+									<div className="flex items-center gap-2 p-2 border w-[150px] rounded-md bg-white">
 										<Input type="color" value={settings.badgeColor} onChange={(e) => handleChange("badgeColor", e.target.value)} className="w-6 h-6 p-0 border-0" />
 										<span className="text-sm">{settings.badgeColor}</span>
 									</div>
 								</div>
 
+								{/* Custom Margin */}
 								<div className="space-y-4">
-									<div className="flex items-center gap-2">
-										<Checkbox id="custom-margin" checked={settings.customMargin} onCheckedChange={(checked) => handleChange("customMargin", checked)} />
-										<Label htmlFor="custom-margin" className="font-medium">
-											Custom Margin
-										</Label>
+									<div>
+										<div className="flex items-center justify-between">
+											<Label className="font-medium">Custom Margin</Label>
+											<Switch checked={settings.customMargin} onCheckedChange={(checked) => handleChange("customMargin", checked)} />
+										</div>
+										{/* <p className="mt-2 text-sm text-muted-foreground">This setting will only appear in your live store</p> */}
 									</div>
 
 									{settings.customMargin && (
-										<div className="space-y-4 pl-6">
-											<div className="space-y-2">
-												<Label>Top</Label>
-												<div className="flex items-center gap-2">
-													<Input type="number" value={settings.marginTop} onChange={(e) => handleChange("marginTop", e.target.value)} className="w-20" />
-													<span className="text-muted-foreground">px</span>
+										<div className="space-y-4">
+											<div className="flex gap-6">
+												<div>
+													<Label className="text-sm">Top</Label>
+													<div className="flex items-center gap-3 mt-1">
+														<Input type="number" value={settings.marginTop} onChange={(e) => handleChange("marginTop", e.target.value)} className="w-25" />
+														<span className="text-muted-foreground">px</span>
+													</div>
+												</div>
+												<div>
+													<Label className="text-sm">Bottom</Label>
+													<div className="flex items-center gap-3 mt-1">
+														<Input type="number" value={settings.marginBottom} onChange={(e) => handleChange("marginBottom", e.target.value)} className="w-25" />
+														<span className="text-muted-foreground">px</span>
+													</div>
 												</div>
 											</div>
-											<div className="space-y-2">
-												<Label>Bottom</Label>
-												<div className="flex items-center gap-2">
-													<Input type="number" value={settings.marginBottom} onChange={(e) => handleChange("marginBottom", e.target.value)} className="w-20" />
-													<span className="text-muted-foreground">px</span>
+											<div className="flex gap-6">
+												<div>
+													<Label className="text-sm">Left</Label>
+													<div className="flex items-center gap-3 mt-1">
+														<Input type="number" value={settings.marginLeft} onChange={(e) => handleChange("marginLeft", e.target.value)} className="w-25" />
+														<span className="text-muted-foreground">px</span>
+													</div>
+												</div>
+												<div>
+													<Label className="text-sm">Right</Label>
+													<div className="flex items-center gap-3 mt-1">
+														<Input type="number" value={settings.marginRight} onChange={(e) => handleChange("marginRight", e.target.value)} className="w-25" />
+														<span className="text-muted-foreground">px</span>
+													</div>
 												</div>
 											</div>
-											<p className="text-sm text-muted-foreground">This setting will only appear in your live store</p>
 										</div>
 									)}
 								</div>
@@ -299,10 +369,11 @@ export function Settings() {
 						</div>
 					</Card>
 
+					{/* Animation */}
 					<Card className="p-6 shadow-sm">
 						<h2 className="text-lg font-semibold mb-6 border-b pb-2">Animation</h2>
 						<div className="space-y-6">
-							<div className="space-y-2">
+							<div className="space-y-2 px-6">
 								<div className="flex items-center justify-between">
 									<Label className="font-medium">Animation</Label>
 									<Button variant="outline" size="sm" onClick={toggleAnimation} disabled={isPlaying}>
@@ -310,46 +381,94 @@ export function Settings() {
 										{isPlaying ? "Playing..." : "Play animation"}
 									</Button>
 								</div>
-								<select value={settings.animation} onChange={(e) => handleChange("animation", e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2">
-									<option value="groove">Groove</option>
-									<option value="fade">Fade</option>
-									<option value="slide">Slide</option>
-									<option value="bounce">Bounce</option>
-								</select>
+								<Select value={settings.animation} onValueChange={(value) => handleChange("animation", value)}>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="Select animation" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="fade">Fade</SelectItem>
+										<SelectItem value="slide">Slide</SelectItem>
+										<SelectItem value="scale">Scale</SelectItem>
+										<SelectItem value="bounce">Bounce</SelectItem>
+									</SelectContent>
+								</Select>
+								<div className="space-y-2 mt-4">
+									<Label className="font-medium">Animation Duration (seconds)</Label>
+									<Input type="number" min="0.1" max="2" step="0.1" value={settings.animationDuration} onChange={(e) => handleChange("animationDuration", parseFloat(e.target.value))} className="w-[150px]" />
+								</div>
 							</div>
 						</div>
 					</Card>
 
-					<Card className="p-6 shadow-sm">
-						<h2 className="text-lg font-semibold mb-6 border-b pb-2">Bar Placement</h2>
-						<div className="space-y-6">
-							<div className="flex items-center gap-2">
-								<Checkbox id="show-product-page" checked={settings.showOnProductPage} onCheckedChange={(checked) => handleChange("showOnProductPage", checked)} />
-								<Label htmlFor="show-product-page" className="font-medium">
-									Product page
-								</Label>
-							</div>
+					{/* Bar Placement */}
+					<Card className="p-6 shadow-sm mb-6">
+						<div className="px-6">
+							<h2 className="text-lg font-semibold mb-6 border-b pb-2">Bar Placement</h2>
+							<div className="space-y-6">
+								<div className="space-y-4">
+									<div>
+										<h4 className="text-sm font-medium mb-2">Show bar on</h4>
+										<div className="flex items-center gap-2">
+											<Checkbox id="show-product-page" checked={settings.showOnProductPage} onCheckedChange={(checked) => handleChange("showOnProductPage", checked)} />
+											<Label htmlFor="show-product-page" className="text-sm">
+												Product page
+											</Label>
+											<div className="flex-1 flex justify-end">
+												<TooltipProvider>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<Button variant="ghost" size="icon" className="h-5 w-5">
+																<HelpCircle className="h-5 w-5 text-black" />
+															</Button>
+														</TooltipTrigger>
+														<TooltipContent>
+															<p className="w-[150px]">The bar would show below the “Add to Cart” button.</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
+										</div>
+									</div>
 
-							<div className="space-y-2">
-								<Label className="font-medium">To display the bar in a custom location place the following code inside the template file.</Label>
-								<div className="relative">
-									<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{'<div class="ultimate-badges"></div>'}</div>
-									<Button
-										variant="secondary"
-										size="sm"
-										className="absolute right-2 top-1.5"
-										onClick={() => {
-											navigator.clipboard.writeText('<div class="ultimate-badges"></div>');
-										}}>
-										Copy
-									</Button>
+									<div className="space-y-2">
+										<p className="text-sm">
+											To display the bar in a custom location place the following code inside the{" "}
+											<a href="#" className="text-blue-600 hover:underline">
+												template file
+											</a>
+											.
+										</p>
+										<div className="relative">
+											<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{'<div class="ultimate-badges"></div>'}</div>
+											<div className="absolute right-2 top-1.5 flex gap-1">
+												<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard('<div class="ultimate-badges"></div>')}>
+													{showCopied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
+												</Button>
+											</div>
+											<AnimatePresence>
+												{showCopied && (
+													<motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-0 right-0 top-full mt-2 text-center z-10">
+														<span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
+															<CheckCircle className="h-4 w-4 mr-1 text-green-500" /> Copied to clipboard
+														</span>
+													</motion.div>
+												)}
+											</AnimatePresence>
+										</div>
+									</div>
+
+									<div className="space-y-2">
+										<p className="text-sm font-medium">Need help?</p>
+										<div className="flex items-center gap-4">
+											<Button variant="link" className="h-auto p-0 text-sm text-blue-600 hover:text-blue-700" asChild>
+												<a href="#" className="flex items-center gap-2">
+													<PlayCircle />
+													Step by Step Guide
+												</a>
+											</Button>
+										</div>
+									</div>
 								</div>
-							</div>
-
-							<div className="flex items-center gap-2">
-								<Button variant="link" className="h-auto p-0 text-sm text-blue-600" asChild>
-									<a href="#">Step by Step Guide</a>
-								</Button>
 							</div>
 						</div>
 					</Card>
@@ -369,28 +488,55 @@ export function Settings() {
 							color: settings.textColor,
 							marginTop: settings.customMargin ? `${settings.marginTop}px` : undefined,
 							marginBottom: settings.customMargin ? `${settings.marginBottom}px` : undefined,
+							marginLeft: settings.customMargin ? `${settings.marginLeft}px` : undefined,
+							marginRight: settings.customMargin ? `${settings.marginRight}px` : undefined,
 						}}>
 						{settings.showHeader && settings.headerText}
-						<div className={`grid grid-cols-4 gap-4 mt-2 ${isPlaying ? "animate-" + settings.animation : ""}`}>
-							{settings.selectedBadges.map((badgeId) => {
-								const badge = paymentBadges.find((b) => b.id === badgeId);
-								return badge ? (
-									<img
-										key={badgeId}
-										src={badge.image}
-										alt={badge.name}
-										className={`object-contain 
-											${getBadgeSize(settings.badgeSizeDesktop as BadgeSize)} 
-											md:${getBadgeSize(settings.badgeSizeDesktop as BadgeSize)} 
-											${getBadgeSize(settings.badgeSizeMobile as BadgeSize, true)}
-											${settings.badgeStyle === "card" || settings.badgeStyle === "mono-card" ? "px-2 bg-gray-400 rounded text-white" : ""}`}
-										style={{
-											filter: settings.badgeStyle === "mono" || settings.badgeStyle === "mono-card" ? "grayscale(100%)" : "none",
-										}}
-									/>
-								) : null;
-							})}
-						</div>
+						<AnimatePresence>
+							<motion.div
+								className="flex flex-wrap gap-4 mt-2"
+								initial={false}
+								animate={
+									isPlaying
+										? {
+												opacity: settings.animation === "fade" ? [0, 1] : 1,
+												x: settings.animation === "slide" ? [-100, 0] : 0,
+												scale: settings.animation === "scale" ? [0, 1] : 1,
+												y: settings.animation === "bounce" ? [-20, 0] : 0,
+										  }
+										: {}
+								}
+								transition={{
+									duration: settings.animationDuration,
+									ease: settings.animation === "bounce" ? "easeOut" : "easeInOut",
+									repeat: isPlaying ? 0 : 0,
+								}}
+								style={{
+									display: "flex",
+									flexWrap: "wrap",
+									gap: "1rem",
+									justifyContent: settings.badgeAlignment === "left" ? "flex-start" : settings.badgeAlignment === "right" ? "flex-end" : "center",
+								}}>
+								{settings.selectedBadges.map((badgeId) => {
+									const badge = paymentBadges.find((b) => b.id === badgeId);
+									return badge ? (
+										<img
+											key={badgeId}
+											src={badge.image}
+											alt={badge.name}
+											className={`object-contain 
+												${getBadgeSize(settings.badgeSizeDesktop as BadgeSize)} 
+												md:${getBadgeSize(settings.badgeSizeDesktop as BadgeSize)} 
+												${getBadgeSize(settings.badgeSizeMobile as BadgeSize, true)}
+												${settings.badgeStyle === "card" || settings.badgeStyle === "mono-card" ? "px-2 bg-gray-400 rounded text-white" : ""}`}
+											style={{
+												filter: settings.badgeStyle === "mono" || settings.badgeStyle === "mono-card" ? "grayscale(100%)" : "none",
+											}}
+										/>
+									) : null;
+								})}
+							</motion.div>
+						</AnimatePresence>
 					</div>
 					<div className="p-6 pt-0">
 						<Button className="w-full" onClick={() => setBadgeSelectorOpen(true)}>
