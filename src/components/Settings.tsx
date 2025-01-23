@@ -27,10 +27,8 @@ declare global {
 
 export function Settings() {
 	const [settings, setSettings] = useState({
-		enabled: false,
 		showHeader: true,
 		headerText: "Secure Checkout With",
-		font: "Asap",
 		fontSize: "18",
 		alignment: "center",
 		badgeAlignment: "center",
@@ -45,7 +43,6 @@ export function Settings() {
 		marginLeft: "0",
 		marginRight: "0",
 		animation: "fade",
-		animationDuration: 0.6,
 		showOnProductPage: true,
 		selectedBadges: ["stripe", "shopify", "paypal", "apple-pay"],
 	});
@@ -89,8 +86,8 @@ export function Settings() {
 	};
 
 	const toggleAnimation = () => {
-		setIsPlaying(!isPlaying);
-		setTimeout(() => setIsPlaying(false), 2000);
+		setIsPlaying(true);
+		setTimeout(() => setIsPlaying(false), 400); // 400ms = 0.4 seconds
 	};
 
 	const copyToClipboard = async (text: string) => {
@@ -146,22 +143,6 @@ export function Settings() {
 
 	return (
 		<div className="max-w-[1200px] mx-auto p-6">
-			{/* Enable/Disable */}
-			<div className="bg-background border rounded-lg p-4 mb-6 flex items-center gap-2">
-				<div className="flex-1">
-					<div className="flex items-center gap-2 text-lg">
-						{settings.enabled ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4 text-destructive" />}
-						<span className="font-semibold">
-							Ultimate Trust Badges is <span className={settings.enabled ? "text-green-600" : "text-destructive"}>{settings.enabled ? "enabled" : "disabled"}</span>
-						</span>
-					</div>
-					<p className="ml-6 text-sm text-muted-foreground">Click Enable to add Ultimate Trust Badges to your store.</p>
-				</div>
-				<Button className="px-6" onClick={() => handleChange("enabled", !settings.enabled)}>
-					{settings.enabled ? <span className="opacity-70">Disable</span> : "Enable"}
-				</Button>
-			</div>
-
 			{/* Main Settings */}
 			<div className="flex gap-8">
 				<div className="flex-1 space-y-6">
@@ -178,44 +159,35 @@ export function Settings() {
 
 								{/* Header text input */}
 								<div className="space-y-2">
-									<Label className="font-medium">Header text</Label>
-									<Input value={settings.headerText} onChange={(e) => handleChange("headerText", e.target.value)} />
-								</div>
-
-								{/* Fonts */}
-								<div className="space-y-2">
-									<Label className="font-medium">Fonts</Label>
-									<Select value={settings.font} onValueChange={(value) => handleChange("font", value)}>
-										<SelectTrigger className="w-full">
-											<SelectValue placeholder="Select Font" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="Asap">Asap</SelectItem>
-											<SelectItem value="Arial">Arial</SelectItem>
-											<SelectItem value="Helvetica">Helvetica</SelectItem>
-										</SelectContent>
-									</Select>
+									<Label className={`font-medium ${!settings.showHeader ? "opacity-50" : ""}`}>Header text</Label>
+									<Input value={settings.headerText} onChange={(e) => handleChange("headerText", e.target.value)} disabled={!settings.showHeader} className={!settings.showHeader ? "opacity-50 cursor-not-allowed" : ""} />
 								</div>
 
 								{/* Font Size */}
 								<div className="space-y-2">
-									<Label className="font-medium">Font Size (px)</Label>
+									<Label className={`font-medium ${!settings.showHeader ? "opacity-50" : ""}`}>Font Size (px)</Label>
 									<div>
-										<Input type="number" value={settings.fontSize} onChange={(e) => handleChange("fontSize", e.target.value)} className="w-[150px]" />
+										<Input
+											type="number"
+											value={settings.fontSize}
+											onChange={(e) => handleChange("fontSize", e.target.value)}
+											className={`w-[150px] ${!settings.showHeader ? "opacity-50 cursor-not-allowed" : ""}`}
+											disabled={!settings.showHeader}
+										/>
 									</div>
 								</div>
 
 								{/* Alignment */}
 								<div className="space-y-2">
-									<Label className="font-medium">Alignment</Label>
-									<div className="flex gap-2 border rounded-md p-1 w-[150px]">
-										<Button variant={settings.alignment === "left" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "left")} className="h-8 w-10">
+									<Label className={`font-medium ${!settings.showHeader ? "opacity-50" : ""}`}>Alignment</Label>
+									<div className={`flex gap-2 border rounded-md p-1 w-[150px] ${!settings.showHeader ? "opacity-50" : ""}`}>
+										<Button variant={settings.alignment === "left" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "left")} className="h-8 w-10" disabled={!settings.showHeader}>
 											<AlignLeft />
 										</Button>
-										<Button variant={settings.alignment === "center" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "center")} className="h-8 w-10">
+										<Button variant={settings.alignment === "center" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "center")} className="h-8 w-10" disabled={!settings.showHeader}>
 											<AlignCenter />
 										</Button>
-										<Button variant={settings.alignment === "right" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "right")} className="h-8 w-10">
+										<Button variant={settings.alignment === "right" ? "default" : "ghost"} size="sm" onClick={() => handleChange("alignment", "right")} className="h-8 w-10" disabled={!settings.showHeader}>
 											<AlignRight />
 										</Button>
 									</div>
@@ -223,10 +195,9 @@ export function Settings() {
 
 								{/* Text Color */}
 								<div className="space-y-2">
-									<Label className="font-medium">Text Color</Label>
-									<div className="flex items-center gap-2 p-2 border w-[150px] rounded-md bg-white">
-										<Input type="color" value={settings.textColor} onChange={(e) => handleChange("textColor", e.target.value)} className="w-6 h-6 p-0 border-0" />
-										<span className="text-sm">{settings.textColor}</span>
+									<Label className={`font-medium ${!settings.showHeader ? "opacity-50" : ""}`}>Text Color</Label>
+									<div className={`flex items-center p-2 border w-[50px] h-[50px] rounded-md bg-white ${!settings.showHeader ? "opacity-50" : ""}`}>
+										<Input type="color" value={settings.textColor} onChange={(e) => handleChange("textColor", e.target.value)} className="w-11 h-8 p-0 border-0" disabled={!settings.showHeader} />
 									</div>
 								</div>
 							</div>
@@ -312,9 +283,8 @@ export function Settings() {
 								{/* Badge Color  --  NOT WORKING */}
 								<div className="space-y-2">
 									<Label className="font-medium">Badge color</Label>
-									<div className="flex items-center gap-2 p-2 border w-[150px] rounded-md bg-white">
-										<Input type="color" value={settings.badgeColor} onChange={(e) => handleChange("badgeColor", e.target.value)} className="w-6 h-6 p-0 border-0" />
-										<span className="text-sm">{settings.badgeColor}</span>
+									<div className="flex items-center p-2 border w-[50px] h-[50px] rounded-md bg-white">
+										<Input type="color" value={settings.badgeColor} onChange={(e) => handleChange("badgeColor", e.target.value)} className="w-11 h-8 p-0 border-0" />
 									</div>
 								</div>
 
@@ -392,10 +362,6 @@ export function Settings() {
 										<SelectItem value="bounce">Bounce</SelectItem>
 									</SelectContent>
 								</Select>
-								<div className="space-y-2 mt-4">
-									<Label className="font-medium">Animation Duration (seconds)</Label>
-									<Input type="number" min="0.1" max="2" step="0.1" value={settings.animationDuration} onChange={(e) => handleChange("animationDuration", parseFloat(e.target.value))} className="w-[150px]" />
-								</div>
 							</div>
 						</div>
 					</Card>
@@ -482,7 +448,6 @@ export function Settings() {
 					<div
 						className="p-6 border rounded-lg space-y-4"
 						style={{
-							fontFamily: settings.font,
 							fontSize: `${settings.fontSize}px`,
 							textAlign: settings.alignment as any,
 							color: settings.textColor,
@@ -507,7 +472,7 @@ export function Settings() {
 										: {}
 								}
 								transition={{
-									duration: settings.animationDuration,
+									duration: 0.4,
 									ease: settings.animation === "bounce" ? "easeOut" : "easeInOut",
 									repeat: isPlaying ? 0 : 0,
 								}}

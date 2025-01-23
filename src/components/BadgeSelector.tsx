@@ -43,7 +43,7 @@ export function BadgeSelector({ open, onOpenChange, onSave, badges, initialSelec
 					<Input placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
 				</div>
 
-				<div className="grid grid-cols-5 gap-4 overflow-y-auto max-h-[400px] p-1">
+				<div className="grid grid-cols-5 gap-4 overflow-y-auto max-h-[400px] p-[0.7rem]">
 					{filteredBadges.map((badge) => (
 						<div
 							key={badge.id}
