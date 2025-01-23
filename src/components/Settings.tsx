@@ -44,7 +44,7 @@ export function Settings() {
 		marginRight: "0",
 		animation: "fade",
 		showOnProductPage: true,
-		selectedBadges: ["stripe", "shopify", "paypal", "apple-pay"],
+		selectedBadges: ["mastercard", "visa", "apple-pay-1", "shop-pay-1"],
 	});
 
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -224,7 +224,11 @@ export function Settings() {
 												onClick={() => handleChange("badgeStyle", style.id)}
 												className={`border rounded-lg p-4 flex flex-col items-center gap-2 transition-colors ${settings.badgeStyle === style.id ? "border-primary bg-primary/5" : "border-input hover:border-primary/50"}`}>
 												<div className={`w-20 h-12 rounded flex items-center justify-center ${style.id.includes("card") ? "bg-gray-400 shadow-sm py-1 px-2" : "p-1"}`}>
-													<img src={`${window.txBadgesSettings.pluginUrl}assets/images/mastercard.svg`} alt="Badge Style Preview" className={`w-full h-full object-contain ${style.id.includes("mono") ? "grayscale" : ""}`} />
+													<img
+														src={`${window.txBadgesSettings.pluginUrl}assets/images/mastercard_color.svg`}
+														alt="Badge Style Preview"
+														className={`w-full h-full object-contain ${style.id.includes("mono") ? "grayscale" : ""}`}
+													/>
 												</div>
 												<span className="text-sm font-medium">{style.label}</span>
 											</button>
