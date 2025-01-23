@@ -7,7 +7,7 @@ import { Switch } from "./ui/switch";
 import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, AlertCircle, Copy, HelpCircle, PlayCircle } from "lucide-react";
+import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, Copy, HelpCircle, PlayCircle } from "lucide-react";
 import { paymentBadges } from "./pages/assist/PaymentBadges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,7 +44,7 @@ export function Settings() {
 		marginRight: "0",
 		animation: "fade",
 		showOnProductPage: true,
-		selectedBadges: ["mastercard", "visa", "apple-pay-1", "shop-pay-1"],
+		selectedBadges: ["mastercard", "visa", "visa-alt", "visa-electron"],
 	});
 
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -225,7 +225,7 @@ export function Settings() {
 												className={`border rounded-lg p-4 flex flex-col items-center gap-2 transition-colors ${settings.badgeStyle === style.id ? "border-primary bg-primary/5" : "border-input hover:border-primary/50"}`}>
 												<div className={`w-20 h-12 rounded flex items-center justify-center ${style.id.includes("card") ? "bg-gray-400 shadow-sm py-1 px-2" : "p-1"}`}>
 													<img
-														src={`${window.txBadgesSettings.pluginUrl}assets/images/mastercard_color.svg`}
+														src={`${window.txBadgesSettings.pluginUrl}assets/images/badges/mastercard_color.svg`}
 														alt="Badge Style Preview"
 														className={`w-full h-full object-contain ${style.id.includes("mono") ? "grayscale" : ""}`}
 													/>
