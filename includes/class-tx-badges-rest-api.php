@@ -34,16 +34,16 @@ class TX_Badges_REST_API {
 
         // Get settings
         register_rest_route($this->namespace, '/settings', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_settings'],
-            'permission_callback' => [$this, 'get_settings_permissions_check'],
-        ]);
-
-        // Update settings
-        register_rest_route($this->namespace, '/settings', [
-            'methods' => 'PUT',
-            'callback' => [$this, 'update_settings'],
-            'permission_callback' => [$this, 'update_settings_permissions_check'],
+            [
+                'methods' => WP_REST_Server::READABLE,
+                'callback' => [$this, 'get_settings'],
+                'permission_callback' => [$this, 'check_permissions'],
+            ],
+            [
+                'methods' => WP_REST_Server::EDITABLE,
+                'callback' => [$this, 'update_settings'],
+                'permission_callback' => [$this, 'check_permissions'],
+            ]
         ]);
     }
 
