@@ -33,7 +33,7 @@ export function BadgeSelector({ open, onOpenChange, onSave, badges, initialSelec
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-[800px]">
+			<DialogContent className="max-w-[1000px]">
 				<DialogHeader>
 					<DialogTitle>Select Badges</DialogTitle>
 				</DialogHeader>
@@ -43,7 +43,7 @@ export function BadgeSelector({ open, onOpenChange, onSave, badges, initialSelec
 					<Input placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
 				</div>
 
-				<div className="grid grid-cols-5 gap-4 overflow-y-auto max-h-[400px] p-[0.7rem]">
+				<div className="grid grid-cols-6 gap-4 overflow-y-auto max-h-[400px] p-[0.7rem]">
 					{filteredBadges.map((badge) => (
 						<div
 							key={badge.id}
@@ -62,6 +62,7 @@ export function BadgeSelector({ open, onOpenChange, onSave, badges, initialSelec
 						Cancel
 					</Button>
 					<Button
+						className="px-6"
 						onClick={() => {
 							onSave(selectedBadges);
 							onOpenChange(false);

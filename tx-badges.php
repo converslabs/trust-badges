@@ -8,7 +8,6 @@
  * Author: ThemeXpert
  * Author URI: https://yourwebsite.com
  * Text Domain: tx-badges
- * Domain Path: /languages
  * Requires PHP: 7.4
  */
 
@@ -120,10 +119,7 @@ add_action('admin_menu', 'tx_badges_admin_menu');
 function tx_badges_admin_page()
 {
     // Add a container for WordPress media scripts
-    echo '<div class="wrap">';
-    echo '<h1>' . esc_html__('Trust Badges', 'tx-badges') . '</h1>';
     echo '<div id="tx-badges-app"></div>';
-    echo '</div>';
 }
 
 // Add shortcode for displaying badges
