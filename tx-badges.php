@@ -63,6 +63,16 @@ function tx_badges_admin_enqueue_scripts($hook)
         return;
     }
 
+    // Add settings to window before any scripts
+    wp_add_inline_script('wp-element', 'window.txBadgesSettings = ' . wp_json_encode([
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('tx_badges_nonce'),
+        'restUrl' => rest_url('tx-badges/v1'),
+        'pluginUrl' => TX_BADGES_PLUGIN_URL,
+        'mediaTitle' => __('Select or Upload Badge Image', 'tx-badges'),
+        'mediaButton' => __('Use this image', 'tx-badges')
+    ]) . ';', 'before');
+
     // WordPress core scripts
     wp_enqueue_media();
     wp_enqueue_script('jquery');
@@ -79,24 +89,14 @@ function tx_badges_admin_enqueue_scripts($hook)
         TX_BADGES_VERSION
     );
 
-    // Enqueue main JS with proper dependencies
+    // Enqueue main JS
     wp_enqueue_script(
         'tx-badges-admin',
         TX_BADGES_PLUGIN_URL . 'dist/main.js',
-        ['jquery', 'wp-element', 'wp-components', 'wp-i18n', 'wp-api-fetch'],
+        ['wp-element', 'wp-components', 'wp-i18n', 'wp-api-fetch'],
         TX_BADGES_VERSION,
         true
     );
-
-    // Localize script with proper object format
-    wp_localize_script('tx-badges-admin', 'txBadgesSettings', array(
-        'ajaxUrl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('wp_rest'),
-        'restUrl' => rest_url('tx-badges/v1'),
-        'pluginUrl' => TX_BADGES_PLUGIN_URL,
-        'mediaTitle' => __('Select or Upload Badge Image', 'tx-badges'),
-        'mediaButton' => __('Use this image', 'tx-badges')
-    ));
 }
 add_action('admin_enqueue_scripts', 'tx_badges_admin_enqueue_scripts');
 
@@ -130,3 +130,95 @@ function tx_badges_shortcode($atts)
     return ob_get_clean();
 }
 add_shortcode('tx_badges', 'tx_badges_shortcode');
+
+// AJAX handlers
+function tx_badges_get_settings() {
+    check_ajax_referer('tx_badges_nonce', 'nonce');
+
+    try {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'tx_badges_settings';
+        
+        $results = $wpdb->get_results("SELECT setting_name, setting_value FROM {$table_name} WHERE is_active = 1");
+        
+        if ($wpdb->last_error) {
+            wp_send_json_error(['message' => $wpdb->last_error]);
+            return;
+        }
+
+        $settings = array();
+        foreach ($results as $row) {
+            $value = $row->setting_value;
+            
+            // Convert boolean strings
+            if ($value === '1' || $value === '0') {
+                $value = $value === '1';
+            }
+            // Try to decode JSON values
+            else if (strpos($value, '[') === 0 || strpos($value, '{') === 0) {
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $value = $decoded;
+                }
+            }
+            
+            $settings[$row->setting_name] = $value;
+        }
+
+        wp_send_json_success($settings);
+    } catch (Exception $e) {
+        wp_send_json_error(['message' => $e->getMessage()]);
+    }
+}
+add_action('wp_ajax_tx_badges_get_settings', 'tx_badges_get_settings');
+
+function tx_badges_save_settings() {
+    check_ajax_referer('tx_badges_nonce', 'nonce');
+
+    try {
+        if (empty($_POST['settings']) || !is_string($_POST['settings'])) {
+            wp_send_json_error(['message' => 'Invalid settings data']);
+            return;
+        }
+
+        $settings = json_decode(stripslashes($_POST['settings']), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error(['message' => 'Invalid JSON data']);
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'tx_badges_settings';
+
+        foreach ($settings as $name => $value) {
+            $name = sanitize_text_field($name);
+            
+            // Convert value based on type
+            if (is_bool($value)) {
+                $db_value = $value ? '1' : '0';
+            } else if (is_array($value)) {
+                $db_value = wp_json_encode($value);
+            } else {
+                $db_value = sanitize_text_field($value);
+            }
+
+            $result = $wpdb->update(
+                $table_name,
+                array('setting_value' => $db_value),
+                array('setting_name' => $name),
+                array('%s'),
+                array('%s')
+            );
+
+            if ($result === false && $wpdb->last_error) {
+                wp_send_json_error(['message' => sprintf('Failed to update setting: %s. Error: %s', $name, $wpdb->last_error)]);
+                return;
+            }
+        }
+
+        wp_send_json_success(['message' => 'Settings updated successfully']);
+    } catch (Exception $e) {
+        wp_send_json_error(['message' => $e->getMessage()]);
+    }
+}
+add_action('wp_ajax_tx_badges_save_settings', 'tx_badges_save_settings');

@@ -58,22 +58,56 @@ export function Settings() {
 	const { toast } = useToast();
 
 	useEffect(() => {
-		// Load initial settings
-		fetch(`${window.txBadgesSettings.restUrl}/settings`, {
-			headers: {
-				"X-WP-Nonce": window.txBadgesSettings.nonce,
-			},
-		})
-			.then((res) => res.json())
-			.then((data) => {
-				setSettings(data);
-				setIsLoading(false);
-			})
-			.catch((error) => {
+		const loadSettings = async () => {
+			try {
+				const formData = new FormData();
+				formData.append("action", "tx_badges_get_settings");
+				formData.append("nonce", window.txBadgesSettings.nonce);
+
+				const response = await fetch(window.txBadgesSettings.ajaxUrl, {
+					method: "POST",
+					credentials: "same-origin",
+					body: formData,
+				});
+
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+
+				const result = await response.json();
+
+				if (!result.success) {
+					throw new Error(result.data?.message || "Failed to load settings");
+				}
+
+				// Ensure we have valid data
+				if (!result.data || typeof result.data !== "object") {
+					throw new Error("Invalid settings data received");
+				}
+
+				// Merge with default settings
+				setSettings((prev) => ({
+					...prev,
+					...result.data,
+					selectedBadges: Array.isArray(result.data.selectedBadges) ? result.data.selectedBadges : prev.selectedBadges,
+				}));
+			} catch (error) {
 				console.error("Error loading settings:", error);
+				toast({
+					title: "Error",
+					description: error instanceof Error ? error.message : "Failed to load settings",
+					variant: "destructive",
+					duration: 5000,
+				});
+			} finally {
 				setIsLoading(false);
-			});
-	}, []);
+			}
+		};
+
+		if (window.txBadgesSettings?.ajaxUrl) {
+			loadSettings();
+		}
+	}, [toast]);
 
 	const handleChange = (key: string, value: any) => {
 		setSettings((prev) => ({ ...prev, [key]: value }));
@@ -82,39 +116,72 @@ export function Settings() {
 
 	const saveSettings = async () => {
 		try {
+			setIsLoading(true);
+
+			// Debug: Log settings before save
+			console.log("Saving settings:", settings);
+
 			const formData = new FormData();
-			formData.append("action", "save_tx_badges_settings");
+			formData.append("action", "tx_badges_save_settings");
 			formData.append("nonce", window.txBadgesSettings.nonce);
-			formData.append("settings", JSON.stringify(settings));
+
+			// Ensure all settings are included
+			const settingsToSave = {
+				show_header: settings.showHeader ?? false,
+				header_text: settings.headerText ?? "",
+				font_size: settings.fontSize ?? "16",
+				alignment: settings.alignment ?? "center",
+				badge_alignment: settings.badgeAlignment ?? "center",
+				text_color: settings.textColor ?? "#000000",
+				badge_style: settings.badgeStyle ?? "original",
+				badge_size_desktop: settings.badgeSizeDesktop ?? "medium",
+				badge_size_mobile: settings.badgeSizeMobile ?? "small",
+				badge_color: settings.badgeColor ?? "#000000",
+				custom_margin: settings.customMargin ?? "0",
+				margin_top: settings.marginTop ?? "0",
+				margin_bottom: settings.marginBottom ?? "0",
+				margin_left: settings.marginLeft ?? "0",
+				margin_right: settings.marginRight ?? "0",
+				animation: settings.animation ?? "fade",
+				show_on_product_page: settings.showOnProductPage ?? true,
+				selectedBadges: Array.isArray(settings.selectedBadges) ? settings.selectedBadges : [],
+			};
+
+			formData.append("settings", JSON.stringify(settingsToSave));
 
 			const response = await fetch(window.txBadgesSettings.ajaxUrl, {
 				method: "POST",
+				credentials: "same-origin",
 				body: formData,
 			});
 
-			const data = await response.json();
-
-			if (data.success) {
-				setHasUnsavedChanges(false);
-				toast({
-					title: "Success",
-					description: "Settings saved successfully",
-					variant: "default",
-				});
-			} else {
-				toast({
-					title: "Error",
-					description: data.message || "Failed to save settings",
-					variant: "destructive",
-				});
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
 			}
+
+			const result = await response.json();
+			console.log("Save response:", result); // Debug: Log response
+
+			if (!result.success) {
+				throw new Error(result.data?.message || "Failed to save settings");
+			}
+
+			setHasUnsavedChanges(false);
+			toast({
+				title: "Success",
+				description: result.data?.message || "Settings saved successfully",
+				duration: 2000,
+			});
 		} catch (error) {
 			console.error("Error saving settings:", error);
 			toast({
 				title: "Error",
-				description: "Failed to save settings. Please try again.",
+				description: error instanceof Error ? error.message : "Failed to save settings",
 				variant: "destructive",
+				duration: 3000,
 			});
+		} finally {
+			setIsLoading(false);
 		}
 	};
 

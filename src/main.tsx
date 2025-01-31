@@ -3,18 +3,14 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-declare global {
-	interface Window {
-		txBadgesSettings: {
-			restUrl: string;
-			nonce: string;
-			pluginUrl: string;
-		};
-	}
-}
+document.addEventListener("DOMContentLoaded", () => {
+  const appElement = document.getElementById("tx-badges-app");
+  if (!appElement) return;
 
-createRoot(document.getElementById("tx-badges-app")!).render(
-	<StrictMode>
-		<App />
-	</StrictMode>
-);
+  const root = createRoot(appElement);
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+});
