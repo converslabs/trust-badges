@@ -8,7 +8,7 @@ import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, Copy, HelpCircle, PlayCircle } from "lucide-react";
-import { paymentBadges } from "./pages/assist/PaymentBadges";
+import { paymentBadges } from "./pages/assets/PaymentBadges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "./ui/use-toast";
@@ -484,12 +484,12 @@ export function Settings() {
 				</div>
 
 				{/* Bar Preview */}
-				<Card className="w-[800px] h-screen sticky top-6 self-start">
-					<div className="p-6 border-b">
+				<div className="w-[1000px] h-screen sticky top-6 self-start">
+					<div className="text-center pt-6">
 						<h2 className="text-lg font-semibold">Bar Preview</h2>
 					</div>
 					<div
-						className="px-48 py-6 space-y-4"
+						className="px-48 py-16 space-y-4 bg-gray-100 mt-6"
 						style={{
 							fontSize: `${settings.fontSize}px`,
 							textAlign: settings.alignment as any,
@@ -522,7 +522,7 @@ export function Settings() {
 								style={{
 									display: "flex",
 									flexWrap: "wrap",
-									gap: "1rem",
+									gap: "1.2rem",
 									justifyContent: settings.badgeAlignment === "left" ? "flex-start" : settings.badgeAlignment === "right" ? "flex-end" : "center",
 								}}>
 								{settings.selectedBadges.map((badgeId) => {
@@ -546,12 +546,10 @@ export function Settings() {
 							</motion.div>
 						</AnimatePresence>
 					</div>
-					<div className="p-6 pt-0">
-						<Button className="w-full" onClick={() => setBadgeSelectorOpen(true)}>
-							Select Badges
-						</Button>
+					<div className="p-6 pt-0 text-center pt-4">
+						<Button onClick={() => setBadgeSelectorOpen(true)}>Select Badges</Button>
 					</div>
-				</Card>
+				</div>
 			</div>
 
 			{/* Badge Selector Modal */}
