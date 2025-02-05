@@ -29,60 +29,97 @@ declare global {
 }
 
 interface BadgeGroup {
-  id: string;
-  settings: TrustBadgesSettings;
-  isDefault?: boolean;
-  isActive?: boolean;
+	id: string;
+	settings: TrustBadgesSettings;
+	isDefault?: boolean;
+	isActive?: boolean;
 }
 
+// Add these utility functions at the top of the file
+const toCamelCase = (str: string) => {
+	return str.replace(/([-_][a-z])/g, (group) => group.toUpperCase().replace("-", "").replace("_", ""));
+};
+
+const toSnakeCase = (str: string) => {
+	return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+};
+
+const convertKeysToSnakeCase = (obj: any): any => {
+	if (typeof obj !== "object" || obj === null) return obj;
+
+	if (Array.isArray(obj)) {
+		return obj.map(convertKeysToSnakeCase);
+	}
+
+	return Object.keys(obj).reduce((acc, key) => {
+		const snakeKey = toSnakeCase(key);
+		acc[snakeKey] = convertKeysToSnakeCase(obj[key]);
+		return acc;
+	}, {} as any);
+};
+
+const convertKeysToCamelCase = (obj: any): any => {
+	if (typeof obj !== "object" || obj === null) return obj;
+
+	if (Array.isArray(obj)) {
+		return obj.map(convertKeysToCamelCase);
+	}
+
+	return Object.keys(obj).reduce((acc, key) => {
+		const camelKey = toCamelCase(key);
+		acc[camelKey] = convertKeysToCamelCase(obj[key]);
+		return acc;
+	}, {} as any);
+};
+
 const defaultSettings: TrustBadgesSettings = {
-    showHeader: true,
-    headerText: "Secure Checkout With",
-    fontSize: "18",
-    alignment: "center",
-    badgeAlignment: "center",
-    textColor: "#000000",
-    badgeStyle: "original",
-    badgeSizeDesktop: "medium",
-    badgeSizeMobile: "small",
-    badgeColor: "#0066FF",
-    customMargin: false,
-    marginTop: "0",
-    marginBottom: "0",
-    marginLeft: "0",
-    marginRight: "0",
-    animation: "fade",
-    showOnProductPage: true,
-    selectedBadges: ["mastercard", "visa-1", "paypal-1", "apple-pay", "stripe", "american-express-1"],
+	showHeader: true,
+	headerText: "Secure Checkout With",
+	fontSize: "18",
+	alignment: "center",
+	badgeAlignment: "center",
+	textColor: "#000000",
+	badgeStyle: "original",
+	badgeSizeDesktop: "medium",
+	badgeSizeMobile: "small",
+	badgeColor: "#0066FF",
+	customMargin: false,
+	marginTop: "0",
+	marginBottom: "0",
+	marginLeft: "0",
+	marginRight: "0",
+	animation: "fade",
+	showOnProductPage: true,
+	selectedBadges: ["mastercard", "visa-1", "paypal-1", "apple-pay", "stripe", "american-express-1"],
 };
 
 const defaultBadgeGroups = [
-    {
-        id: "default",
-        isDefault: true,
-        isActive: true,
-        settings: { ...defaultSettings }
-    },
-    {
-        id: "header",
-        isDefault: true,
-        isActive: true,
-        settings: { 
-            ...defaultSettings,
-            headerText: "Secure Payment Methods",
-            alignment: "left",
-        }
-    },
-    {
-        id: "footer",
-        isDefault: true,
-        isActive: true,
-        settings: { 
-            ...defaultSettings,
-            headerText: "Payment Options",
-            alignment: "right",
-        }
-    }
+	{
+		id: "default",
+		isDefault: true,
+		isActive: true,
+		settings: { ...defaultSettings },
+	},
+	{
+		id: "header",
+		isDefault: true,
+		isActive: true,
+		settings: {
+			...defaultSettings,
+			headerText: "Secure Payment Methods",
+			alignment: "left",
+		},
+	},
+	{
+		id: "footer",
+		isDefault: true,
+		isActive: true,
+		settings: {
+			...defaultSettings,
+			headerText: "Payment Options",
+			alignment: "right",
+		},
+	},
 ];
 
 export function Settings() {
@@ -99,11 +136,15 @@ export function Settings() {
 	useEffect(() => {
 		const loadSettings = async () => {
 			try {
-				setIsLoading(true);
+				if (!window.txBadgesSettings?.ajaxUrl) {
+					console.warn("txBadgesSettings not initialized");
+					setIsLoading(false);
+					return;
+				}
 
 				const formData = new FormData();
-				formData.append("action", "tx_badges_load_settings");
-				formData.append("nonce", window.txBadgesSettings.nonce);
+				formData.append("action", "tx_badges_get_settings");
+				formData.append("nonce", window.txBadgesSettings.nonce || "");
 
 				const response = await fetch(window.txBadgesSettings.ajaxUrl, {
 					method: "POST",
@@ -111,16 +152,28 @@ export function Settings() {
 					credentials: "same-origin",
 				});
 
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+
 				const result = await response.json();
 
 				if (!result.success) {
 					throw new Error(result.data?.message || "Failed to load settings");
 				}
 
+				// Ensure we have valid data
+				if (!result.data || typeof result.data !== "object") {
+					throw new Error("Invalid settings data received");
+				}
+
+				// Convert snake_case to camelCase
+				const camelCaseSettings = convertKeysToCamelCase(result.data);
+
 				// Transform the loaded settings into our badge groups format
-				const loadedSettings = Array.isArray(result.data) ? result.data : [result.data];
-				const transformedGroups = loadedSettings.map(settings => ({
-					id: settings.id || 'default',
+				const loadedSettings = Array.isArray(camelCaseSettings) ? camelCaseSettings : [camelCaseSettings];
+				const transformedGroups = loadedSettings.map((settings) => ({
+					id: settings.id || "default",
 					isDefault: false,
 					isActive: true,
 					settings: {
@@ -142,16 +195,16 @@ export function Settings() {
 						animation: settings.animation ?? defaultSettings.animation,
 						showOnProductPage: settings.show_on_product_page ?? defaultSettings.showOnProductPage,
 						selectedBadges: Array.isArray(settings.selected_badges) ? settings.selected_badges : defaultSettings.selectedBadges,
-					}
+					},
 				}));
 
 				// If no settings were loaded, create a default group
 				if (transformedGroups.length === 0) {
 					transformedGroups.push({
-						id: 'default',
+						id: "default",
 						isDefault: true,
 						isActive: true,
-						settings: { ...defaultSettings }
+						settings: { ...defaultSettings },
 					});
 				}
 
@@ -167,7 +220,7 @@ export function Settings() {
 				});
 				// Set default settings if loading fails
 				setBadgeGroups(defaultBadgeGroups);
-				setActiveBadgeGroup('default');
+				setActiveBadgeGroup("default");
 				setIsLoading(false);
 			}
 		};
@@ -191,61 +244,52 @@ export function Settings() {
 		try {
 			setIsLoading(true);
 
+			// Check if txBadgesSettings is initialized
+			if (!window.txBadgesSettings?.ajaxUrl) {
+				throw new Error("txBadgesSettings not initialized");
+			}
+
 			// Debug: Log settings before save
 			console.log("Saving settings:", badgeGroups);
 
 			const formData = new FormData();
 			formData.append("action", "tx_badges_save_settings");
-			formData.append("nonce", window.txBadgesSettings.nonce);
+			formData.append("nonce", window.txBadgesSettings.nonce || "");
 
-			// Transform settings for each badge group
-			const settingsToSave = badgeGroups.map((group) => ({
-				id: group.id,
-				show_header: group.settings.showHeader ?? false,
-				header_text: group.settings.headerText ?? "",
-				font_size: group.settings.fontSize ?? "16",
-				alignment: group.settings.alignment ?? "center",
-				badge_alignment: group.settings.badgeAlignment ?? "center",
-				text_color: group.settings.textColor ?? "#000000",
-				badge_style: group.settings.badgeStyle ?? "original",
-				badge_size_desktop: group.settings.badgeSizeDesktop ?? "medium",
-				badge_size_mobile: group.settings.badgeSizeMobile ?? "small",
-				badge_color: group.settings.badgeColor ?? "#000000",
-				custom_margin: group.settings.customMargin ?? false,
-				margin_top: group.settings.marginTop ?? "0",
-				margin_bottom: group.settings.marginBottom ?? "0",
-				margin_left: group.settings.marginLeft ?? "0",
-				margin_right: group.settings.marginRight ?? "0",
-				animation: group.settings.animation ?? "fade",
-				show_on_product_page: group.settings.showOnProductPage ?? true,
-				selected_badges: Array.isArray(group.settings.selectedBadges) ? group.settings.selectedBadges : [],
-			}));
+			// Convert settings to snake_case before saving
+			const snakeCaseSettings = convertKeysToSnakeCase(badgeGroups);
 
-			formData.append("settings", JSON.stringify(settingsToSave));
+			formData.append("settings", JSON.stringify(snakeCaseSettings));
 
 			const response = await fetch(window.txBadgesSettings.ajaxUrl, {
 				method: "POST",
-				body: formData,
 				credentials: "same-origin",
+				body: formData,
 			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
 
 			const result = await response.json();
 
-			if (result.success) {
-				setHasUnsavedChanges(false);
-				toast({
-					title: "Settings saved successfully!",
-					description: "Your changes have been saved.",
-				});
-			} else {
+			if (!result.success) {
 				throw new Error(result.data?.message || "Failed to save settings");
 			}
+
+			setHasUnsavedChanges(false);
+			toast({
+				title: "Success",
+				description: "Settings saved successfully",
+				duration: 3000,
+			});
 		} catch (error) {
 			console.error("Error saving settings:", error);
 			toast({
+				title: "Error",
+				description: error instanceof Error ? error.message : "Failed to save settings",
 				variant: "destructive",
-				title: "Error saving settings",
-				description: error instanceof Error ? error.message : "An unknown error occurred",
+				duration: 3000,
 			});
 		} finally {
 			setIsLoading(false);
@@ -317,7 +361,7 @@ export function Settings() {
 			id: newId,
 			isDefault: false,
 			isActive: true,
-			settings: { ...defaultSettings }
+			settings: { ...defaultSettings },
 		};
 		setBadgeGroups((prev) => [...prev, newGroup]);
 		setActiveBadgeGroup(newId);
@@ -325,18 +369,12 @@ export function Settings() {
 	};
 
 	const toggleBadgeGroupActive = (groupId: string) => {
-		setBadgeGroups((prev) =>
-			prev.map((group) =>
-				group.id === groupId
-					? { ...group, isActive: !group.isActive }
-					: group
-			)
-		);
+		setBadgeGroups((prev) => prev.map((group) => (group.id === groupId ? { ...group, isActive: !group.isActive } : group)));
 		setHasUnsavedChanges(true);
 	};
 
 	const handleDeleteBadgeGroup = (groupId: string) => {
-		if (groupId === 'default') {
+		if (groupId === "default") {
 			toast({
 				variant: "destructive",
 				title: "Cannot delete default group",
@@ -346,7 +384,7 @@ export function Settings() {
 		}
 
 		setBadgeGroups((prev) => prev.filter((group) => group.id !== groupId));
-		setActiveBadgeGroup('default');
+		setActiveBadgeGroup("default");
 		setHasUnsavedChanges(true);
 	};
 
@@ -368,19 +406,11 @@ export function Settings() {
 								<div className="flex items-center gap-4">
 									<span>
 										WooCommerce Payment Badges
-										{!group.isDefault && (
-											<span className="ml-2 text-xs text-muted-foreground">
-												(Custom)
-											</span>
-										)}
+										{!group.isDefault && <span className="ml-2 text-xs text-muted-foreground">(Custom)</span>}
 									</span>
 								</div>
 								<div className="flex items-center gap-4">
-									<Switch
-										checked={group.isActive}
-										onCheckedChange={() => toggleBadgeGroupActive(group.id)}
-										aria-label="Toggle badge group active state"
-									/>
+									<Switch checked={group.isActive} onCheckedChange={() => toggleBadgeGroupActive(group.id)} aria-label="Toggle badge group active state" />
 									{!group.isDefault && (
 										<Button
 											variant="ghost"
@@ -389,15 +419,14 @@ export function Settings() {
 											onClick={(e) => {
 												e.stopPropagation();
 												handleDeleteBadgeGroup(group.id);
-											}}
-										>
+											}}>
 											<Trash2 className="h-4 w-4" />
 										</Button>
 									)}
 								</div>
 							</div>
 						</AccordionTrigger>
-						
+
 						<AccordionContent>
 							<Card className="p-6">
 								{/* Main Settings */}
@@ -414,7 +443,12 @@ export function Settings() {
 													{/* Header text input */}
 													<div className="space-y-2 mt-2">
 														{/* <Label className={`font-medium ${!group.settings.showHeader ? "opacity-50" : ""}`}>Header text</Label> */}
-														<Input value={group.settings.headerText} onChange={(e) => handleChange(group.id, "headerText", e.target.value)} disabled={!group.settings.showHeader} className={!group.settings.showHeader ? "opacity-50 cursor-not-allowed" : ""} />
+														<Input
+															value={group.settings.headerText}
+															onChange={(e) => handleChange(group.id, "headerText", e.target.value)}
+															disabled={!group.settings.showHeader}
+															className={!group.settings.showHeader ? "opacity-50 cursor-not-allowed" : ""}
+														/>
 													</div>
 
 													{/* Font Size */}
@@ -435,13 +469,28 @@ export function Settings() {
 													<div className="space-y-2">
 														<Label className={`font-medium ${!group.settings.showHeader ? "opacity-50" : ""}`}>Alignment</Label>
 														<div className={`flex gap-2 border rounded-md p-1 w-[150px] ${!group.settings.showHeader ? "opacity-50" : ""}`}>
-															<Button variant={group.settings.alignment === "left" ? "default" : "ghost"} size="sm" onClick={() => handleChange(group.id, "alignment", "left")} className="h-8 w-10" disabled={!group.settings.showHeader}>
+															<Button
+																variant={group.settings.alignment === "left" ? "default" : "ghost"}
+																size="sm"
+																onClick={() => handleChange(group.id, "alignment", "left")}
+																className="h-8 w-10"
+																disabled={!group.settings.showHeader}>
 																<AlignLeft />
 															</Button>
-															<Button variant={group.settings.alignment === "center" ? "default" : "ghost"} size="sm" onClick={() => handleChange(group.id, "alignment", "center")} className="h-8 w-10" disabled={!group.settings.showHeader}>
+															<Button
+																variant={group.settings.alignment === "center" ? "default" : "ghost"}
+																size="sm"
+																onClick={() => handleChange(group.id, "alignment", "center")}
+																className="h-8 w-10"
+																disabled={!group.settings.showHeader}>
 																<AlignCenter />
 															</Button>
-															<Button variant={group.settings.alignment === "right" ? "default" : "ghost"} size="sm" onClick={() => handleChange(group.id, "alignment", "right")} className="h-8 w-10" disabled={!group.settings.showHeader}>
+															<Button
+																variant={group.settings.alignment === "right" ? "default" : "ghost"}
+																size="sm"
+																onClick={() => handleChange(group.id, "alignment", "right")}
+																className="h-8 w-10"
+																disabled={!group.settings.showHeader}>
 																<AlignRight />
 															</Button>
 														</div>
@@ -451,7 +500,13 @@ export function Settings() {
 													<div className="space-y-2">
 														<Label className={`font-medium ${!group.settings.showHeader ? "opacity-50" : ""}`}>Text Color</Label>
 														<div className={`flex items-center p-2 border w-[50px] h-[50px] rounded-md bg-white ${!group.settings.showHeader ? "opacity-50" : ""}`}>
-															<Input type="color" value={group.settings.textColor} onChange={(e) => handleChange(group.id, "textColor", e.target.value)} className="w-11 h-8 p-0 border-0" disabled={!group.settings.showHeader} />
+															<Input
+																type="color"
+																value={group.settings.textColor}
+																onChange={(e) => handleChange(group.id, "textColor", e.target.value)}
+																className="w-11 h-8 p-0 border-0"
+																disabled={!group.settings.showHeader}
+															/>
 														</div>
 													</div>
 												</div>
@@ -476,7 +531,9 @@ export function Settings() {
 																<button
 																	key={style.id}
 																	onClick={() => handleChange(group.id, "badgeStyle", style.id)}
-																	className={`border rounded-lg p-4 flex flex-col items-center gap-2 transition-colors ${group.settings.badgeStyle === style.id ? "border-primary bg-primary/5" : "border-input hover:border-primary/50"}`}>
+																	className={`border rounded-lg p-4 flex flex-col items-center gap-2 transition-colors ${
+																		group.settings.badgeStyle === style.id ? "border-primary bg-primary/5" : "border-input hover:border-primary/50"
+																	}`}>
 																	<div className={`w-20 h-12 rounded flex items-center justify-center ${style.id.includes("card") ? "bg-gray-400 shadow-sm py-1 px-2" : "p-1"}`}>
 																		<img
 																			src={`${window.txBadgesSettings.pluginUrl}assets/images/badges/mastercard_color.svg`}
@@ -700,9 +757,7 @@ export function Settings() {
 
 									{/* Bar Preview */}
 									<div className="w-[60%] h-screen sticky top-6 self-start">
-										<Card>
-											
-										</Card>
+										<Card></Card>
 										<Card>
 											<div className="text-center pt-2">
 												<h2 className="text-lg font-semibold">Bar Preview</h2>
@@ -730,7 +785,7 @@ export function Settings() {
 																		x: group.settings.animation === "slide" ? [-100, 0] : 0,
 																		scale: group.settings.animation === "scale" ? [0, 1] : 1,
 																		y: group.settings.animation === "bounce" ? [-20, 0] : 0,
-																}
+																  }
 																: {}
 														}
 														transition={{
@@ -773,7 +828,13 @@ export function Settings() {
 								</div>
 
 								{/* Badge Selector Modal */}
-								<BadgeSelector open={badgeSelectorOpen} onOpenChange={setBadgeSelectorOpen} badges={paymentBadges} initialSelected={group.settings.selectedBadges} onSave={(selectedBadges) => handleSaveBadges(group.id, selectedBadges)} />
+								<BadgeSelector
+									open={badgeSelectorOpen}
+									onOpenChange={setBadgeSelectorOpen}
+									badges={paymentBadges}
+									initialSelected={group.settings.selectedBadges}
+									onSave={(selectedBadges) => handleSaveBadges(group.id, selectedBadges)}
+								/>
 							</Card>
 						</AccordionContent>
 					</AccordionItem>
