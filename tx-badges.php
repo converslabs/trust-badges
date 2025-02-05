@@ -139,15 +139,22 @@ function tx_badges_get_settings() {
         global $wpdb;
         $table_name = $wpdb->prefix . 'tx_badges_settings';
         
-        $results = $wpdb->get_results("SELECT setting_name, setting_value FROM {$table_name} WHERE is_active = 1");
+        // Get all badge groups
+        $results = $wpdb->get_results("
+            SELECT DISTINCT group_id, setting_name, setting_value, is_active 
+            FROM {$table_name} 
+            ORDER BY group_id ASC
+        ");
         
         if ($wpdb->last_error) {
             wp_send_json_error(['message' => $wpdb->last_error]);
             return;
         }
 
-        $settings = array();
+        // Organize settings by group
+        $groups = array();
         foreach ($results as $row) {
+            $group_id = $row->group_id ?: 'default';
             $value = $row->setting_value;
             
             // Convert boolean strings
@@ -162,10 +169,19 @@ function tx_badges_get_settings() {
                 }
             }
             
-            $settings[$row->setting_name] = $value;
+            if (!isset($groups[$group_id])) {
+                $groups[$group_id] = array(
+                    'id' => $group_id,
+                    'isDefault' => $group_id === 'default',
+                    'isActive' => (bool)$row->is_active,
+                    'settings' => array()
+                );
+            }
+            
+            $groups[$group_id]['settings'][$row->setting_name] = $value;
         }
 
-        wp_send_json_success($settings);
+        wp_send_json_success(array_values($groups));
     } catch (Exception $e) {
         wp_send_json_error(['message' => $e->getMessage()]);
     }
@@ -181,7 +197,7 @@ function tx_badges_save_settings() {
             return;
         }
 
-        $settings = json_decode(stripslashes($_POST['settings']), true);
+        $badge_groups = json_decode(stripslashes($_POST['settings']), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             wp_send_json_error(['message' => 'Invalid JSON data']);
             return;
@@ -190,33 +206,76 @@ function tx_badges_save_settings() {
         global $wpdb;
         $table_name = $wpdb->prefix . 'tx_badges_settings';
 
-        foreach ($settings as $name => $value) {
-            $name = sanitize_text_field($name);
-            
-            // Convert value based on type
-            if (is_bool($value)) {
-                $db_value = $value ? '1' : '0';
-            } else if (is_array($value)) {
-                $db_value = wp_json_encode($value);
-            } else {
-                $db_value = sanitize_text_field($value);
-            }
+        // Start transaction
+        $wpdb->query('START TRANSACTION');
 
-            $result = $wpdb->update(
+        try {
+            // First, deactivate all existing settings
+            $wpdb->update(
                 $table_name,
-                array('setting_value' => $db_value),
-                array('setting_name' => $name),
-                array('%s'),
-                array('%s')
+                array('is_active' => 0),
+                array(),
+                array('%d')
             );
 
-            if ($result === false && $wpdb->last_error) {
-                wp_send_json_error(['message' => sprintf('Failed to update setting: %s. Error: %s', $name, $wpdb->last_error)]);
-                return;
-            }
-        }
+            foreach ($badge_groups as $group) {
+                $group_id = sanitize_text_field($group['id']);
+                $is_active = $group['isActive'] ? 1 : 0;
+                
+                foreach ($group['settings'] as $name => $value) {
+                    $setting_name = sanitize_text_field($name);
+                    
+                    // Convert value based on type
+                    if (is_bool($value)) {
+                        $db_value = $value ? '1' : '0';
+                    } else if (is_array($value)) {
+                        $db_value = wp_json_encode($value);
+                    } else {
+                        $db_value = sanitize_text_field($value);
+                    }
 
-        wp_send_json_success(['message' => 'Settings updated successfully']);
+                    // Try to update existing setting first
+                    $result = $wpdb->update(
+                        $table_name,
+                        array(
+                            'setting_value' => $db_value,
+                            'is_active' => $is_active,
+                            'group_id' => $group_id
+                        ),
+                        array(
+                            'setting_name' => $setting_name,
+                            'group_id' => $group_id
+                        ),
+                        array('%s', '%d', '%s'),
+                        array('%s', '%s')
+                    );
+
+                    // If setting doesn't exist, insert it
+                    if ($result === 0) {
+                        $result = $wpdb->insert(
+                            $table_name,
+                            array(
+                                'setting_name' => $setting_name,
+                                'setting_value' => $db_value,
+                                'is_active' => $is_active,
+                                'group_id' => $group_id
+                            ),
+                            array('%s', '%s', '%d', '%s')
+                        );
+                    }
+
+                    if ($result === false) {
+                        throw new Exception($wpdb->last_error);
+                    }
+                }
+            }
+
+            $wpdb->query('COMMIT');
+            wp_send_json_success(['message' => 'Settings updated successfully']);
+        } catch (Exception $e) {
+            $wpdb->query('ROLLBACK');
+            throw $e;
+        }
     } catch (Exception $e) {
         wp_send_json_error(['message' => $e->getMessage()]);
     }
