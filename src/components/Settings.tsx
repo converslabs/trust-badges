@@ -27,6 +27,45 @@ declare global {
 	}
 }
 
+// Add these utility functions at the top of the file
+const toCamelCase = (str: string) => {
+	return str.replace(/([-_][a-z])/g, (group) =>
+		group.toUpperCase().replace('-', '').replace('_', '')
+	);
+};
+
+const toSnakeCase = (str: string) => {
+	return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+};
+
+const convertKeysToSnakeCase = (obj: any): any => {
+	if (typeof obj !== 'object' || obj === null) return obj;
+	
+	if (Array.isArray(obj)) {
+		return obj.map(convertKeysToSnakeCase);
+	}
+
+	return Object.keys(obj).reduce((acc, key) => {
+		const snakeKey = toSnakeCase(key);
+		acc[snakeKey] = convertKeysToSnakeCase(obj[key]);
+		return acc;
+	}, {} as any);
+};
+
+const convertKeysToCamelCase = (obj: any): any => {
+	if (typeof obj !== 'object' || obj === null) return obj;
+	
+	if (Array.isArray(obj)) {
+		return obj.map(convertKeysToCamelCase);
+	}
+
+	return Object.keys(obj).reduce((acc, key) => {
+		const camelKey = toCamelCase(key);
+		acc[camelKey] = convertKeysToCamelCase(obj[key]);
+		return acc;
+	}, {} as any);
+};
+
 export function Settings() {
 	const [settings, setSettings] = useState<TrustBadgesSettings>({
 		showHeader: true,
@@ -60,9 +99,15 @@ export function Settings() {
 	useEffect(() => {
 		const loadSettings = async () => {
 			try {
+				if (!window.txBadgesSettings?.ajaxUrl) {
+					console.warn('txBadgesSettings not initialized');
+					setIsLoading(false);
+					return;
+				}
+
 				const formData = new FormData();
 				formData.append("action", "tx_badges_get_settings");
-				formData.append("nonce", window.txBadgesSettings.nonce);
+				formData.append("nonce", window.txBadgesSettings.nonce || '');
 
 				const response = await fetch(window.txBadgesSettings.ajaxUrl, {
 					method: "POST",
@@ -80,16 +125,19 @@ export function Settings() {
 					throw new Error(result.data?.message || "Failed to load settings");
 				}
 
-				// Ensure we have valid data
 				if (!result.data || typeof result.data !== "object") {
 					throw new Error("Invalid settings data received");
 				}
 
-				// Merge with default settings
+				// Convert snake_case to camelCase
+				const camelCaseSettings = convertKeysToCamelCase(result.data);
+
 				setSettings((prev) => ({
 					...prev,
-					...result.data,
-					selectedBadges: Array.isArray(result.data.selectedBadges) ? result.data.selectedBadges : prev.selectedBadges,
+					...camelCaseSettings,
+					selectedBadges: Array.isArray(camelCaseSettings.selectedBadges) 
+						? camelCaseSettings.selectedBadges 
+						: prev.selectedBadges,
 				}));
 			} catch (error) {
 				console.error("Error loading settings:", error);
@@ -104,9 +152,7 @@ export function Settings() {
 			}
 		};
 
-		if (window.txBadgesSettings?.ajaxUrl) {
-			loadSettings();
-		}
+		loadSettings();
 	}, [toast]);
 
 	const handleChange = (key: string, value: any) => {
@@ -118,36 +164,17 @@ export function Settings() {
 		try {
 			setIsLoading(true);
 
-			// Debug: Log settings before save
-			console.log("Saving settings:", settings);
+			if (!window.txBadgesSettings?.ajaxUrl) {
+				throw new Error('txBadgesSettings not initialized');
+			}
 
 			const formData = new FormData();
 			formData.append("action", "tx_badges_save_settings");
-			formData.append("nonce", window.txBadgesSettings.nonce);
+			formData.append("nonce", window.txBadgesSettings.nonce || '');
 
-			// Ensure all settings are included
-			const settingsToSave = {
-				show_header: settings.showHeader ?? false,
-				header_text: settings.headerText ?? "",
-				font_size: settings.fontSize ?? "16",
-				alignment: settings.alignment ?? "center",
-				badge_alignment: settings.badgeAlignment ?? "center",
-				text_color: settings.textColor ?? "#000000",
-				badge_style: settings.badgeStyle ?? "original",
-				badge_size_desktop: settings.badgeSizeDesktop ?? "medium",
-				badge_size_mobile: settings.badgeSizeMobile ?? "small",
-				badge_color: settings.badgeColor ?? "#000000",
-				custom_margin: settings.customMargin ?? "0",
-				margin_top: settings.marginTop ?? "0",
-				margin_bottom: settings.marginBottom ?? "0",
-				margin_left: settings.marginLeft ?? "0",
-				margin_right: settings.marginRight ?? "0",
-				animation: settings.animation ?? "fade",
-				show_on_product_page: settings.showOnProductPage ?? true,
-				selectedBadges: Array.isArray(settings.selectedBadges) ? settings.selectedBadges : [],
-			};
-
-			formData.append("settings", JSON.stringify(settingsToSave));
+			// Convert settings to snake_case before saving
+			const snakeCaseSettings = convertKeysToSnakeCase(settings);
+			formData.append("settings", JSON.stringify(snakeCaseSettings));
 
 			const response = await fetch(window.txBadgesSettings.ajaxUrl, {
 				method: "POST",
@@ -160,7 +187,6 @@ export function Settings() {
 			}
 
 			const result = await response.json();
-			console.log("Save response:", result); // Debug: Log response
 
 			if (!result.success) {
 				throw new Error(result.data?.message || "Failed to save settings");
@@ -169,7 +195,7 @@ export function Settings() {
 			setHasUnsavedChanges(false);
 			toast({
 				title: "Success",
-				description: result.data?.message || "Settings saved successfully",
+				description: "Settings saved successfully",
 				duration: 2000,
 			});
 		} catch (error) {

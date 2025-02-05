@@ -63,16 +63,6 @@ function tx_badges_admin_enqueue_scripts($hook)
         return;
     }
 
-    // Add settings to window before any scripts
-    wp_add_inline_script('wp-element', 'window.txBadgesSettings = ' . wp_json_encode([
-        'ajaxUrl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('tx_badges_nonce'),
-        'restUrl' => rest_url('tx-badges/v1'),
-        'pluginUrl' => TX_BADGES_PLUGIN_URL,
-        'mediaTitle' => __('Select or Upload Badge Image', 'tx-badges'),
-        'mediaButton' => __('Use this image', 'tx-badges')
-    ]) . ';', 'before');
-
     // WordPress core scripts
     wp_enqueue_media();
     wp_enqueue_script('jquery');
@@ -88,6 +78,16 @@ function tx_badges_admin_enqueue_scripts($hook)
         [],
         TX_BADGES_VERSION
     );
+
+    // Add settings to window before any scripts
+    wp_add_inline_script('wp-element', 'window.txBadgesSettings = ' . wp_json_encode([
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('tx_badges_nonce'),
+        'restUrl' => rest_url('tx-badges/v1'),
+        'pluginUrl' => TX_BADGES_PLUGIN_URL,
+        'mediaTitle' => __('Select or Upload Badge Image', 'tx-badges'),
+        'mediaButton' => __('Use this image', 'tx-badges')
+    ]) . ';', 'before');
 
     // Enqueue main JS
     wp_enqueue_script(
