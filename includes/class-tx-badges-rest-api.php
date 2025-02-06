@@ -3,7 +3,23 @@
 class TX_Badges_REST_API {
     private $namespace = 'tx-badges/v1';
 
+    public function __construct() {
+        // Include plugin.php for is_plugin_active function
+        if (!function_exists('is_plugin_active')) {
+            include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        }
+    }
+
     public function register_routes() {
+        // Get installed plugins status
+        register_rest_route($this->namespace, '/installed-plugins', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => [$this, 'get_installed_plugins'],
+            'permission_callback' => function() {
+                return current_user_can('manage_options');
+            },
+        ]);
+
         // Get all badges
         register_rest_route($this->namespace, '/badges', [
             'methods' => 'GET',
@@ -44,6 +60,13 @@ class TX_Badges_REST_API {
                 'callback' => [$this, 'update_settings'],
                 'permission_callback' => [$this, 'check_permissions'],
             ]
+        ]);
+
+        // Check installed plugins
+        register_rest_route($this->namespace, '/installed-plugins', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_installed_plugins'],
+            'permission_callback' => [$this, 'check_permissions'],
         ]);
     }
 
@@ -110,6 +133,52 @@ class TX_Badges_REST_API {
             'id' => $wpdb->insert_id,
             'message' => 'Badge created successfully'
         ], 201);
+    }
+
+    public function get_installed_plugins() {
+        // Make sure we have access to WordPress plugin functions
+        if (!function_exists('get_plugins')) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        // Get all plugins
+        $all_plugins = get_plugins();
+        
+        // Check WooCommerce
+        $woo_active = class_exists('WooCommerce') && function_exists('WC');
+        
+        // Check EDD
+        $edd_active = class_exists('Easy_Digital_Downloads') || function_exists('EDD');
+        
+        // Additional check for plugin files
+        if (!$woo_active) {
+            $woo_active = is_plugin_active('woocommerce/woocommerce.php');
+        }
+        
+        if (!$edd_active) {
+            $edd_active = is_plugin_active('easy-digital-downloads/easy-digital-downloads.php');
+        }
+
+        // Debug information
+        $debug = [
+            'all_plugins' => array_keys($all_plugins),
+            'woo_class_exists' => class_exists('WooCommerce'),
+            'woo_function_exists' => function_exists('WC'),
+            'edd_class_exists' => class_exists('Easy_Digital_Downloads'),
+            'edd_function_exists' => function_exists('EDD'),
+            'woo_active' => $woo_active,
+            'edd_active' => $edd_active,
+            'plugin_dir' => WP_PLUGIN_DIR,
+            'plugins_url' => plugins_url()
+        ];
+
+        error_log('TX Badges Plugin Check Debug: ' . print_r($debug, true));
+
+        return new WP_REST_Response([
+            'woocommerce' => $woo_active,
+            'edd' => $edd_active,
+            'debug' => $debug
+        ], 200);
     }
 
     // Implement other methods (update_badge, delete_badge, get_settings, update_settings)

@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel, SelectSeparator } from "./ui/select";
 import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, Copy, HelpCircle, PlayCircle, PlusCircle, Trash2 } from "lucide-react";
 import { paymentBadges } from "./pages/assets/PaymentBadges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -14,6 +14,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "./ui/use-toast";
 import { BadgeSize } from "../types/settings";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { Separator } from "@/components/ui/separator";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+// Utility function for merging class names
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 declare global {
 	interface Window {
@@ -30,9 +39,11 @@ declare global {
 
 interface BadgeGroup {
 	id: string;
+	name: string;
 	settings: TrustBadgesSettings;
 	isDefault?: boolean;
 	isActive?: boolean;
+	requiredPlugin?: 'woocommerce' | 'edd';
 }
 
 // Add these utility functions at the top of the file
@@ -89,7 +100,9 @@ interface TrustBadgesSettings {
 	marginLeft: string;
 	marginRight: string;
 	animation: "fade" | "slide" | "scale" | "bounce";
-	showOnProductPage: boolean;
+	showAfterAddToCart: boolean;
+	showBeforeAddToCart: boolean;
+	showOnCheckout: boolean;
 	selectedBadges: string[];
 }
 
@@ -110,31 +123,38 @@ const defaultSettings: TrustBadgesSettings = {
 	marginLeft: "0",
 	marginRight: "0",
 	animation: "fade",
-	showOnProductPage: true,
+	showAfterAddToCart: false,
+	showBeforeAddToCart: false,
+	showOnCheckout: false,
 	selectedBadges: ["mastercard", "visa-1", "paypal-1", "apple-pay", "stripe", "american-express-1"],
 };
 
 const defaultBadgeGroups: BadgeGroup[] = [
 	{
-		id: "default",
+		id: "woocommerce",
+		name: "WooCommerce",
 		isDefault: true,
 		isActive: true,
 		settings: { ...defaultSettings },
+		requiredPlugin: 'woocommerce'
 	},
 	{
-		id: "header",
+		id: "edd",
+		name: "Easy Digital Downloads",
 		isDefault: true,
-		isActive: true,
+		isActive: false,
 		settings: {
 			...defaultSettings,
 			headerText: "Secure Payment Methods",
 			alignment: "left",
 		},
+		requiredPlugin: 'edd'
 	},
 	{
 		id: "footer",
+		name: "Footer",
 		isDefault: true,
-		isActive: true,
+		isActive: false,
 		settings: {
 			...defaultSettings,
 			headerText: "Payment Options",
@@ -150,8 +170,19 @@ export function Settings() {
 	const [showCopied, setShowCopied] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+	const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
 
 	const { toast } = useToast();
+
+	const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+
+	const [installedPlugins, setInstalledPlugins] = useState<{
+		woocommerce: boolean;
+		edd: boolean;
+	}>({
+		woocommerce: false,
+		edd: false
+	});
 
 	useEffect(() => {
 		const loadSettings = async () => {
@@ -194,6 +225,7 @@ export function Settings() {
 				const loadedSettings = Array.isArray(camelCaseSettings) ? camelCaseSettings : [camelCaseSettings];
 				const transformedGroups = loadedSettings.map((settings) => ({
 					id: settings.id || "default",
+					name: settings.name || "Default",
 					isDefault: false,
 					isActive: true,
 					settings: {
@@ -213,7 +245,9 @@ export function Settings() {
 						marginLeft: settings.margin_left ?? defaultSettings.marginLeft,
 						marginRight: settings.margin_right ?? defaultSettings.marginRight,
 						animation: settings.animation ?? defaultSettings.animation,
-						showOnProductPage: settings.show_on_product_page ?? defaultSettings.showOnProductPage,
+						showAfterAddToCart: settings.show_after_add_to_cart ?? defaultSettings.showAfterAddToCart,
+						showBeforeAddToCart: settings.show_before_add_to_cart ?? defaultSettings.showBeforeAddToCart,
+						showOnCheckout: settings.show_on_checkout ?? defaultSettings.showOnCheckout,
 						selectedBadges: Array.isArray(settings.selected_badges) ? settings.selected_badges : defaultSettings.selectedBadges,
 					},
 				}));
@@ -222,6 +256,7 @@ export function Settings() {
 				if (transformedGroups.length === 0) {
 					transformedGroups.push({
 						id: "default",
+						name: "Default",
 						isDefault: true,
 						isActive: true,
 						settings: { ...defaultSettings },
@@ -374,35 +409,119 @@ export function Settings() {
 	};
 
 	const addNewBadgeGroup = () => {
-		const newId = `badge-group-${Date.now()}`;
+		const newId = `custom-${Date.now()}`;
 		const newGroup: BadgeGroup = {
 			id: newId,
+			name: "New Badge Group",
+			settings: { ...defaultSettings },
 			isDefault: false,
 			isActive: true,
-			settings: { ...defaultSettings },
 		};
 		setBadgeGroups((prev) => [...prev, newGroup]);
 		setHasUnsavedChanges(true);
 	};
 
+	const handleNameChange = (badgeGroupId: string, newName: string) => {
+		setBadgeGroups((prev) =>
+			prev.map((group) => {
+				if (group.id === badgeGroupId) {
+					return { ...group, name: newName };
+				}
+				return group;
+			})
+		);
+		setHasUnsavedChanges(true);
+	};
+
 	const toggleBadgeGroupActive = (groupId: string) => {
-		setBadgeGroups((prev) => prev.map((group) => (group.id === groupId ? { ...group, isActive: !group.isActive } : group)));
+		setBadgeGroups((prev) =>
+			prev.map((group) => {
+				if (group.id === groupId) {
+					// If we're deactivating, also collapse the accordion
+					if (group.isActive) {
+						setActiveAccordion(null);
+					}
+					return { ...group, isActive: !group.isActive };
+				}
+				return group;
+			})
+		);
 		setHasUnsavedChanges(true);
 	};
 
-	const handleDeleteBadgeGroup = (groupId: string) => {
-		if (groupId === "default") {
-			toast({
-				variant: "destructive",
-				title: "Cannot delete default group",
-				description: "The default badge group cannot be deleted.",
-			});
-			return;
-		}
-
-		setBadgeGroups((prev) => prev.filter((group) => group.id !== groupId));
+	const handleDeleteGroup = (groupId: string) => {
+		setBadgeGroups((prev) => prev.filter((b) => b.id !== groupId));
+		setGroupToDelete(null);
 		setHasUnsavedChanges(true);
 	};
+
+	const isPluginInstalled = (plugin?: 'woocommerce' | 'edd') => {
+		if (!plugin) return true;
+		return installedPlugins[plugin];
+	};
+
+	const getPluginWarning = (plugin?: 'woocommerce' | 'edd') => {
+		if (!plugin || isPluginInstalled(plugin)) return null;
+		
+		const pluginInfo = {
+			woocommerce: {
+				name: 'WooCommerce',
+				link: '/wp-admin/plugin-install.php?s=woocommerce&tab=search&type=term'
+			},
+			edd: {
+				name: 'Easy Digital Downloads',
+				link: '/wp-admin/plugin-install.php?s=easy-digital-downloads&tab=search&type=term'
+			}
+		};
+
+		return (
+			<div className="flex items-center text-red-500 text-sm">
+				<span>{pluginInfo[plugin].name} is not installed. </span>
+				<a 
+					href={pluginInfo[plugin].link}
+					className="ml-1 underline hover:text-red-600"
+					target="_blank"
+					rel="noopener noreferrer"
+					onClick={(e) => e.stopPropagation()}
+				>
+					Install now
+				</a>
+			</div>
+		);
+	};
+
+	useEffect(() => {
+		// Check installed plugins on component mount
+		const checkInstalledPlugins = async () => {
+			try {
+				const response = await window.wp.apiFetch({
+					path: '/tx-badges/v1/installed-plugins',
+					method: 'GET'
+				});
+				
+				console.log('Plugin check response:', response); // Debug log
+				
+				if (response && typeof response === 'object') {
+					setInstalledPlugins({
+						woocommerce: Boolean(response.woocommerce),
+						edd: Boolean(response.edd)
+					});
+					console.log('Updated installed plugins state:', {
+						woocommerce: Boolean(response.woocommerce),
+						edd: Boolean(response.edd)
+					});
+				}
+			} catch (error) {
+				console.error('Failed to check installed plugins:', error);
+				setInstalledPlugins({
+					woocommerce: false,
+					edd: false
+				});
+			}
+		};
+
+		checkInstalledPlugins();
+	}, []);
 
 	return (
 		<div className="space-y-4">
@@ -420,63 +539,134 @@ export function Settings() {
 						</Button>
 					</div>
 
-					<Accordion type="multiple" className="space-y-4">
+					<Accordion 
+						type="single" 
+						collapsible 
+						className="space-y-4"
+						value={activeAccordion || undefined}
+						onValueChange={setActiveAccordion}
+					>
 						{badgeGroups.map((group) => (
-							<AccordionItem key={group.id} value={group.id}>
-								<AccordionTrigger className="text-md font-bold">
-									<div className="flex items-center justify-between w-full pr-4">
-										<div className="flex items-center gap-4">
-											<span>
-												WooCommerce Payment Badges
-												{!group.isDefault && <span className="ml-2 text-xs text-muted-foreground">(Custom)</span>}
+							<AccordionItem 
+								key={group.id} 
+								value={group.id} 
+								className={cn(
+									"border rounded-lg overflow-hidden",
+									!group.isActive && "opacity-60"
+								)}
+							>
+								<div className="flex items-center justify-between px-4">
+									<div className={cn(
+										"flex-1 flex items-center py-4",
+										!group.isActive && "cursor-not-allowed"
+									)}>
+										{!group.isDefault ? (
+											<Input
+												value={group.name}
+												onChange={(e) => handleNameChange(group.id, e.target.value)}
+												onClick={(e) => e.stopPropagation()}
+												className={cn(
+													"w-[200px] mr-2",
+													!group.isActive && "cursor-not-allowed bg-muted"
+												)}
+												disabled={!group.isActive}
+											/>
+										) : (
+											<span className={cn(
+												"font-medium",
+												!group.isActive && "text-muted-foreground"
+											)}>
+												{group.name}
 											</span>
-										</div>
-										<div className="flex items-center gap-4">
-											<Switch checked={group.isActive} onCheckedChange={() => toggleBadgeGroupActive(group.id)} aria-label="Toggle badge group active state" />
-											{!group.isDefault && (
-												<Button
-													variant="ghost"
-													size="icon"
-													className="h-8 w-8"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleDeleteBadgeGroup(group.id);
-													}}>
-													<Trash2 className="h-4 w-4" />
-												</Button>
-											)}
-										</div>
+										)}
 									</div>
-								</AccordionTrigger>
+									
+									<div className="flex items-center gap-8">
+										{!group.isDefault && (
+											<AlertDialog>
+												<AlertDialogTrigger asChild>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-8 w-8"
+														onClick={(e) => e.stopPropagation()}
+													>
+														<Trash2 className="h-4 w-4 text-red-500 hover:text-red-600" />
+													</Button>
+												</AlertDialogTrigger>
+												<AlertDialogContent>
+													<AlertDialogHeader>
+														<AlertDialogTitle>Delete Badge Group</AlertDialogTitle>
+														<AlertDialogDescription>
+															Are you sure you want to delete "{group.name}"? This action cannot be undone.
+														</AlertDialogDescription>
+													</AlertDialogHeader>
+													<AlertDialogFooter>
+														<AlertDialogCancel>Cancel</AlertDialogCancel>
+														<AlertDialogAction 
+															onClick={() => handleDeleteGroup(group.id)}
+															className="bg-red-500 hover:bg-red-600"
+														>
+															Delete
+														</AlertDialogAction>
+													</AlertDialogFooter>
+												</AlertDialogContent>
+											</AlertDialog>
+										)}
 
-								<AccordionContent>
-									<Card className="p-6">
+										{getPluginWarning(group.requiredPlugin)}
+
+										<Switch
+											checked={group.isActive} 
+											onCheckedChange={() => toggleBadgeGroupActive(group.id)} 
+											aria-label="Toggle badge group active state"
+											onClick={(e) => e.stopPropagation()}
+											disabled={!isPluginInstalled(group.requiredPlugin)}
+										/>
+
+										<AccordionTrigger 
+											className="h-8 w-8 p-0"
+											disabled={!group.isActive}
+										/>
+									</div>
+								</div>
+
+								<AccordionContent className={cn(
+									!group.isActive && "pointer-events-none select-none"
+								)}>
+									<Separator className="my-4 bg-muted" />
+
+									<div className="p-6">
 										{/* Main Settings */}
-										<div className="flex gap-8">
-											<div className="flex-1 space-y-6">
+										<div className="flex gap-12">
+											{/* Left Section - Settings */}
+											<div className="flex-1 space-y-12">
 												{/* Header */}
-												<Card className="p-6 shadow-sm">
+												<div>
 													<div className="flex items-center justify-between border-b">
 														<h2 className="text-base font-semibold pb-2">Header Settings</h2>
 														<Switch checked={group.settings.showHeader} onCheckedChange={(checked) => handleChange(group.id, "showHeader", checked)} />
 													</div>
 													<div className="space-y-5">
 														<div className="flex flex-col gap-4">
-															{/* Header text input */}
-															<div className="space-y-2 mt-2">
-																{/* <Label className={`font-medium ${!group.settings.showHeader ? "opacity-50" : ""}`}>Header text</Label> */}
-																<Input
-																	value={group.settings.headerText}
-																	onChange={(e) => handleChange(group.id, "headerText", e.target.value)}
-																	disabled={!group.settings.showHeader}
-																	className={!group.settings.showHeader ? "opacity-50 cursor-not-allowed" : ""}
-																/>
+															{/* Header text and font size */}
+															<div className="space-y-4 mt-4">
+																<div className="space-y-2">
+																	<Label className={`font-medium block ${!group.settings.showHeader ? "opacity-50" : ""}`}>Header text</Label>
+																	<Input
+																		value={group.settings.headerText}
+																		onChange={(e) => handleChange(group.id, "headerText", e.target.value)}
+																		disabled={!group.settings.showHeader}
+																		className={!group.settings.showHeader ? "opacity-50 cursor-not-allowed" : ""}
+																	/>
+																</div>
 															</div>
 
-															{/* Font Size */}
-															<div className="space-y-2">
-																<Label className={`font-medium ${!group.settings.showHeader ? "opacity-50" : ""}`}>Font Size (px)</Label>
-																<div>
+															{/* Style Controls - Inline */}
+															<div className="flex items-center gap-8">
+																{/* Font Size */}
+																<div className="space-y-2">
+																	<Label className={`font-medium block ${!group.settings.showHeader ? "opacity-50" : ""}`}>Font Size (px)</Label>
 																	<Input
 																		type="number"
 																		value={group.settings.fontSize}
@@ -485,280 +675,170 @@ export function Settings() {
 																		disabled={!group.settings.showHeader}
 																	/>
 																</div>
-															</div>
 
-															{/* Alignment */}
-															<div className="space-y-2">
-																<Label className={`font-medium ${!group.settings.showHeader ? "opacity-50" : ""}`}>Alignment</Label>
-																<div className={`flex gap-2 border rounded-md p-1 w-[150px] ${!group.settings.showHeader ? "opacity-50" : ""}`}>
-																	<Button
-																		variant={group.settings.alignment === "left" ? "default" : "ghost"}
-																		size="sm"
-																		onClick={() => handleChange(group.id, "alignment", "left")}
-																		className="h-8 w-10"
-																		disabled={!group.settings.showHeader}>
-																		<AlignLeft />
-																	</Button>
-																	<Button
-																		variant={group.settings.alignment === "center" ? "default" : "ghost"}
-																		size="sm"
-																		onClick={() => handleChange(group.id, "alignment", "center")}
-																		className="h-8 w-10"
-																		disabled={!group.settings.showHeader}>
-																		<AlignCenter />
-																	</Button>
-																	<Button
-																		variant={group.settings.alignment === "right" ? "default" : "ghost"}
-																		size="sm"
-																		onClick={() => handleChange(group.id, "alignment", "right")}
-																		className="h-8 w-10"
-																		disabled={!group.settings.showHeader}>
-																		<AlignRight />
-																	</Button>
-																</div>
-															</div>
-
-															{/* Text Color */}
-															<div className="space-y-2">
-																<Label className={`font-medium ${!group.settings.showHeader ? "opacity-50" : ""}`}>Text Color</Label>
-																<div className={`flex items-center p-2 border w-[50px] h-[50px] rounded-md bg-white ${!group.settings.showHeader ? "opacity-50" : ""}`}>
-																	<Input
-																		type="color"
-																		value={group.settings.textColor}
-																		onChange={(e) => handleChange(group.id, "textColor", e.target.value)}
-																		className="w-11 h-8 p-0 border-0"
-																		disabled={!group.settings.showHeader}
-																	/>
-																</div>
-															</div>
-														</div>
-													</div>
-												</Card>
-
-												{/* Badges */}
-												<Card className="p-6 shadow-sm">
-													<h2 className="text-lg font-semibold border-b pb-2">Badge Settings</h2>
-													<div className="space-y-5">
-														<div className="flex flex-col gap-4">
-															{/* Badge Style */}
-															<div className="space-y-2">
-																<Label className="font-medium">Badge style</Label>
-																<div className="grid grid-cols-2 gap-4">
-																	{[
-																		{ id: "mono", label: "Mono" },
-																		{ id: "original", label: "Original" },
-																		{ id: "mono-card", label: "Mono Card" },
-																		{ id: "card", label: "Card" },
-																	].map((style) => (
-																		<button
-																			key={style.id}
-																			onClick={() => handleChange(group.id, "badgeStyle", style.id)}
-																			className={`border rounded-lg p-4 flex flex-col items-center gap-2 transition-colors ${
-																				group.settings.badgeStyle === style.id ? "border-primary bg-primary/5" : "border-input hover:border-primary/50"
-																			}`}>
-																		<div className={`w-20 h-12 rounded flex items-center justify-center ${style.id.includes("card") ? "bg-gray-400 shadow-sm py-1 px-2" : "p-1"}`}>
-																			<img
-																				src={`${window.txBadgesSettings.pluginUrl}assets/images/badges/mastercard_color.svg`}
-																				alt="Badge Style Preview"
-																				className={`w-full h-full object-contain ${style.id.includes("mono") ? "grayscale" : ""}`}
-																			/>
-																			</div>
-																		<span className="text-sm font-medium">{style.label}</span>
-																	</button>
-																))}
-																</div>
-															</div>
-
-															{/* Badge Alignment */}
-															<div className="space-y-2">
-																<Label className="font-medium">Badges Alignment</Label>
-																<div className="flex gap-2 border rounded-md p-1 w-[150px]">
-																	<Button variant={group.settings.badgeAlignment === "left" ? "default" : "ghost"} size="sm" onClick={() => handleChange(group.id, "badgeAlignment", "left")} className="h-8 w-10">
-																		<AlignLeft />
-																	</Button>
-																	<Button variant={group.settings.badgeAlignment === "center" ? "default" : "ghost"} size="sm" onClick={() => handleChange(group.id, "badgeAlignment", "center")} className="h-8 w-10">
-																		<AlignCenter />
-																	</Button>
-																	<Button variant={group.settings.badgeAlignment === "right" ? "default" : "ghost"} size="sm" onClick={() => handleChange(group.id, "badgeAlignment", "right")} className="h-8 w-10">
-																		<AlignRight />
-																	</Button>
-																</div>
-															</div>
-
-															{/* Badge Size - Desktop  --  NEED TO FIX ISSUE */}
-															<div className="space-y-2">
-																<Label className="font-medium">Badge size desktop</Label>
-																<Select value={group.settings.badgeSizeDesktop} onValueChange={(value) => handleChange(group.id, "badgeSizeDesktop", value)}>
-																	<SelectTrigger className="w-full">
-																		<SelectValue placeholder="Select desktop size" />
-																	</SelectTrigger>
-																	<SelectContent>
-																		<SelectItem value="extra-small">Extra Small</SelectItem>
-																		<SelectItem value="small">Small</SelectItem>
-																		<SelectItem value="medium">Medium</SelectItem>
-																		<SelectItem value="large">Large</SelectItem>
-																	</SelectContent>
-																</Select>
-															</div>
-
-															{/* Badge Size - Mobile  --  NEED TO FIX ISSUE */}
-															<div className="space-y-2">
-																<Label className="font-medium">Badge size mobile</Label>
-																<Select value={group.settings.badgeSizeMobile} onValueChange={(value) => handleChange(group.id, "badgeSizeMobile", value)}>
-																	<SelectTrigger className="w-full">
-																		<SelectValue placeholder="Select mobile size" />
-																	</SelectTrigger>
-																	<SelectContent>
-																		<SelectItem value="extra-small">Extra Small</SelectItem>
-																		<SelectItem value="small">Small</SelectItem>
-																		<SelectItem value="medium">Medium</SelectItem>
-																		<SelectItem value="large">Large</SelectItem>
-																	</SelectContent>
-																</Select>
-															</div>
-
-															{/* Badge Color  --  NOT WORKING */}
-															<div className="space-y-2">
-																<Label className="font-medium">Badge color</Label>
-																<div className="flex items-center p-2 border w-[50px] h-[50px] rounded-md bg-white">
-																	<Input type="color" value={group.settings.badgeColor} onChange={(e) => handleChange(group.id, "badgeColor", e.target.value)} className="w-11 h-8 p-0 border-0" />
-																</div>
-															</div>
-
-															{/* Custom Margin */}
-															<div className="space-y-4">
-																<div>
-																	<div className="flex items-center justify-between">
-																		<Label className="font-medium">Custom Margin</Label>
-																		<Switch checked={group.settings.customMargin} onCheckedChange={(checked) => handleChange(group.id, "customMargin", checked)} />
+																{/* Alignment */}
+																<div className="space-y-2">
+																	<Label className={`font-medium block ${!group.settings.showHeader ? "opacity-50" : ""}`}>Alignment</Label>
+																	<div className={`flex gap-2 border rounded-md p-1 w-[150px] ${!group.settings.showHeader ? "opacity-50" : ""}`}>
+																		<Button
+																			variant={group.settings.alignment === "left" ? "default" : "ghost"}
+																			size="sm"
+																			onClick={() => handleChange(group.id, "alignment", "left")}
+																			className="h-8 w-10"
+																			disabled={!group.settings.showHeader}>
+																			<AlignLeft />
+																		</Button>
+																		<Button
+																			variant={group.settings.alignment === "center" ? "default" : "ghost"}
+																			size="sm"
+																			onClick={() => handleChange(group.id, "alignment", "center")}
+																			className="h-8 w-10"
+																			disabled={!group.settings.showHeader}>
+																			<AlignCenter />
+																		</Button>
+																		<Button
+																			variant={group.settings.alignment === "right" ? "default" : "ghost"}
+																			size="sm"
+																			onClick={() => handleChange(group.id, "alignment", "right")}
+																			className="h-8 w-10"
+																			disabled={!group.settings.showHeader}>
+																			<AlignRight />
+																		</Button>
 																	</div>
-																	{/* <p className="mt-2 text-sm text-muted-foreground">This setting will only appear in your live store</p> */}
 																</div>
 
-																{group.settings.customMargin && (
-																	<div className="space-y-4">
-																		<div className="flex gap-6">
-																			<div>
-																				<Label className="text-sm">Top</Label>
-																				<div className="flex items-center gap-3 mt-1">
-																					<Input type="number" value={group.settings.marginTop} onChange={(e) => handleChange(group.id, "marginTop", e.target.value)} className="w-25" />
-																					<span className="text-muted-foreground">px</span>
-																				</div>
-																			</div>
-																			<div>
-																				<Label className="text-sm">Bottom</Label>
-																				<div className="flex items-center gap-3 mt-1">
-																					<Input type="number" value={group.settings.marginBottom} onChange={(e) => handleChange(group.id, "marginBottom", e.target.value)} className="w-25" />
-																					<span className="text-muted-foreground">px</span>
-																				</div>
-																			</div>
-																		</div>
-																		<div className="flex gap-6">
-																			<div>
-																				<Label className="text-sm">Left</Label>
-																				<div className="flex items-center gap-3 mt-1">
-																					<Input type="number" value={group.settings.marginLeft} onChange={(e) => handleChange(group.id, "marginLeft", e.target.value)} className="w-25" />
-																					<span className="text-muted-foreground">px</span>
-																				</div>
-																			</div>
-																			<div>
-																				<Label className="text-sm">Right</Label>
-																				<div className="flex items-center gap-3 mt-1">
-																					<Input type="number" value={group.settings.marginRight} onChange={(e) => handleChange(group.id, "marginRight", e.target.value)} className="w-25" />
-																					<span className="text-muted-foreground">px</span>
-																				</div>
-																			</div>
-																		</div>
+																{/* Text Color */}
+																<div className="space-y-2">
+																	<Label className={`font-medium block ${!group.settings.showHeader ? "opacity-50" : ""}`}>Color</Label>
+																	<div className={`flex items-center p-2 border w-[50px] h-[42px] rounded-md bg-white ${!group.settings.showHeader ? "opacity-50" : ""}`}>
+																		<Input
+																			type="color"
+																			value={group.settings.textColor}
+																			onChange={(e) => handleChange(group.id, "textColor", e.target.value)}
+																			className="w-11 h-8 p-0 border-0"
+																			disabled={!group.settings.showHeader}
+																		/>
 																	</div>
-																)}
+																</div>
 															</div>
 														</div>
 													</div>
-												</Card>
-
-												{/* Animation */}
-												<Card className="p-6 shadow-sm">
-													<h2 className="text-lg font-semibold mb-6 border-b pb-2">Animation</h2>
-													<div className="space-y-6">
-														<div className="space-y-2">
-															<div className="flex items-center justify-between">
-																<Label className="font-medium">Animation</Label>
-																<Button variant="outline" size="sm" onClick={toggleAnimation} disabled={isPlaying}>
-																	<PlayIcon className="h-4 w-4 mr-2" />
-																	{isPlaying ? "Playing..." : "Play animation"}
-																</Button>
-															</div>
-															<Select value={group.settings.animation} onValueChange={(value) => handleChange(group.id, "animation", value)}>
-																<SelectTrigger className="w-full">
-																	<SelectValue placeholder="Select animation" />
-																</SelectTrigger>
-																<SelectContent>
-																	<SelectItem value="fade">Fade</SelectItem>
-																	<SelectItem value="slide">Slide</SelectItem>
-																	<SelectItem value="scale">Scale</SelectItem>
-																	<SelectItem value="bounce">Bounce</SelectItem>
-																</SelectContent>
-															</Select>
-														</div>
-													</div>
-												</Card>
+												</div>
 
 												{/* Bar Placement */}
-												<Card className="p-6 shadow-sm mb-6">
+												<div className="">
 													<div className="">
 														<h2 className="text-lg font-semibold mb-6 border-b pb-2">Bar Placement</h2>
 														<div className="space-y-6">
 															<div className="space-y-4">
-																<div>
-																	<h4 className="text-sm font-medium mb-2">Show bar on</h4>
-																	<div className="flex items-center gap-2">
-																		<Checkbox id="show-product-page" checked={group.settings.showOnProductPage} onCheckedChange={(checked) => handleChange(group.id, "showOnProductPage", checked)} />
-																		<Label htmlFor="show-product-page" className="text-sm">
-																			Product page
-																		</Label>
-																		<div className="flex-1 flex justify-end">
+																{/* Card Shows Area */}
+																<>
+																	<h4 className="text-sm font-medium mb-4">Show bar on:</h4>
+																	<div className="space-y-4">
+																		{/* After add to cart button */}
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center gap-2">
+																				<Checkbox 
+																					id="show-after-add-to-cart" 
+																					checked={group.settings.showAfterAddToCart} 
+																					onCheckedChange={(checked) => handleChange(group.id, "showAfterAddToCart", checked)} 
+																				/>
+																				<Label htmlFor="show-after-add-to-cart" className="text-sm">
+																					After add to cart button
+																				</Label>
+																			</div>
 																			<TooltipProvider>
 																				<Tooltip>
 																					<TooltipTrigger asChild>
 																						<Button variant="ghost" size="icon" className="h-5 w-5">
-																							<HelpCircle className="h-5 w-5 text-black" />
+																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
 																						</Button>
 																					</TooltipTrigger>
 																					<TooltipContent>
-																						<p className="w-[150px]">The bar would show below the "Add to Cart" button.</p>
+																						<p className="w-[200px] text-xs">Display the trust badges below the Add to Cart button on product pages</p>
+																					</TooltipContent>
+																				</Tooltip>
+																			</TooltipProvider>
+																		</div>
+
+																		{/* Before add to cart button */}
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center gap-2">
+																				<Checkbox 
+																					id="show-before-add-to-cart" 
+																					checked={group.settings.showBeforeAddToCart} 
+																					onCheckedChange={(checked) => handleChange(group.id, "showBeforeAddToCart", checked)} 
+																				/>
+																				<Label htmlFor="show-before-add-to-cart" className="text-sm">
+																					Before add to cart button
+																				</Label>
+																			</div>
+																			<TooltipProvider>
+																				<Tooltip>
+																					<TooltipTrigger asChild>
+																						<Button variant="ghost" size="icon" className="h-5 w-5">
+																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
+																						</Button>
+																					</TooltipTrigger>
+																					<TooltipContent>
+																						<p className="w-[200px] text-xs">Display the trust badges above the Add to Cart button on product pages</p>
+																					</TooltipContent>
+																				</Tooltip>
+																			</TooltipProvider>
+																		</div>
+
+																		{/* Checkout page */}
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center gap-2">
+																				<Checkbox 
+																					id="show-on-checkout" 
+																					checked={group.settings.showOnCheckout} 
+																					onCheckedChange={(checked) => handleChange(group.id, "showOnCheckout", checked)} 
+																				/>
+																				<Label htmlFor="show-on-checkout" className="text-sm">
+																					Checkout page
+																				</Label>
+																			</div>
+																			<TooltipProvider>
+																				<Tooltip>
+																					<TooltipTrigger asChild>
+																						<Button variant="ghost" size="icon" className="h-5 w-5">
+																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
+																						</Button>
+																					</TooltipTrigger>
+																					<TooltipContent>
+																						<p className="w-[200px] text-xs">Display the trust badges on the checkout page</p>
 																					</TooltipContent>
 																				</Tooltip>
 																			</TooltipProvider>
 																		</div>
 																	</div>
-																</div>
+																</>
 
-																<div className="space-y-2">
-																	<p className="text-sm">
-																		To display the bar in a custom location place the following code inside the{" "}
-																		<a href="#" className="text-blue-600 hover:underline">
-																			template file
-																		</a>
-																		.
-																	</p>
-																	<div className="relative">
-																		<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{'<div class="ultimate-badges"></div>'}</div>
-																		<div className="absolute right-2 top-1.5 flex gap-1">
-																			<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard('<div class="ultimate-badges"></div>')}>
-																				{showCopied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
-																			</Button>
+																{!group.requiredPlugin && (
+																	<div className="space-y-2">
+																		<p className="text-sm">
+																			User this shortcode to display the bar in a custom location:
+																		</p>
+																		<div className="relative">
+																			<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{'<div class="tx-badge-' + group.id + '"></div>'}</div>
+																			<div className="absolute right-2 top-1.5 flex gap-1">
+																				<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard('<div class="tx-badge-' + group.id + '"></div>')}>
+																					{showCopied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
+																				</Button>
+																			</div>
+																			<AnimatePresence>
+																				{showCopied && (
+																					<motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-0 right-0 top-full mt-2 text-center z-10">
+																						<span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
+																							<CheckCircle className="h-4 mr-1 text-green-500" /> Copied to clipboard
+																						</span>
+																					</motion.div>
+																				)}
+																			</AnimatePresence>
 																		</div>
-																		<AnimatePresence>
-																			{showCopied && (
-																				<motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-0 right-0 top-full mt-2 text-center z-10">
-																					<span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
-																						<CheckCircle className="h-4 mr-1 text-green-500" /> Copied to clipboard
-																					</span>
-																				</motion.div>
-																			)}
-																		</AnimatePresence>
 																	</div>
-																</div>
+																)}
 
 																<div className="space-y-2">
 																	<p className="text-sm font-medium">Need help?</p>
@@ -774,16 +854,208 @@ export function Settings() {
 															</div>
 														</div>
 													</div>
-												</Card>
+												</div>
 											</div>
 
-											{/* Bar Preview */}
-											<div className="w-[60%] h-screen sticky top-6 self-start">
-												<Card></Card>
-												<Card>
-													<div className="text-center pt-2">
-														<h2 className="text-lg font-semibold">Bar Preview</h2>
+											<Separator orientation="vertical" className="bg-muted h-auto" />
+
+											{/* Right Section - Bar Preview */}
+											<div className="w-[60%] top-6 self-start space-y-12">
+												{/* Badges */}
+												<div className="">
+													<h2 className="text-base font-semibold border-b pb-2 mb-4">Badge Settings</h2>
+													<div className="space-y-8">
+														<div className="flex flex-col gap-4">
+															{/* Badge Style */}
+															<div className="space-y-2">
+																<div className="grid grid-cols-4 gap-8">
+																	{[
+																		{ id: "original", label: "Original" },
+																		{ id: "card", label: "Card" },
+																		{ id: "mono", label: "Mono" },
+																		{ id: "mono-card", label: "Mono Card" },
+																	].map((style) => (
+																		<button
+																			key={style.id}
+																			onClick={() => handleChange(group.id, "badgeStyle", style.id)}
+																			className={`border rounded-lg p-2 flex flex-col items-center transition-colors ${
+																				group.settings.badgeStyle === style.id ? "border-primary bg-primary/5" : "border-input hover:border-primary/50"
+																			}`}>
+																		<div className={`w-10 h-8 rounded flex items-center justify-center ${style.id.includes("card") ? "bg-gray-400 shadow-sm py-1 px-2" : "p-1"}`}>
+																			<img
+																				src={`${window.txBadgesSettings.pluginUrl}assets/images/badges/mastercard_color.svg`}
+																				alt="Badge Style Preview"
+																				className={`w-full h-full object-contain ${style.id.includes("mono") ? "grayscale" : ""}`}
+																			/>
+																		</div>
+																		<span className="text-xs font-medium">{style.label}</span>
+																	</button>
+																))}
+																</div>
+															</div>
+
+															{/* Alignment, Size, Color */}
+															<div className="space-y-2 flex items-start gap-8">
+																{/* Badge Alignment */}
+																<div className="space-y-2">
+																	<Label className="font-medium block">Alignment</Label>
+																	<div className="flex gap-2 border rounded-md p-1 w-[150px]">
+																		<Button
+																			variant={group.settings.badgeAlignment === "left" ? "default" : "ghost"}
+																			size="sm"
+																			onClick={() => handleChange(group.id, "badgeAlignment", "left")}
+																			className="h-8 w-10">
+																			<AlignLeft />
+																		</Button>
+																		<Button
+																			variant={group.settings.badgeAlignment === "center" ? "default" : "ghost"}
+																			size="sm"
+																			onClick={() => handleChange(group.id, "badgeAlignment", "center")}
+																			className="h-8 w-10">
+																			<AlignCenter />
+																		</Button>
+																		<Button
+																			variant={group.settings.badgeAlignment === "right" ? "default" : "ghost"}
+																			size="sm"
+																			onClick={() => handleChange(group.id, "badgeAlignment", "right")}
+																			className="h-8 w-10">
+																			<AlignRight />
+																		</Button>
+																	</div>
+																</div>
+
+																{/* Combined Badge Size Dropdown */}
+																<div className="space-y-2" style={{ marginTop: 0 }}>
+																	<Label className="font-medium block">Size</Label>
+																	<Select
+																		value={[group.settings.badgeSizeDesktop, group.settings.badgeSizeMobile].join(',')}
+																		onValueChange={(value) => {
+																			const [desktop, mobile] = value.split(',');
+																			if (desktop) handleChange(group.id, "badgeSizeDesktop", desktop);
+																			if (mobile) handleChange(group.id, "badgeSizeMobile", mobile);
+																		}}>
+																		<SelectTrigger className="w-[250px]">
+																			<SelectValue>
+																				{`[D] ${group.settings.badgeSizeDesktop?.charAt(0).toUpperCase()}${group.settings.badgeSizeDesktop?.slice(1)}, [M] ${group.settings.badgeSizeMobile?.charAt(0).toUpperCase()}${group.settings.badgeSizeMobile?.slice(1)}`}
+																			</SelectValue>
+																		</SelectTrigger>
+																		<SelectContent>
+																			<SelectGroup>
+																				<SelectLabel>Desktop Size [D]</SelectLabel>
+																				<SelectItem value={`extra-small,${group.settings.badgeSizeMobile}`}>Extra Small</SelectItem>
+																				<SelectItem value={`small,${group.settings.badgeSizeMobile}`}>Small</SelectItem>
+																				<SelectItem value={`medium,${group.settings.badgeSizeMobile}`}>Medium</SelectItem>
+																				<SelectItem value={`large,${group.settings.badgeSizeMobile}`}>Large</SelectItem>
+																			</SelectGroup>
+																			<SelectSeparator />
+																			<SelectGroup>
+																				<SelectLabel>Mobile Size [M]</SelectLabel>
+																				<SelectItem value={`${group.settings.badgeSizeDesktop},extra-small`}>Extra Small</SelectItem>
+																				<SelectItem value={`${group.settings.badgeSizeDesktop},small`}>Small</SelectItem>
+																				<SelectItem value={`${group.settings.badgeSizeDesktop},medium`}>Medium</SelectItem>
+																				<SelectItem value={`${group.settings.badgeSizeDesktop},large`}>Large</SelectItem>
+																			</SelectGroup>
+																		</SelectContent>
+																	</Select>
+																</div>
+
+																{/* Badge Color */}
+																<div className="space-y-2" style={{ marginTop: 0 }}>
+																	<Label className="font-medium block">Color</Label>
+																	<div className={`flex items-center p-2 border w-[50px] h-[42px] rounded-md bg-white ${!group.settings.showHeader ? "opacity-50" : ""}`}>
+																		<Input
+																			type="color"
+																			value={group.settings.badgeColor}
+																			onChange={(e) => handleChange(group.id, "badgeColor", e.target.value)}
+																			className="w-11 h-8 p-0 border-0"
+																		/>
+																	</div>
+																</div>
+															</div>
+
+															{/* Custom Margin */}
+															<div className="space-y-4">
+																<div className="flex items-center justify-between">
+																	<Label className="font-medium">Custom Margin</Label>
+																	<Switch checked={group.settings.customMargin} onCheckedChange={(checked) => handleChange(group.id, "customMargin", checked)} />
+																</div>
+
+																{group.settings.customMargin && (
+																	<div className="" style={{ marginTop: 5 }}>
+																		<div className="flex items-center gap-4">
+																			<div className="flex items-center gap-2">
+																				<Label className="font-medium min-w-[35px]">Top</Label>
+																				<Input
+																					type="number"
+																					value={group.settings.marginTop}
+																					onChange={(e) => handleChange(group.id, "marginTop", e.target.value)}
+																					className="w-[60px] h-10"
+																				/>
+																			</div>
+
+																			<div className="flex items-center gap-2">
+																				<Label className="font-medium min-w-[35px]">Right</Label>
+																				<Input
+																					type="number"
+																					value={group.settings.marginRight}
+																					onChange={(e) => handleChange(group.id, "marginRight", e.target.value)}
+																					className="w-[60px] h-10"
+																				/>
+																			</div>
+
+																			<div className="flex items-center gap-2">
+																				<Label className="font-medium min-w-[35px]">Bottom</Label>
+																				<Input
+																					type="number"
+																					value={group.settings.marginBottom}
+																					onChange={(e) => handleChange(group.id, "marginBottom", e.target.value)}
+																					className="w-[60px] h-10"
+																				/>
+																			</div>
+
+																			<div className="flex items-center gap-2">
+																				<Label className="font-medium min-w-[35px]">Left</Label>
+																				<Input
+																					type="number"
+																					value={group.settings.marginLeft}
+																					onChange={(e) => handleChange(group.id, "marginLeft", e.target.value)}
+																					className="w-[60px] h-10"
+																				/>
+																			</div>
+																		</div>
+																	</div>
+																)}
+															</div>
+														</div>
 													</div>
+												</div>
+
+												{/* Bar Preview Header with Animation Controls */}
+												<Card>
+													<div className="flex items-center justify-between pt-6 mb-4 px-6">
+														<h2 className="text-lg font-semibold">Bar Preview</h2>
+														<div className="flex items-center gap-4">
+															<div className="flex items-center gap-2">
+																<Label className="font-medium">Animation</Label>
+																<Select value={group.settings.animation} onValueChange={(value) => handleChange(group.id, "animation", value)}>
+																	<SelectTrigger className="w-[130px]">
+																		<SelectValue placeholder="Select animation" />
+																	</SelectTrigger>
+																	<SelectContent>
+																		<SelectItem value="fade">Fade</SelectItem>
+																		<SelectItem value="slide">Slide</SelectItem>
+																		<SelectItem value="scale">Scale</SelectItem>
+																		<SelectItem value="bounce">Bounce</SelectItem>
+																	</SelectContent>
+																</Select>
+															</div>
+															<Button variant="outline" onClick={toggleAnimation} disabled={isPlaying}>
+																<PlayIcon className="h-4 w-4 mr-2" />
+																{isPlaying ? "Playing..." : "Play"}
+															</Button>
+														</div>
+													</div>
+
 													<div
 														className="px-48 py-6 space-y-4 bg-gray-100 mt-6"
 														style={{
@@ -842,6 +1114,7 @@ export function Settings() {
 															</motion.div>
 														</AnimatePresence>
 													</div>
+													
 													<div className="p-6 pt-0 text-center pt-4">
 														<Button onClick={() => setBadgeSelectorOpen(true)}>Select Badges</Button>
 													</div>
@@ -857,7 +1130,7 @@ export function Settings() {
 											initialSelected={group.settings.selectedBadges}
 											onSave={(selectedBadges) => handleSaveBadges(group.id, selectedBadges)}
 										/>
-									</Card>
+									</div>
 								</AccordionContent>
 							</AccordionItem>
 						))}
@@ -865,9 +1138,9 @@ export function Settings() {
 
 					{/* Sticky Save Button */}
 					<div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-end">
-						<Button 
-							onClick={saveSettings} 
-							disabled={!hasUnsavedChanges || isLoading} 
+						<Button
+							onClick={saveSettings}
+							disabled={!hasUnsavedChanges || isLoading}
 							className={`${hasUnsavedChanges ? "bg-primary hover:bg-primary/90" : "bg-gray-200"}`}
 						>
 							{isLoading ? (

@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Plugin Name: TX Trust Badges
- * Plugin URI: https://yourwebsite.com/tx-badges
+ * Plugin Name: ConversWP Trust Badges
+ * Plugin URI: https://converswp.com/converswp-trust-badges
  * Description: Display customizable trust badges on your website to boost visitor confidence and increase conversions.
  * Version: 1.0.0
- * Author: ThemeXpert
+ * Author: ConversWP
  * Author URI: https://converswp.com
  * Text Domain: tx-badges
  * Requires PHP: 7.4
@@ -24,9 +24,21 @@ define('TX_BADGES_PLUGIN_URL', plugin_dir_url(__FILE__));
 register_activation_hook(__FILE__, 'tx_badges_activate');
 function tx_badges_activate()
 {
-    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-activator.php';
-    TX_Badges_Activator::activate();
-    flush_rewrite_rules();
+    // Start output buffering to catch any unexpected output
+    ob_start();
+    
+    try {
+        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-activator.php';
+        TX_Badges_Activator::activate();
+        flush_rewrite_rules();
+        
+        // Clean the buffer and discard any output
+        ob_end_clean();
+    } catch (Exception $e) {
+        // Clean the buffer and log the error
+        ob_end_clean();
+        error_log('TX Badges Plugin Activation Error: ' . $e->getMessage());
+    }
 }
 
 // Plugin deactivation
@@ -41,9 +53,9 @@ function tx_badges_deactivate()
 // Initialize REST API
 function tx_badges_init_rest_api()
 {
-    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-rest-controller.php';
-    $rest_controller = new TX_Badges_REST_Controller();
-    $rest_controller->register_routes();
+    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-rest-api.php';
+    $rest_api = new TX_Badges_REST_API();
+    $rest_api->register_routes();
 }
 add_action('rest_api_init', 'tx_badges_init_rest_api');
 
