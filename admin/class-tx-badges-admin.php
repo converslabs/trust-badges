@@ -60,24 +60,8 @@ class TX_Badges_Admin {
      * Handle AJAX request to save settings
      */
     public function save_settings() {
-        // Check nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'tx_badges_nonce')) {
-            wp_send_json_error('Invalid nonce');
-        }
-
-        // Check permissions
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Permission denied');
-        }
-
-        // Get and sanitize settings
-        $settings = json_decode(stripslashes($_POST['settings']), true);
-        if ($settings === null) {
-            wp_send_json_error('Invalid settings data');
-        }
-
-        // Save settings
-        update_option('tx_trust_badges_settings', $settings);
+        // Remove database save code
+        // We'll rewrite this later
         wp_send_json_success();
     }
 

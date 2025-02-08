@@ -35,14 +35,22 @@ class TX_Badges_REST_API {
         // Get settings
         register_rest_route($this->namespace, '/settings', [
             [
-                'methods' => WP_REST_Server::READABLE,
+                'methods' => 'GET',
                 'callback' => [$this, 'get_settings'],
-                'permission_callback' => [$this, 'check_permissions'],
+                'permission_callback' => [$this, 'get_settings_permissions_check'],
             ],
             [
-                'methods' => WP_REST_Server::EDITABLE,
-                'callback' => [$this, 'update_settings'],
-                'permission_callback' => [$this, 'check_permissions'],
+                'methods' => 'POST',
+                'callback' => [$this, 'save_settings'],
+                'permission_callback' => [$this, 'update_settings_permissions_check'],
+            ]
+        ]);
+
+        register_rest_route($this->namespace, '/settings/group', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'create_group'],
+                'permission_callback' => [$this, 'update_settings_permissions_check'],
             ]
         ]);
     }
@@ -72,43 +80,105 @@ class TX_Badges_REST_API {
     }
 
     public function get_badges($request) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'tx_badges';
-        
-        $badges = $wpdb->get_results("SELECT * FROM {$table_name} ORDER BY position ASC");
-        return new WP_REST_Response($badges, 200);
+        // Remove database query code
+        // We'll rewrite this later
+        return new WP_REST_Response([], 200);
     }
 
     public function create_badge($request) {
-        $params = $request->get_params();
+        // Remove database insert code
+        // We'll rewrite this later
+        return new WP_REST_Response([], 201);
+    }
+
+    public function get_settings($request) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
         
-        // Validate required fields
-        if (empty($params['title']) || empty($params['image_url'])) {
-            return new WP_Error('missing_fields', 'Required fields are missing', ['status' => 400]);
+        $results = $wpdb->get_results("SELECT * FROM $table_name ORDER BY id ASC");
+        
+        if ($wpdb->last_error) {
+            return new WP_Error('database_error', $wpdb->last_error, ['status' => 500]);
         }
 
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'tx_badges';
-        
-        $result = $wpdb->insert(
-            $table_name,
-            [
-                'title' => sanitize_text_field($params['title']),
-                'image_url' => esc_url_raw($params['image_url']),
-                'link_url' => isset($params['link_url']) ? esc_url_raw($params['link_url']) : '',
-                'position' => isset($params['position']) ? intval($params['position']) : 0,
-                'status' => isset($params['status']) ? sanitize_text_field($params['status']) : 'active',
-            ],
-            ['%s', '%s', '%s', '%d', '%s']
-        );
+        $groups = array_map(function($row) {
+            return [
+                'id' => $row->group_id,
+                'name' => $row->group_name,
+                'isDefault' => (bool)$row->is_default,
+                'isActive' => (bool)$row->is_active,
+                'requiredPlugin' => $row->required_plugin,
+                'settings' => json_decode($row->settings, true)
+            ];
+        }, $results);
 
+        return new WP_REST_Response($groups, 200);
+    }
+
+    public function save_settings($request) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
+        
+        $groups = $request->get_param('groups');
+        
+        if (!is_array($groups)) {
+            return new WP_Error('invalid_data', 'Invalid groups data', ['status' => 400]);
+        }
+
+        $wpdb->query('START TRANSACTION');
+
+        try {
+            foreach ($groups as $group) {
+                $data = [
+                    'group_name' => sanitize_text_field($group['name']),
+                    'is_active' => (bool)$group['isActive'],
+                    'settings' => json_encode($group['settings'])
+                ];
+
+                $where = ['group_id' => $group['id']];
+                
+                $result = $wpdb->update($table_name, $data, $where);
+                
+                if ($result === false) {
+                    throw new Exception($wpdb->last_error);
+                }
+            }
+
+            $wpdb->query('COMMIT');
+            return new WP_REST_Response(['message' => 'Settings updated successfully'], 200);
+        } catch (Exception $e) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('update_failed', $e->getMessage(), ['status' => 500]);
+        }
+    }
+
+    public function create_group($request) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
+        
+        $group = $request->get_param('group');
+        
+        if (!isset($group['id']) || !isset($group['name']) || !isset($group['settings'])) {
+            return new WP_Error('invalid_data', 'Missing required fields', ['status' => 400]);
+        }
+
+        $data = [
+            'group_id' => sanitize_text_field($group['id']),
+            'group_name' => sanitize_text_field($group['name']),
+            'is_default' => 0,
+            'is_active' => 1,
+            'settings' => json_encode($group['settings'])
+        ];
+
+        $result = $wpdb->insert($table_name, $data);
+        
         if ($result === false) {
-            return new WP_Error('db_error', 'Could not create badge', ['status' => 500]);
+            return new WP_Error('insert_failed', $wpdb->last_error, ['status' => 500]);
         }
 
         return new WP_REST_Response([
-            'id' => $wpdb->insert_id,
-            'message' => 'Badge created successfully'
+            'message' => 'Group created successfully',
+            'group' => array_merge($group, ['id' => $wpdb->insert_id])
         ], 201);
     }
 

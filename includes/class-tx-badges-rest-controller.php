@@ -79,116 +79,19 @@ class TX_Badges_REST_Controller {
     }
 
     public function get_items($request) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'tx_badges';
-        
-        $badges = $wpdb->get_results("SELECT * FROM {$table_name} ORDER BY position ASC");
-        
-        if (is_wp_error($badges)) {
-            return new WP_Error(
-                'database_error',
-                __('Failed to fetch badges from database.', 'tx-badges'),
-                array('status' => 500)
-            );
-        }
-
-        return new WP_REST_Response($badges, 200);
+        return new WP_REST_Response([], 200);
     }
 
     public function create_item($request) {
-        if (!$request->get_param('title')) {
-            return new WP_Error(
-                'missing_title',
-                __('Title is required.', 'tx-badges'),
-                array('status' => 400)
-            );
-        }
-
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'tx_badges';
-        
-        $badge = array(
-            'title' => sanitize_text_field($request->get_param('title')),
-            'image_url' => esc_url_raw($request->get_param('image_url')),
-            'link_url' => esc_url_raw($request->get_param('link_url')),
-            'position' => absint($request->get_param('position')),
-            'status' => 'active'
-        );
-
-        $result = $wpdb->insert($table_name, $badge);
-        
-        if (false === $result) {
-            return new WP_Error(
-                'database_error',
-                __('Failed to create badge.', 'tx-badges'),
-                array('status' => 500)
-            );
-        }
-
-        $badge['id'] = $wpdb->insert_id;
-        
-        return new WP_REST_Response($badge, 201);
+        return new WP_REST_Response([], 201);
     }
 
     public function update_item($request) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'tx_badges';
-        $id = absint($request->get_param('id'));
-
-        if (!$id) {
-            return new WP_Error(
-                'invalid_id',
-                __('Invalid badge ID.', 'tx-badges'),
-                array('status' => 400)
-            );
-        }
-
-        $badge = array(
-            'title' => sanitize_text_field($request->get_param('title')),
-            'image_url' => esc_url_raw($request->get_param('image_url')),
-            'link_url' => esc_url_raw($request->get_param('link_url')),
-            'position' => absint($request->get_param('position')),
-            'status' => sanitize_text_field($request->get_param('status'))
-        );
-
-        $result = $wpdb->update($table_name, $badge, array('id' => $id));
-        
-        if (false === $result) {
-            return new WP_Error(
-                'database_error',
-                __('Failed to update badge.', 'tx-badges'),
-                array('status' => 500)
-            );
-        }
-
-        $badge['id'] = $id;
-        return new WP_REST_Response($badge, 200);
+        return new WP_REST_Response([], 200);
     }
 
     public function delete_item($request) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'tx_badges';
-        $id = absint($request->get_param('id'));
-
-        if (!$id) {
-            return new WP_Error(
-                'invalid_id',
-                __('Invalid badge ID.', 'tx-badges'),
-                array('status' => 400)
-            );
-        }
-
-        $result = $wpdb->delete($table_name, array('id' => $id));
-        
-        if (false === $result) {
-            return new WP_Error(
-                'database_error',
-                __('Failed to delete badge.', 'tx-badges'),
-                array('status' => 500)
-            );
-        }
-
-        return new WP_REST_Response(null, 204);
+        return new WP_REST_Response([], 200);
     }
 
     public function get_settings($request) {

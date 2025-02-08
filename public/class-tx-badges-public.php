@@ -31,13 +31,6 @@ class TX_Badges_Public {
      * Display trust badges on the product page
      */
     public function display_trust_badges() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'tx_badges';
-        
-        $badges = $wpdb->get_results("SELECT * FROM {$table_name} WHERE status = 'active' ORDER BY position ASC");
-        
-        if (!empty($badges)) {
-            include_once('partials/tx-badges-public-display.php');
-        }
+        include_once('partials/tx-badges-public-display.php');
     }
 }
