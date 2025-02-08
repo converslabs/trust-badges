@@ -6,8 +6,9 @@ import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel, SelectSeparator } from "./ui/select";
-import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, Copy, HelpCircle, PlayCircle, PlusCircle, Trash2, Lock, Unlock, Check, PenSquare, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, Copy, HelpCircle, PlayCircle, PlusCircle, Trash2, Lock, Unlock, Check, PenSquare, X, Monitor, Smartphone } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { paymentBadges } from "./pages/assets/PaymentBadges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
@@ -713,18 +714,18 @@ export function Settings() {
 								)}>
 									<Separator className="my-4 bg-muted" />
 
-									<div className="p-6">
+									<div className="p-6 pt-4">
 										{/* Main Settings */}
 										<div className="flex gap-12">
 											{/* Left Section - Settings */}
-											<div className="flex-1 space-y-12">
+											<div className="flex-1">
 												{/* Header */}
-												<div>
+												<>
 													<div className="flex items-center justify-between border-b">
 														<h2 className="text-base font-semibold pb-2">Header Settings</h2>
 														<Switch checked={group.settings.showHeader} onCheckedChange={(checked) => handleChange(group.id, "showHeader", checked)} />
 													</div>
-													<div className="space-y-5">
+													<div className="space-y-2">
 														<div className="flex flex-col gap-4">
 															{/* Header text and font size */}
 															<div className="space-y-4 mt-4">
@@ -800,177 +801,175 @@ export function Settings() {
 															</div>
 														</div>
 													</div>
-												</div>
+												</>
 
 												{/* Badge Placement */}
-												<div className="">
-													<div className="">
-														<h2 className="text-lg font-semibold mb-6 border-b pb-2">Badge Placement</h2>
-														<div className="space-y-6">
-															<div className="space-y-4">
-																{/* Show different options based on group type */}
-																{group.id === "footer" ? (
-																	<>
-																		<h4 className="text-sm font-medium mb-4">Badge Position:</h4>
-																		<div className="flex flex-col gap-4">
-																			{/* Position Left */}
-																			<div className="flex items-center gap-2">
-																				<input
-																					type="radio"
-																					id="position-left"
-																					name="badge-position"
-																					checked={group.settings.position === "left"}
-																					onChange={() => handlePositionChange(group.id, "left")}
-																					className="w-4 h-4"
-																				/>
-																				<Label htmlFor="position-left">Left</Label>
-																			</div>
-
-																			{/* Position Center */}
-																			<div className="flex items-center gap-2">
-																				<input
-																					type="radio"
-																					id="position-center"
-																					name="badge-position"
-																					checked={group.settings.position === "center"}
-																					onChange={() => handlePositionChange(group.id, "center")}
-																					className="w-4 h-4"
-																				/>
-																				<Label htmlFor="position-center">Center</Label>
-																			</div>
-
-																			{/* Position Right */}
-																			<div className="flex items-center gap-2">
-																				<input
-																					type="radio"
-																					id="position-right"
-																					name="badge-position"
-																					checked={group.settings.position === "right"}
-																					onChange={() => handlePositionChange(group.id, "right")}
-																					className="w-4 h-4"
-																				/>
-																				<Label htmlFor="position-right">Right</Label>
-																			</div>
+												<div className="mt-8">
+													<h2 className="text-lg font-semibold mb-6 border-b pb-2">Badge Placement</h2>
+													<div className="space-y-6">
+														<div className="space-y-4">
+															{/* Show different options based on group type */}
+															{group.id === "footer" ? (
+																<>
+																	<h4 className="text-sm font-medium mb-4">Badge Position:</h4>
+																	<div className="flex flex-col gap-4">
+																		{/* Position Left */}
+																		<div className="flex items-center gap-2">
+																			<input
+																				type="radio"
+																				id="position-left"
+																				name="badge-position"
+																				checked={group.settings.position === "left"}
+																				onChange={() => handlePositionChange(group.id, "left")}
+																				className="w-4 h-4"
+																			/>
+																			<Label htmlFor="position-left">Left</Label>
 																		</div>
-																	</>
-																) : group.requiredPlugin ? (
-																	<>
-																		<h4 className="text-sm font-medium mb-4">Show badge on:</h4>
-																		<div className="space-y-4">
-																			{/* After add to cart button */}
-																			<div className="flex items-center justify-between">
-																				<div className="flex items-center gap-2">
-																					<Checkbox 
-																						id="show-after-add-to-cart" 
-																						checked={group.settings.showAfterAddToCart} 
-																						onCheckedChange={(checked) => handleChange(group.id, "showAfterAddToCart", checked)} 
-																					/>
-																					<Label htmlFor="show-after-add-to-cart" className="text-sm">
-																						After add to cart button
-																					</Label>
-																				</div>
-																				<TooltipProvider>
-																					<Tooltip>
-																						<TooltipTrigger asChild>
-																							<Button variant="ghost" size="icon" className="h-5 w-5">
-																								<HelpCircle className="h-5 w-5 text-muted-foreground" />
-																							</Button>
-																						</TooltipTrigger>
-																						<TooltipContent>
-																							<p className="w-[200px] text-xs">Display the trust badges below the Add to Cart button on product pages</p>
-																						</TooltipContent>
-																					</Tooltip>
-																				</TooltipProvider>
-																			</div>
 
-																			{/* Before add to cart button */}
-																			<div className="flex items-center justify-between">
-																				<div className="flex items-center gap-2">
-																					<Checkbox 
-																						id="show-before-add-to-cart" 
-																						checked={group.settings.showBeforeAddToCart} 
-																						onCheckedChange={(checked) => handleChange(group.id, "showBeforeAddToCart", checked)} 
-																					/>
-																					<Label htmlFor="show-before-add-to-cart" className="text-sm">
-																						Before add to cart button
-																					</Label>
-																				</div>
-																				<TooltipProvider>
-																					<Tooltip>
-																						<TooltipTrigger asChild>
-																							<Button variant="ghost" size="icon" className="h-5 w-5">
-																								<HelpCircle className="h-5 w-5 text-muted-foreground" />
-																							</Button>
-																						</TooltipTrigger>
-																						<TooltipContent>
-																							<p className="w-[200px] text-xs">Display the trust badges above the Add to Cart button on product pages</p>
-																						</TooltipContent>
-																					</Tooltip>
-																				</TooltipProvider>
-																			</div>
-
-																			{/* Checkout page */}
-																			<div className="flex items-center justify-between">
-																				<div className="flex items-center gap-2">
-																					<Checkbox 
-																						id="show-on-checkout" 
-																						checked={group.settings.showOnCheckout} 
-																						onCheckedChange={(checked) => handleChange(group.id, "showOnCheckout", checked)} 
-																					/>
-																					<Label htmlFor="show-on-checkout" className="text-sm">
-																						Checkout page
-																					</Label>
-																				</div>
-																				<TooltipProvider>
-																					<Tooltip>
-																						<TooltipTrigger asChild>
-																							<Button variant="ghost" size="icon" className="h-5 w-5">
-																								<HelpCircle className="h-5 w-5 text-muted-foreground" />
-																							</Button>
-																						</TooltipTrigger>
-																						<TooltipContent>
-																							<p className="w-[200px] text-xs">Display the trust badges on the checkout page</p>
-																						</TooltipContent>
-																					</Tooltip>
-																				</TooltipProvider>
-																			</div>
+																		{/* Position Center */}
+																		<div className="flex items-center gap-2">
+																			<input
+																				type="radio"
+																				id="position-center"
+																				name="badge-position"
+																				checked={group.settings.position === "center"}
+																				onChange={() => handlePositionChange(group.id, "center")}
+																				className="w-4 h-4"
+																			/>
+																			<Label htmlFor="position-center">Center</Label>
 																		</div>
-																	</>
-																) : (
-																	<div className="space-y-2">
-																		<p className="text-sm">
-																			Use this shortcode to display the badges in a custom location:
-																		</p>
-																		<div className="relative">
-																			<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
-																			<div className="absolute right-2 top-1.5 flex gap-1">
-																				<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(`<div class="convers-trust-badge-${group.id}"></div>`)}>
-																					{showCopied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
-																				</Button>
-																			</div>
-																			<AnimatePresence>
-																				{showCopied && (
-																					<motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-0 right-0 top-full mt-2 text-center z-10">
-																						<span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
-																							<CheckCircle className="h-4 mr-1 text-green-500" /> Shortcode copied to clipboard
-																						</span>
-																					</motion.div>
-																				)}
-																			</AnimatePresence>
+
+																		{/* Position Right */}
+																		<div className="flex items-center gap-2">
+																			<input
+																				type="radio"
+																				id="position-right"
+																				name="badge-position"
+																				checked={group.settings.position === "right"}
+																				onChange={() => handlePositionChange(group.id, "right")}
+																				className="w-4 h-4"
+																			/>
+																			<Label htmlFor="position-right">Right</Label>
 																		</div>
 																	</div>
-																)}
+																</>
+															) : group.requiredPlugin ? (
+																<>
+																	<h4 className="text-sm font-medium mb-4">Show badge on:</h4>
+																	<div className="space-y-4">
+																		{/* After add to cart button */}
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center gap-2">
+																				<Checkbox 
+																					id="show-after-add-to-cart" 
+																					checked={group.settings.showAfterAddToCart} 
+																					onCheckedChange={(checked) => handleChange(group.id, "showAfterAddToCart", checked)} 
+																				/>
+																				<Label htmlFor="show-after-add-to-cart" className="text-sm">
+																					After add to cart button
+																				</Label>
+																			</div>
+																			<TooltipProvider>
+																				<Tooltip>
+																					<TooltipTrigger asChild>
+																						<Button variant="ghost" size="icon" className="h-5 w-5">
+																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
+																						</Button>
+																					</TooltipTrigger>
+																					<TooltipContent>
+																						<p className="w-[200px] text-xs">Display the trust badges below the Add to Cart button on product pages</p>
+																					</TooltipContent>
+																				</Tooltip>
+																			</TooltipProvider>
+																		</div>
 
+																		{/* Before add to cart button */}
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center gap-2">
+																				<Checkbox 
+																					id="show-before-add-to-cart" 
+																					checked={group.settings.showBeforeAddToCart} 
+																					onCheckedChange={(checked) => handleChange(group.id, "showBeforeAddToCart", checked)} 
+																				/>
+																				<Label htmlFor="show-before-add-to-cart" className="text-sm">
+																					Before add to cart button
+																				</Label>
+																			</div>
+																			<TooltipProvider>
+																				<Tooltip>
+																					<TooltipTrigger asChild>
+																						<Button variant="ghost" size="icon" className="h-5 w-5">
+																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
+																						</Button>
+																					</TooltipTrigger>
+																					<TooltipContent>
+																						<p className="w-[200px] text-xs">Display the trust badges above the Add to Cart button on product pages</p>
+																					</TooltipContent>
+																				</Tooltip>
+																			</TooltipProvider>
+																		</div>
+
+																		{/* Checkout page */}
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center gap-2">
+																				<Checkbox 
+																					id="show-on-checkout" 
+																					checked={group.settings.showOnCheckout} 
+																					onCheckedChange={(checked) => handleChange(group.id, "showOnCheckout", checked)} 
+																				/>
+																				<Label htmlFor="show-on-checkout" className="text-sm">
+																					Checkout page
+																				</Label>
+																			</div>
+																			<TooltipProvider>
+																				<Tooltip>
+																					<TooltipTrigger asChild>
+																						<Button variant="ghost" size="icon" className="h-5 w-5">
+																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
+																						</Button>
+																					</TooltipTrigger>
+																					<TooltipContent>
+																						<p className="w-[200px] text-xs">Display the trust badges on the checkout page</p>
+																					</TooltipContent>
+																				</Tooltip>
+																			</TooltipProvider>
+																		</div>
+																	</div>
+																</>
+															) : (
 																<div className="space-y-2">
-																	<p className="text-sm font-medium">Need help?</p>
-																	<div className="flex items-center gap-4">
-																		<Button variant="link" className="h-auto p-0 text-sm text-blue-600 hover:text-blue-700" asChild>
-																			<a href="#" className="flex items-center gap-2">
-																				<PlayCircle />
-																				Step by Step Guide
-																			</a>
-																		</Button>
+																	<p className="text-sm">
+																		Use this shortcode to display the badges in a custom location:
+																	</p>
+																	<div className="relative">
+																		<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
+																		<div className="absolute right-2 top-1.5 flex gap-1">
+																			<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(`<div class="convers-trust-badge-${group.id}"></div>`)}>
+																				{showCopied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
+																			</Button>
+																		</div>
+																		<AnimatePresence>
+																			{showCopied && (
+																				<motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-0 right-0 top-full mt-2 text-center z-10">
+																					<span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
+																						<CheckCircle className="h-4 mr-1 text-green-500" /> Shortcode copied to clipboard
+																					</span>
+																				</motion.div>
+																			)}
+																		</AnimatePresence>
 																	</div>
+																</div>
+															)}
+
+															<div className="space-y-2">
+																<p className="text-sm font-medium">Need help?</p>
+																<div className="flex items-center gap-4">
+																	<Button variant="link" className="h-auto p-0 text-sm text-blue-600 hover:text-blue-700" asChild>
+																		<a href="#" className="flex items-center gap-2">
+																			<PlayCircle />
+																			Step by Step Guide
+																		</a>
+																	</Button>
 																</div>
 															</div>
 														</div>
@@ -1045,39 +1044,47 @@ export function Settings() {
 																	</div>
 																</div>
 
-																{/* Combined Badge Size Dropdown */}
+																{/* Badge Size Dropdown */}
 																<div className="space-y-2" style={{ marginTop: 0 }}>
-																	<Label className="font-medium block">Size</Label>
-																	<Select
-																		value={[group.settings.badgeSizeDesktop, group.settings.badgeSizeMobile].join(',')}
-																		onValueChange={(value) => {
-																			const [desktop, mobile] = value.split(',');
-																			if (desktop) handleChange(group.id, "badgeSizeDesktop", desktop);
-																			if (mobile) handleChange(group.id, "badgeSizeMobile", mobile);
-																		}}>
-																		<SelectTrigger className="w-[250px]">
-																			<SelectValue>
-																				{`[D] ${group.settings.badgeSizeDesktop?.charAt(0).toUpperCase()}${group.settings.badgeSizeDesktop?.slice(1)}, [M] ${group.settings.badgeSizeMobile?.charAt(0).toUpperCase()}${group.settings.badgeSizeMobile?.slice(1)}`}
-																			</SelectValue>
-																		</SelectTrigger>
-																		<SelectContent>
-																			<SelectGroup>
-																				<SelectLabel>Desktop Size [D]</SelectLabel>
-																				<SelectItem value={`extra-small,${group.settings.badgeSizeMobile}`}>Extra Small</SelectItem>
-																				<SelectItem value={`small,${group.settings.badgeSizeMobile}`}>Small</SelectItem>
-																				<SelectItem value={`medium,${group.settings.badgeSizeMobile}`}>Medium</SelectItem>
-																				<SelectItem value={`large,${group.settings.badgeSizeMobile}`}>Large</SelectItem>
-																			</SelectGroup>
-																			<SelectSeparator />
-																			<SelectGroup>
-																				<SelectLabel>Mobile Size [M]</SelectLabel>
-																				<SelectItem value={`${group.settings.badgeSizeDesktop},extra-small`}>Extra Small</SelectItem>
-																				<SelectItem value={`${group.settings.badgeSizeDesktop},small`}>Small</SelectItem>
-																				<SelectItem value={`${group.settings.badgeSizeDesktop},medium`}>Medium</SelectItem>
-																				<SelectItem value={`${group.settings.badgeSizeDesktop},large`}>Large</SelectItem>
-																			</SelectGroup>
-																		</SelectContent>
-																	</Select>
+																	<div className="flex gap-4">
+																		<div>
+																			<Label className="font-medium block mb-2">Desktop Size</Label>
+																			<Select
+																				value={group.settings.badgeSizeDesktop}
+																				onValueChange={(value) => handleChange(group.id, "badgeSizeDesktop", value)}
+																			>
+																				<SelectTrigger className="w-[180px] flex items-center gap-2">
+																					<Monitor className="h-4 w-4" />
+																					<SelectValue placeholder="Desktop size" />
+																				</SelectTrigger>
+																				<SelectContent>
+																					<SelectItem value="extra-small">Extra Small</SelectItem>
+																					<SelectItem value="small">Small</SelectItem>
+																					<SelectItem value="medium">Medium</SelectItem>
+																					<SelectItem value="large">Large</SelectItem>
+																				</SelectContent>
+																			</Select>
+																		</div>
+
+																		<div>
+																			<Label className="font-medium block mb-2">Mobile Size</Label>
+																			<Select
+																				value={group.settings.badgeSizeMobile}
+																				onValueChange={(value) => handleChange(group.id, "badgeSizeMobile", value)}
+																			>
+																				<SelectTrigger className="w-[180px] flex items-center gap-2">
+																					<Smartphone className="h-4 w-4" />
+																					<SelectValue placeholder="Mobile size" />
+																				</SelectTrigger>
+																				<SelectContent>
+																					<SelectItem value="extra-small">Extra Small</SelectItem>
+																					<SelectItem value="small">Small</SelectItem>
+																					<SelectItem value="medium">Medium</SelectItem>
+																					<SelectItem value="large">Large</SelectItem>
+																				</SelectContent>
+																			</Select>
+																		</div>
+																	</div>
 																</div>
 
 																{/* Badge Color */}
