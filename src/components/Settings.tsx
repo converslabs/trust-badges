@@ -7,7 +7,7 @@ import { Switch } from "./ui/switch";
 import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel, SelectSeparator } from "./ui/select";
-import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, Copy, HelpCircle, PlayCircle, PlusCircle, Trash2 } from "lucide-react";
+import { PlayIcon, AlignCenter, AlignLeft, AlignRight, CheckCircle, Copy, HelpCircle, PlayCircle, PlusCircle, Trash2, Lock, Unlock, Check, PenSquare, X } from "lucide-react";
 import { paymentBadges } from "./pages/assets/PaymentBadges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
@@ -89,6 +89,7 @@ interface TrustBadgesSettings {
 	fontSize: string;
 	alignment: "left" | "center" | "right";
 	badgeAlignment: "left" | "center" | "right";
+	position: "left" | "center" | "right";
 	textColor: string;
 	badgeStyle: "mono" | "original" | "mono-card" | "card";
 	badgeSizeDesktop: BadgeSize;
@@ -112,6 +113,7 @@ const defaultSettings: TrustBadgesSettings = {
 	fontSize: "18",
 	alignment: "center",
 	badgeAlignment: "center",
+	position: "center",
 	textColor: "#000000",
 	badgeStyle: "original",
 	badgeSizeDesktop: "medium",
@@ -171,6 +173,8 @@ export function Settings() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 	const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
+	const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+	const [originalName, setOriginalName] = useState<string>("");
 
 	const { toast } = useToast();
 
@@ -293,6 +297,19 @@ export function Settings() {
 		setHasUnsavedChanges(true);
 	};
 
+	// Handle position change for Footer
+	const handlePositionChange = (badgeGroupId: string, position: "left" | "center" | "right") => {
+		setBadgeGroups((prev) =>
+			prev.map((group) => {
+				if (group.id === badgeGroupId) {
+					return { ...group, settings: { ...group.settings, position } };
+				}
+				return group;
+			})
+		);
+		setHasUnsavedChanges(true);
+	};
+
 	const saveSettings = async () => {
 		try {
 			setIsLoading(true);
@@ -408,11 +425,23 @@ export function Settings() {
 		return sizeSet[size] ?? sizeSet["medium"];
 	};
 
+	const getNextSequentialId = (groups: BadgeGroup[]) => {
+		const customGroups = groups.filter(g => !g.isDefault);
+		if (customGroups.length === 0) return "1";
+		
+		const ids = customGroups.map(g => {
+			const num = parseInt(g.id);
+			return isNaN(num) ? 0 : num;
+		});
+		
+		return String(Math.max(...ids) + 1);
+	};
+
 	const addNewBadgeGroup = () => {
-		const newId = `custom-${Date.now()}`;
+		const newId = getNextSequentialId(badgeGroups);
 		const newGroup: BadgeGroup = {
 			id: newId,
-			name: "New Badge Group",
+			name: `New Badge Group ${newId}`,
 			settings: { ...defaultSettings },
 			isDefault: false,
 			isActive: true,
@@ -561,16 +590,64 @@ export function Settings() {
 										!group.isActive && "cursor-not-allowed"
 									)}>
 										{!group.isDefault ? (
-											<Input
-												value={group.name}
-												onChange={(e) => handleNameChange(group.id, e.target.value)}
-												onClick={(e) => e.stopPropagation()}
-												className={cn(
-													"w-[200px] mr-2",
-													!group.isActive && "cursor-not-allowed bg-muted"
-												)}
-												disabled={!group.isActive}
-											/>
+											<div className="flex items-center gap-2">
+												<div className="flex items-center gap-4">
+													{/* Lock/Unlock Icon */}
+													{editingGroupId === group.id ? (
+														<Unlock className="h-4 w-4 text-gray-300" />
+													) : (
+														<Lock className="h-4 w-4 text-gray-300" />
+													)}
+
+													{/* Name/Input Field */}
+													{editingGroupId === group.id ? (
+														<Input
+															value={group.name}
+															onChange={(e) => handleNameChange(group.id, e.target.value)}
+															onClick={(e) => e.stopPropagation()}
+															className={cn(
+																!group.isActive && "cursor-not-allowed bg-muted"
+															)}
+															disabled={!group.isActive}
+															autoFocus
+														/>
+													) : (
+														<span className="font-mono text-sm text-gray-700">{group.name}</span>
+													)}
+
+													{/* Edit/Save Button */}
+													{editingGroupId === group.id ? (
+														<div className="flex items-center gap-2">
+															<button
+																onClick={() => setEditingGroupId(null)}
+																className="p-0.5 hover:bg-gray-200 rounded-sm"
+															>
+																<Check className="h-4 w-4 text-gray-300" />
+															</button>
+															<button
+																onClick={() => {
+																	handleNameChange(group.id, originalName); // Reset to original name
+																	setEditingGroupId(null);
+																	setOriginalName("");
+																}}
+																className="p-0.5 hover:bg-gray-200 rounded-sm"
+															>
+																<X className="h-4 w-4 text-gray-300" />
+															</button>
+														</div>
+													) : (
+														<button
+															onClick={() => {
+																setOriginalName(group.name);
+																setEditingGroupId(group.id);
+															}}
+															className="p-0.5 hover:bg-gray-200 rounded-sm"
+														>
+															<PenSquare className="h-4 w-4 text-gray-300" />
+														</button>
+													)}
+												</div>
+											</div>
 										) : (
 											<span className={cn(
 												"font-medium",
@@ -725,105 +802,149 @@ export function Settings() {
 													</div>
 												</div>
 
-												{/* Bar Placement */}
+												{/* Badge Placement */}
 												<div className="">
 													<div className="">
-														<h2 className="text-lg font-semibold mb-6 border-b pb-2">Bar Placement</h2>
+														<h2 className="text-lg font-semibold mb-6 border-b pb-2">Badge Placement</h2>
 														<div className="space-y-6">
 															<div className="space-y-4">
-																{/* Card Shows Area */}
-																<>
-																	<h4 className="text-sm font-medium mb-4">Show bar on:</h4>
-																	<div className="space-y-4">
-																		{/* After add to cart button */}
-																		<div className="flex items-center justify-between">
+																{/* Show different options based on group type */}
+																{group.id === "footer" ? (
+																	<>
+																		<h4 className="text-sm font-medium mb-4">Badge Position:</h4>
+																		<div className="flex flex-col gap-4">
+																			{/* Position Left */}
 																			<div className="flex items-center gap-2">
-																				<Checkbox 
-																					id="show-after-add-to-cart" 
-																					checked={group.settings.showAfterAddToCart} 
-																					onCheckedChange={(checked) => handleChange(group.id, "showAfterAddToCart", checked)} 
+																				<input
+																					type="radio"
+																					id="position-left"
+																					name="badge-position"
+																					checked={group.settings.position === "left"}
+																					onChange={() => handlePositionChange(group.id, "left")}
+																					className="w-4 h-4"
 																				/>
-																				<Label htmlFor="show-after-add-to-cart" className="text-sm">
-																					After add to cart button
-																				</Label>
+																				<Label htmlFor="position-left">Left</Label>
 																			</div>
-																			<TooltipProvider>
-																				<Tooltip>
-																					<TooltipTrigger asChild>
-																						<Button variant="ghost" size="icon" className="h-5 w-5">
-																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
-																						</Button>
-																					</TooltipTrigger>
-																					<TooltipContent>
-																						<p className="w-[200px] text-xs">Display the trust badges below the Add to Cart button on product pages</p>
-																					</TooltipContent>
-																				</Tooltip>
-																			</TooltipProvider>
-																		</div>
 
-																		{/* Before add to cart button */}
-																		<div className="flex items-center justify-between">
+																			{/* Position Center */}
 																			<div className="flex items-center gap-2">
-																				<Checkbox 
-																					id="show-before-add-to-cart" 
-																					checked={group.settings.showBeforeAddToCart} 
-																					onCheckedChange={(checked) => handleChange(group.id, "showBeforeAddToCart", checked)} 
+																				<input
+																					type="radio"
+																					id="position-center"
+																					name="badge-position"
+																					checked={group.settings.position === "center"}
+																					onChange={() => handlePositionChange(group.id, "center")}
+																					className="w-4 h-4"
 																				/>
-																				<Label htmlFor="show-before-add-to-cart" className="text-sm">
-																					Before add to cart button
-																				</Label>
+																				<Label htmlFor="position-center">Center</Label>
 																			</div>
-																			<TooltipProvider>
-																				<Tooltip>
-																					<TooltipTrigger asChild>
-																						<Button variant="ghost" size="icon" className="h-5 w-5">
-																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
-																						</Button>
-																					</TooltipTrigger>
-																					<TooltipContent>
-																						<p className="w-[200px] text-xs">Display the trust badges above the Add to Cart button on product pages</p>
-																					</TooltipContent>
-																				</Tooltip>
-																			</TooltipProvider>
-																		</div>
 
-																		{/* Checkout page */}
-																		<div className="flex items-center justify-between">
+																			{/* Position Right */}
 																			<div className="flex items-center gap-2">
-																				<Checkbox 
-																					id="show-on-checkout" 
-																					checked={group.settings.showOnCheckout} 
-																					onCheckedChange={(checked) => handleChange(group.id, "showOnCheckout", checked)} 
+																				<input
+																					type="radio"
+																					id="position-right"
+																					name="badge-position"
+																					checked={group.settings.position === "right"}
+																					onChange={() => handlePositionChange(group.id, "right")}
+																					className="w-4 h-4"
 																				/>
-																				<Label htmlFor="show-on-checkout" className="text-sm">
-																					Checkout page
-																				</Label>
+																				<Label htmlFor="position-right">Right</Label>
 																			</div>
-																			<TooltipProvider>
-																				<Tooltip>
-																					<TooltipTrigger asChild>
-																						<Button variant="ghost" size="icon" className="h-5 w-5">
-																							<HelpCircle className="h-5 w-5 text-muted-foreground" />
-																						</Button>
-																					</TooltipTrigger>
-																					<TooltipContent>
-																						<p className="w-[200px] text-xs">Display the trust badges on the checkout page</p>
-																					</TooltipContent>
-																				</Tooltip>
-																			</TooltipProvider>
 																		</div>
-																	</div>
-																</>
+																	</>
+																) : group.requiredPlugin ? (
+																	<>
+																		<h4 className="text-sm font-medium mb-4">Show badge on:</h4>
+																		<div className="space-y-4">
+																			{/* After add to cart button */}
+																			<div className="flex items-center justify-between">
+																				<div className="flex items-center gap-2">
+																					<Checkbox 
+																						id="show-after-add-to-cart" 
+																						checked={group.settings.showAfterAddToCart} 
+																						onCheckedChange={(checked) => handleChange(group.id, "showAfterAddToCart", checked)} 
+																					/>
+																					<Label htmlFor="show-after-add-to-cart" className="text-sm">
+																						After add to cart button
+																					</Label>
+																				</div>
+																				<TooltipProvider>
+																					<Tooltip>
+																						<TooltipTrigger asChild>
+																							<Button variant="ghost" size="icon" className="h-5 w-5">
+																								<HelpCircle className="h-5 w-5 text-muted-foreground" />
+																							</Button>
+																						</TooltipTrigger>
+																						<TooltipContent>
+																							<p className="w-[200px] text-xs">Display the trust badges below the Add to Cart button on product pages</p>
+																						</TooltipContent>
+																					</Tooltip>
+																				</TooltipProvider>
+																			</div>
 
-																{!group.requiredPlugin && (
+																			{/* Before add to cart button */}
+																			<div className="flex items-center justify-between">
+																				<div className="flex items-center gap-2">
+																					<Checkbox 
+																						id="show-before-add-to-cart" 
+																						checked={group.settings.showBeforeAddToCart} 
+																						onCheckedChange={(checked) => handleChange(group.id, "showBeforeAddToCart", checked)} 
+																					/>
+																					<Label htmlFor="show-before-add-to-cart" className="text-sm">
+																						Before add to cart button
+																					</Label>
+																				</div>
+																				<TooltipProvider>
+																					<Tooltip>
+																						<TooltipTrigger asChild>
+																							<Button variant="ghost" size="icon" className="h-5 w-5">
+																								<HelpCircle className="h-5 w-5 text-muted-foreground" />
+																							</Button>
+																						</TooltipTrigger>
+																						<TooltipContent>
+																							<p className="w-[200px] text-xs">Display the trust badges above the Add to Cart button on product pages</p>
+																						</TooltipContent>
+																					</Tooltip>
+																				</TooltipProvider>
+																			</div>
+
+																			{/* Checkout page */}
+																			<div className="flex items-center justify-between">
+																				<div className="flex items-center gap-2">
+																					<Checkbox 
+																						id="show-on-checkout" 
+																						checked={group.settings.showOnCheckout} 
+																						onCheckedChange={(checked) => handleChange(group.id, "showOnCheckout", checked)} 
+																					/>
+																					<Label htmlFor="show-on-checkout" className="text-sm">
+																						Checkout page
+																					</Label>
+																				</div>
+																				<TooltipProvider>
+																					<Tooltip>
+																						<TooltipTrigger asChild>
+																							<Button variant="ghost" size="icon" className="h-5 w-5">
+																								<HelpCircle className="h-5 w-5 text-muted-foreground" />
+																							</Button>
+																						</TooltipTrigger>
+																						<TooltipContent>
+																							<p className="w-[200px] text-xs">Display the trust badges on the checkout page</p>
+																						</TooltipContent>
+																					</Tooltip>
+																				</TooltipProvider>
+																			</div>
+																		</div>
+																	</>
+																) : (
 																	<div className="space-y-2">
 																		<p className="text-sm">
-																			User this shortcode to display the bar in a custom location:
+																			Use this shortcode to display the badges in a custom location:
 																		</p>
 																		<div className="relative">
-																			<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{'<div class="tx-badge-' + group.id + '"></div>'}</div>
+																			<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
 																			<div className="absolute right-2 top-1.5 flex gap-1">
-																				<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard('<div class="tx-badge-' + group.id + '"></div>')}>
+																				<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(`<div class="convers-trust-badge-${group.id}"></div>`)}>
 																					{showCopied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
 																				</Button>
 																			</div>
@@ -831,7 +952,7 @@ export function Settings() {
 																				{showCopied && (
 																					<motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-0 right-0 top-full mt-2 text-center z-10">
 																						<span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
-																							<CheckCircle className="h-4 mr-1 text-green-500" /> Copied to clipboard
+																							<CheckCircle className="h-4 mr-1 text-green-500" /> Shortcode copied to clipboard
 																						</span>
 																					</motion.div>
 																				)}
