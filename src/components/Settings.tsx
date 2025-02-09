@@ -573,6 +573,43 @@ export function Settings() {
 		checkInstalledPlugins();
 	}, [toast]);
 
+	// Add this function inside the Settings component
+	const handleDiscardChanges = (group: BadgeGroup) => {
+		try {
+			// Find the original group from the loaded data
+			const originalGroup = defaultBadgeGroups.find(g => g.id === group.id) || group;
+			
+			setBadgeGroups(prev => prev.map(g => {
+				if (g.id === group.id) {
+					return {
+						...originalGroup,
+						isActive: g.isActive // Preserve active state
+					};
+				}
+				return g;
+			}));
+
+			// Remove this group from unsaved changes
+			setUnsavedGroups(prev => {
+				const newState = { ...prev };
+				delete newState[group.id];
+				return newState;
+			});
+
+			toast({
+				title: "Changes Discarded",
+				description: `Changes for ${group.name} have been discarded`,
+			});
+		} catch (error) {
+			console.error('Error discarding changes:', error);
+			toast({
+				title: "Error",
+				description: "Failed to discard changes. Please try again.",
+				variant: "destructive",
+			});
+		}
+	};
+
 	return (
 		<div className="space-y-4">
 			{isLoading ? (
@@ -1278,23 +1315,33 @@ export function Settings() {
 											onSave={(selectedBadges) => handleSaveBadges(group.id, selectedBadges)}
 										/>
 
-										{/* Add save button at the bottom of each accordion */}
-										<div className="mt-8 flex justify-end">
+										{/* Save and Cancel buttons */}
+										<div className="mt-8 flex items-center justify-between gap-2">
 											<Button
 												onClick={() => saveGroupSettings(group)}
 												disabled={!unsavedGroups[group.id] || isLoading}
-												className={`${unsavedGroups[group.id] ? "bg-primary hover:bg-primary/90" : "bg-gray-200"}`}
+												className={`${unsavedGroups[group.id] ? "bg-primary hover:bg-primary/90" : "bg-gray-200"} gap-2`}
 											>
 												{isLoading ? (
 													<div className="flex items-center gap-2">
 														<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
 														Saving...
 													</div>
-												) : unsavedGroups[group.id] ? (
-													"Save Changes"
 												) : (
-													"All Changes Saved"
+													<>
+														<Check className="h-4 w-4" />
+														{unsavedGroups[group.id] ? "Save Changes" : "All Changes Saved"}
+													</>
 												)}
+											</Button>
+											<Button
+												onClick={() => handleDiscardChanges(group)}
+												disabled={!unsavedGroups[group.id] || isLoading}
+												variant="destructive"
+												className="gap-2"
+											>
+												<X className="h-4 w-4" />
+												Cancel
 											</Button>
 										</div>
 									</div>
