@@ -12,7 +12,8 @@ import { paymentBadges } from "./pages/assets/PaymentBadges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "./ui/use-toast";
-import { BadgeSize } from "../types/settings";
+import type { BadgeSize, TrustBadgesSettings, ApiResponse, ApiError } from "../types/badges";
+import type { BadgeGroup } from "../types/badges";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
@@ -21,29 +22,7 @@ import { twMerge } from "tailwind-merge";
 
 // Utility function for merging class names
 function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-declare global {
-	interface Window {
-		txBadgesSettings: {
-			pluginUrl: string;
-			ajaxUrl: string;
-			nonce: string;
-			restUrl: string;
-			mediaTitle: string;
-			mediaButton: string;
-		};
-	}
-}
-
-interface BadgeGroup {
-	id: string;
-	name: string;
-	settings: TrustBadgesSettings;
-	isDefault?: boolean;
-	isActive?: boolean;
-	requiredPlugin?: 'woocommerce' | 'edd';
+	return twMerge(clsx(inputs));
 }
 
 // Add these utility functions at the top of the file
@@ -82,30 +61,6 @@ const convertKeysToCamelCase = (obj: any): any => {
 		return acc;
 	}, {} as any);
 };
-
-interface TrustBadgesSettings {
-	showHeader: boolean;
-	headerText: string;
-	fontSize: string;
-	alignment: "left" | "center" | "right";
-	badgeAlignment: "left" | "center" | "right";
-	position: "left" | "center" | "right";
-	textColor: string;
-	badgeStyle: "mono" | "original" | "mono-card" | "card";
-	badgeSizeDesktop: BadgeSize;
-	badgeSizeMobile: BadgeSize;
-	badgeColor: string;
-	customMargin: boolean;
-	marginTop: string;
-	marginBottom: string;
-	marginLeft: string;
-	marginRight: string;
-	animation: "fade" | "slide" | "scale" | "bounce";
-	showAfterAddToCart: boolean;
-	showBeforeAddToCart: boolean;
-	showOnCheckout: boolean;
-	selectedBadges: string[];
-}
 
 const defaultSettings: TrustBadgesSettings = {
 	showHeader: true,
@@ -165,6 +120,65 @@ const defaultBadgeGroups: BadgeGroup[] = [
 	},
 ];
 
+// Add this utility function
+const handleApiError = (error: any, toast: any) => {
+	console.error('API Error:', error);
+	
+	// Handle specific error cases
+	if (error.message.includes('Cookie check failed') || error.message.includes('Authentication failed')) {
+		toast({
+			title: "Authentication Error",
+			description: "Your session has expired. The page will refresh.",
+			variant: "destructive",
+		});
+		setTimeout(() => window.location.reload(), 2000);
+		return;
+	}
+
+	toast({
+		title: "Error",
+		description: error.message || "An unexpected error occurred",
+		variant: "destructive",
+	});
+};
+
+// Add this function near the top
+const fetchApi = async (path: string, options: RequestInit = {}) => {
+	const defaultOptions: RequestInit = {
+		headers: {
+			'Content-Type': 'application/json',
+			'X-WP-Nonce': window.txBadgesSettings.restNonce
+		},
+		credentials: 'same-origin'
+	};
+
+	// Ensure path starts with a slash and remove any trailing slashes from restUrl
+	const cleanPath = path.startsWith('/') ? path : `/${path}`;
+	const cleanRestUrl = window.txBadgesSettings.restUrl.replace(/\/+$/, '');
+	const url = `${cleanRestUrl}${cleanPath}`;
+
+	const response = await fetch(url, {
+		...defaultOptions,
+		...options,
+		headers: {
+			...defaultOptions.headers,
+			...options.headers
+		}
+	});
+
+	if (!response.ok) {
+		if (response.status === 403) {
+			// Handle authentication errors
+			window.location.reload(); // Reload to get fresh nonce
+			throw new Error('Authentication failed. Please try again.');
+		}
+		const error = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+		throw new Error(error.message || `HTTP error! status: ${response.status}`);
+	}
+
+	return response.json();
+};
+
 export function Settings() {
 	const [badgeGroups, setBadgeGroups] = useState<BadgeGroup[]>(defaultBadgeGroups);
 	const [badgeSelectorOpen, setBadgeSelectorOpen] = useState(false);
@@ -191,93 +205,45 @@ export function Settings() {
 	useEffect(() => {
 		const loadSettings = async () => {
 			try {
-				if (!window.txBadgesSettings?.ajaxUrl) {
-					console.warn("txBadgesSettings not initialized");
-					setIsLoading(false);
-					return;
-				}
+				setIsLoading(true);
+				const data = await fetchApi('settings');
+				
+				// Create a map of default groups for easy lookup
+				const defaultGroupsMap = defaultBadgeGroups.reduce((acc, group) => {
+					acc[group.id] = group;
+					return acc;
+				}, {} as Record<string, BadgeGroup>);
 
-				const formData = new FormData();
-				formData.append("action", "tx_badges_get_settings");
-				formData.append("nonce", window.txBadgesSettings.nonce || "");
-
-				const response = await fetch(window.txBadgesSettings.ajaxUrl, {
-					method: "POST",
-					body: formData,
-					credentials: "same-origin",
-				});
-
-				if (!response.ok) {
-					throw new Error(`HTTP error! status: ${response.status}`);
-				}
-
-				const result = await response.json();
-
-				if (!result.success) {
-					throw new Error(result.data?.message || "Failed to load settings");
-				}
-
-				// Ensure we have valid data
-				if (!result.data || typeof result.data !== "object") {
-					throw new Error("Invalid settings data received");
-				}
-
-				// Convert snake_case to camelCase
-				const camelCaseSettings = convertKeysToCamelCase(result.data);
-
-				// Transform the loaded settings into our badge groups format
-				const loadedSettings = Array.isArray(camelCaseSettings) ? camelCaseSettings : [camelCaseSettings];
-				const transformedGroups = loadedSettings.map((settings) => ({
-					id: settings.id || "default",
-					name: settings.name || "Default",
-					isDefault: false,
-					isActive: true,
-					settings: {
-						showHeader: settings.show_header ?? defaultSettings.showHeader,
-						headerText: settings.header_text ?? defaultSettings.headerText,
-						fontSize: settings.font_size ?? defaultSettings.fontSize,
-						alignment: settings.alignment ?? defaultSettings.alignment,
-						badgeAlignment: settings.badge_alignment ?? defaultSettings.badgeAlignment,
-						textColor: settings.text_color ?? defaultSettings.textColor,
-						badgeStyle: settings.badge_style ?? defaultSettings.badgeStyle,
-						badgeSizeDesktop: settings.badge_size_desktop ?? defaultSettings.badgeSizeDesktop,
-						badgeSizeMobile: settings.badge_size_mobile ?? defaultSettings.badgeSizeMobile,
-						badgeColor: settings.badge_color ?? defaultSettings.badgeColor,
-						customMargin: settings.custom_margin ?? defaultSettings.customMargin,
-						marginTop: settings.margin_top ?? defaultSettings.marginTop,
-						marginBottom: settings.margin_bottom ?? defaultSettings.marginBottom,
-						marginLeft: settings.margin_left ?? defaultSettings.marginLeft,
-						marginRight: settings.margin_right ?? defaultSettings.marginRight,
-						animation: settings.animation ?? defaultSettings.animation,
-						showAfterAddToCart: settings.show_after_add_to_cart ?? defaultSettings.showAfterAddToCart,
-						showBeforeAddToCart: settings.show_before_add_to_cart ?? defaultSettings.showBeforeAddToCart,
-						showOnCheckout: settings.show_on_checkout ?? defaultSettings.showOnCheckout,
-						selectedBadges: Array.isArray(settings.selected_badges) ? settings.selected_badges : defaultSettings.selectedBadges,
-					},
-				}));
-
-				// If no settings were loaded, create a default group
-				if (transformedGroups.length === 0) {
-					transformedGroups.push({
-						id: "default",
-						name: "Default",
-						isDefault: true,
-						isActive: true,
-						settings: { ...defaultSettings },
+				if (Array.isArray(data)) {
+					// Merge database data with default groups
+					const mergedGroups = defaultBadgeGroups.map(defaultGroup => {
+						// Find matching group from database
+						const dbGroup = data.find(g => g.id === defaultGroup.id);
+						if (dbGroup) {
+							// Merge while preserving default values for missing properties
+							return {
+								...defaultGroup,
+								...dbGroup,
+								settings: {
+									...defaultGroup.settings,
+									...dbGroup.settings
+								}
+							};
+						}
+						return defaultGroup;
 					});
-				}
 
-				setBadgeGroups(transformedGroups);
-				setIsLoading(false);
+					// Add any custom groups from database
+					const customGroups = data.filter(g => !defaultGroupsMap[g.id]);
+					setBadgeGroups([...mergedGroups, ...customGroups]);
+				} else {
+					throw new Error('Invalid settings data received');
+				}
 			} catch (error) {
-				console.error("Error loading settings:", error);
-				toast({
-					variant: "destructive",
-					title: "Error loading settings",
-					description: error instanceof Error ? error.message : "An unknown error occurred",
-				});
+				handleApiError(error, toast);
 				// Set default settings if loading fails
 				setBadgeGroups(defaultBadgeGroups);
+			} finally {
 				setIsLoading(false);
 			}
 		};
@@ -313,54 +279,18 @@ export function Settings() {
 	const saveSettings = async () => {
 		try {
 			setIsLoading(true);
-
-			// Check if txBadgesSettings is initialized
-			if (!window.txBadgesSettings?.ajaxUrl) {
-				throw new Error("txBadgesSettings not initialized");
-			}
-
-			// Debug: Log settings before save
-			console.log("Saving settings:", badgeGroups);
-
-			const formData = new FormData();
-			formData.append("action", "tx_badges_save_settings");
-			formData.append("nonce", window.txBadgesSettings.nonce || "");
-
-			// Convert settings to snake_case before saving
-			const snakeCaseSettings = convertKeysToSnakeCase(badgeGroups);
-
-			formData.append("settings", JSON.stringify(snakeCaseSettings));
-
-			const response = await fetch(window.txBadgesSettings.ajaxUrl, {
-				method: "POST",
-				credentials: "same-origin",
-				body: formData,
+			const result = await fetchApi('settings', {
+				method: 'POST',
+				body: JSON.stringify({ groups: badgeGroups })
 			});
 
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-
-			const result = await response.json();
-
-			if (!result.success) {
-				throw new Error(result.data?.message || "Failed to save settings");
-			}
-
-			setHasUnsavedChanges(false);
 			toast({
 				title: "Success",
-				description: "Settings saved successfully",
-				duration: 3000,
+				description: result.message || "Settings saved successfully"
 			});
+			setHasUnsavedChanges(false);
 		} catch (error) {
-			console.error("Error saving settings:", error);
-			toast({
-				title: "Error",
-				description: error instanceof Error ? error.message : "Failed to save settings",
-				variant: "destructive",
-				duration: 3000,
-			});
+			handleApiError(error, toast);
 		} finally {
 			setIsLoading(false);
 		}
@@ -520,28 +450,16 @@ export function Settings() {
 	};
 
 	useEffect(() => {
-		// Check installed plugins on component mount
 		const checkInstalledPlugins = async () => {
 			try {
-				const response = await window.wp.apiFetch({
-					path: '/tx-badges/v1/installed-plugins',
-					method: 'GET'
+				const response = await fetchApi('installed-plugins');
+				setInstalledPlugins({
+					woocommerce: Boolean(response.woocommerce),
+					edd: Boolean(response.edd)
 				});
-				
-				console.log('Plugin check response:', response); // Debug log
-				
-				if (response && typeof response === 'object') {
-					setInstalledPlugins({
-						woocommerce: Boolean(response.woocommerce),
-						edd: Boolean(response.edd)
-					});
-					console.log('Updated installed plugins state:', {
-						woocommerce: Boolean(response.woocommerce),
-						edd: Boolean(response.edd)
-					});
-				}
 			} catch (error) {
 				console.error('Failed to check installed plugins:', error);
+				handleApiError(error, toast);
 				setInstalledPlugins({
 					woocommerce: false,
 					edd: false
@@ -550,7 +468,7 @@ export function Settings() {
 		};
 
 		checkInstalledPlugins();
-	}, []);
+	}, [toast]);
 
 	return (
 		<div className="space-y-4">
@@ -944,7 +862,7 @@ export function Settings() {
 																		<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
 																		<div className="absolute right-2 top-1.5 flex gap-1">
 																			<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(`<div class="convers-trust-badge-${group.id}"></div>`)}>
-																				{showCopied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
+																				{showCopied ? <CheckCircle className="h-4 mr-1 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
 																			</Button>
 																		</div>
 																		<AnimatePresence>

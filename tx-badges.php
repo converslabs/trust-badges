@@ -20,7 +20,19 @@ define('TX_BADGES_VERSION', '1.0.0');
 define('TX_BADGES_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('TX_BADGES_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Plugin activation
+// Add this near the top after plugin constants
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+// Add error logging function
+function tx_badges_log_error($message, $context = []) {
+    error_log(sprintf(
+        '[TX Badges Error] %s | Context: %s',
+        $message,
+        json_encode($context)
+    ));
+}
+
+// Plugin activation with improved error handling
 register_activation_hook(__FILE__, 'tx_badges_activate');
 function tx_badges_activate()
 {
@@ -30,6 +42,10 @@ function tx_badges_activate()
     try {
         require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-activator.php';
         TX_Badges_Activator::activate();
+        
+        // Ensure database tables are created
+        tx_badges_maybe_create_tables();
+        
         flush_rewrite_rules();
         
         // Clean the buffer and discard any output
@@ -37,7 +53,45 @@ function tx_badges_activate()
     } catch (Exception $e) {
         // Clean the buffer and log the error
         ob_end_clean();
-        error_log('TX Badges Plugin Activation Error: ' . $e->getMessage());
+        tx_badges_log_error('Plugin Activation Error: ' . $e->getMessage());
+        wp_die('Failed to activate TX Badges plugin. Please check error logs for details.');
+    }
+}
+
+// Ensure database tables exist
+function tx_badges_maybe_create_tables() {
+    global $wpdb;
+    
+    $charset_collate = $wpdb->get_charset_collate();
+    $table_name = $wpdb->prefix . 'converswp_trust_badges';
+    
+    // Check if table exists
+    if($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        $sql = "CREATE TABLE $table_name (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            group_id varchar(50) NOT NULL,
+            group_name varchar(255) NOT NULL,
+            is_default tinyint(1) NOT NULL DEFAULT 0,
+            is_active tinyint(1) NOT NULL DEFAULT 1,
+            required_plugin varchar(50) DEFAULT NULL,
+            settings longtext NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY group_id (group_id),
+            KEY is_active (is_active)
+        ) $charset_collate;";
+        
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+        
+        if($wpdb->last_error) {
+            tx_badges_log_error('Database Table Creation Error', [
+                'error' => $wpdb->last_error,
+                'table' => $table_name
+            ]);
+            throw new Exception('Failed to create database tables');
+        }
     }
 }
 
@@ -68,53 +122,95 @@ function tx_badges_init()
 }
 add_action('plugins_loaded', 'tx_badges_init');
 
-// Enqueue admin scripts and styles
+// Update the admin enqueue function
 function tx_badges_admin_enqueue_scripts($hook)
 {
     if ('toplevel_page_tx-badges' !== $hook) {
         return;
     }
 
-    // WordPress core scripts
-    wp_enqueue_media();
-    wp_enqueue_script('jquery');
-    wp_enqueue_script('wp-element');
-    wp_enqueue_script('wp-components');
-    wp_enqueue_script('wp-i18n');
-    wp_enqueue_script('wp-api-fetch');
+    try {
+        // WordPress core scripts
+        wp_enqueue_media();
+        wp_enqueue_script('jquery');
+        wp_enqueue_script('wp-element');
+        wp_enqueue_script('wp-components');
+        wp_enqueue_script('wp-i18n');
+        wp_enqueue_script('wp-api-fetch');
 
-    // Enqueue main CSS
-    wp_enqueue_style(
-        'tx-badges-admin',
-        TX_BADGES_PLUGIN_URL . 'dist/main.css',
-        [],
-        TX_BADGES_VERSION
-    );
+        // Check if main CSS file exists
+        $css_file = TX_BADGES_PLUGIN_DIR . 'dist/main.css';
+        if (!file_exists($css_file)) {
+            throw new Exception('Required CSS file not found: ' . $css_file);
+        }
 
-    // Add settings to window before any scripts
-    wp_add_inline_script('wp-element', 'window.txBadgesSettings = ' . wp_json_encode([
-        'ajaxUrl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('tx_badges_nonce'),
-        'restUrl' => rest_url('tx-badges/v1'),
-        'pluginUrl' => TX_BADGES_PLUGIN_URL,
-        'mediaTitle' => __('Select or Upload Badge Image', 'tx-badges'),
-        'mediaButton' => __('Use this image', 'tx-badges')
-    ]) . ';', 'before');
+        // Enqueue main CSS
+        wp_enqueue_style(
+            'tx-badges-admin',
+            TX_BADGES_PLUGIN_URL . 'dist/main.css',
+            [],
+            TX_BADGES_VERSION
+        );
 
-    // Enqueue main JS
-    wp_enqueue_script(
-        'tx-badges-admin',
-        TX_BADGES_PLUGIN_URL . 'dist/main.js',
-        ['wp-element', 'wp-components', 'wp-i18n', 'wp-api-fetch'],
-        TX_BADGES_VERSION,
-        true
-    );
+        // Check if main JS file exists
+        $js_file = TX_BADGES_PLUGIN_DIR . 'dist/main.js';
+        if (!file_exists($js_file)) {
+            throw new Exception('Required JS file not found: ' . $js_file);
+        }
+
+        // Add REST API nonce
+        wp_localize_script('wp-api-fetch', 'wpApiSettings', [
+            'root' => esc_url_raw(rest_url()),
+            'nonce' => wp_create_nonce('wp_rest')
+        ]);
+
+        // Add settings to window before any scripts
+        $rest_nonce = wp_create_nonce('wp_rest');
+        $settings = [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => $rest_nonce,
+            'restUrl' => rest_url('tx-badges/v1/'),
+            'pluginUrl' => TX_BADGES_PLUGIN_URL,
+            'mediaTitle' => __('Select or Upload Badge Image', 'tx-badges'),
+            'mediaButton' => __('Use this image', 'tx-badges'),
+            'debug' => WP_DEBUG,
+            'restNonce' => $rest_nonce
+        ];
+
+        wp_add_inline_script(
+            'wp-element',
+            'window.txBadgesSettings = ' . wp_json_encode($settings) . ';',
+            'before'
+        );
+
+        // Enqueue main JS
+        wp_enqueue_script(
+            'tx-badges-admin',
+            TX_BADGES_PLUGIN_URL . 'dist/main.js',
+            ['wp-element', 'wp-components', 'wp-i18n', 'wp-api-fetch'],
+            TX_BADGES_VERSION,
+            true
+        );
+
+    } catch (Exception $e) {
+        tx_badges_log_error('Script Enqueue Error: ' . $e->getMessage());
+        add_action('admin_notices', function() use ($e) {
+            printf(
+                '<div class="notice notice-error"><p>%s</p></div>',
+                esc_html__('Failed to load TX Badges plugin resources. Please check error logs for details.', 'tx-badges')
+            );
+        });
+    }
 }
 add_action('admin_enqueue_scripts', 'tx_badges_admin_enqueue_scripts');
 
-// Add admin menu
+// Add admin menu with capability check
 function tx_badges_admin_menu()
 {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
     add_menu_page(
         __('TX Trust Badges', 'tx-badges'),
         __('Trust Badges', 'tx-badges'),
@@ -125,13 +221,28 @@ function tx_badges_admin_menu()
         25
     );
 }
-add_action('admin_menu', 'tx_badges_admin_menu');
 
-// Admin page callback
+// Admin page callback with error handling
 function tx_badges_admin_page()
 {
-    // Add a container for WordPress media scripts
-    echo '<div id="tx-badges-app"></div>';
+    try {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'tx-badges'));
+        }
+
+        // Add nonce for AJAX requests
+        wp_nonce_field('tx_badges_nonce', 'tx_badges_nonce');
+        
+        // Add a container for WordPress media scripts
+        echo '<div id="tx-badges-app"></div>';
+        
+    } catch (Exception $e) {
+        tx_badges_log_error('Admin Page Error: ' . $e->getMessage());
+        printf(
+            '<div class="notice notice-error"><p>%s</p></div>',
+            esc_html__('An error occurred while loading the Trust Badges settings page. Please try again or contact support.', 'tx-badges')
+        );
+    }
 }
 
 // Add shortcode for displaying badges
@@ -293,3 +404,46 @@ function tx_badges_save_settings() {
     }
 }
 add_action('wp_ajax_tx_badges_save_settings', 'tx_badges_save_settings');
+
+// Update REST API authentication
+function tx_badges_rest_authentication($result) {
+    // If a previous authentication check was applied,
+    // pass that result along without modification
+    if (true === $result || is_wp_error($result)) {
+        return $result;
+    }
+
+    // Skip authentication for non-plugin endpoints
+    $current_route = $_SERVER['REQUEST_URI'];
+    if (strpos($current_route, '/tx-badges/v1/') === false) {
+        return $result;
+    }
+
+    // Verify the nonce
+    $nonce = null;
+    if (isset($_SERVER['HTTP_X_WP_NONCE'])) {
+        $nonce = $_SERVER['HTTP_X_WP_NONCE'];
+    } elseif (isset($_REQUEST['_wpnonce'])) {
+        $nonce = $_REQUEST['_wpnonce'];
+    }
+
+    if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest')) {
+        return new WP_Error(
+            'rest_cookie_invalid_nonce',
+            __('Cookie check failed', 'tx-badges'),
+            array('status' => 403)
+        );
+    }
+
+    // Check if user is logged in and has required capabilities
+    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+        return new WP_Error(
+            'rest_forbidden',
+            __('You do not have sufficient permissions.', 'tx-badges'),
+            array('status' => 403)
+        );
+    }
+
+    return true;
+}
+add_filter('rest_authentication_errors', 'tx_badges_rest_authentication');

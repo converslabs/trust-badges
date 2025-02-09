@@ -57,6 +57,62 @@ class TX_Badges_Activator {
                         'showOnCheckout' => false,
                         'selectedBadges' => ['mastercard', 'visa-1', 'paypal-1', 'apple-pay', 'stripe', 'american-express-1']
                     ])
+                ],
+                [
+                    'group_id' => 'edd',
+                    'group_name' => 'Easy Digital Downloads',
+                    'is_default' => 1,
+                    'is_active' => 0,
+                    'required_plugin' => 'edd',
+                    'settings' => json_encode([
+                        'showHeader' => true,
+                        'headerText' => 'Secure Payment Methods',
+                        'fontSize' => '18',
+                        'alignment' => 'left',
+                        'badgeAlignment' => 'center',
+                        'textColor' => '#000000',
+                        'badgeStyle' => 'original',
+                        'badgeSizeDesktop' => 'medium',
+                        'badgeSizeMobile' => 'small',
+                        'badgeColor' => '#0066FF',
+                        'customMargin' => false,
+                        'marginTop' => '0',
+                        'marginBottom' => '0',
+                        'marginLeft' => '0',
+                        'marginRight' => '0',
+                        'animation' => 'fade',
+                        'showAfterAddToCart' => false,
+                        'showBeforeAddToCart' => false,
+                        'showOnCheckout' => false,
+                        'selectedBadges' => ['mastercard', 'visa-1', 'paypal-1', 'apple-pay', 'stripe', 'american-express-1']
+                    ])
+                ],
+                [
+                    'group_id' => 'footer',
+                    'group_name' => 'Footer',
+                    'is_default' => 1,
+                    'is_active' => 0,
+                    'required_plugin' => null,
+                    'settings' => json_encode([
+                        'showHeader' => true,
+                        'headerText' => 'Payment Options',
+                        'fontSize' => '18',
+                        'alignment' => 'right',
+                        'badgeAlignment' => 'center',
+                        'position' => 'center',
+                        'textColor' => '#000000',
+                        'badgeStyle' => 'original',
+                        'badgeSizeDesktop' => 'medium',
+                        'badgeSizeMobile' => 'small',
+                        'badgeColor' => '#0066FF',
+                        'customMargin' => false,
+                        'marginTop' => '0',
+                        'marginBottom' => '0',
+                        'marginLeft' => '0',
+                        'marginRight' => '0',
+                        'animation' => 'fade',
+                        'selectedBadges' => ['mastercard', 'visa-1', 'paypal-1', 'apple-pay', 'stripe', 'american-express-1']
+                    ])
                 ]
             ];
 

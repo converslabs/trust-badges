@@ -9,8 +9,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const root = createRoot(appElement);
   root.render(
-    <StrictMode>
+
       <App />
-    </StrictMode>
+
   );
 });
