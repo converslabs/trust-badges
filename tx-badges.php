@@ -133,8 +133,8 @@ function tx_badges_admin_enqueue_scripts($hook)
         // WordPress core scripts
         wp_enqueue_media();
         wp_enqueue_script('jquery');
-        wp_enqueue_script('wp-element');
-        wp_enqueue_script('wp-components');
+        // wp_enqueue_script('wp-element');
+        // wp_enqueue_script('wp-components');
         wp_enqueue_script('wp-i18n');
         wp_enqueue_script('wp-api-fetch');
 
@@ -203,56 +203,6 @@ function tx_badges_admin_enqueue_scripts($hook)
     }
 }
 add_action('admin_enqueue_scripts', 'tx_badges_admin_enqueue_scripts');
-
-// Add admin menu with capability check
-function tx_badges_admin_menu()
-{
-    if (!current_user_can('manage_options')) {
-        return;
-    }
-
-    add_menu_page(
-        __('TX Trust Badges', 'tx-badges'),
-        __('Trust Badges', 'tx-badges'),
-        'manage_options',
-        'tx-badges',
-        'tx_badges_admin_page',
-        'dashicons-shield',
-        25
-    );
-}
-
-// Admin page callback with error handling
-function tx_badges_admin_page()
-{
-    try {
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'tx-badges'));
-        }
-
-        // Add nonce for AJAX requests
-        wp_nonce_field('tx_badges_nonce', 'tx_badges_nonce');
-        
-        // Add a container for WordPress media scripts
-        echo '<div id="tx-badges-app"></div>';
-        
-    } catch (Exception $e) {
-        tx_badges_log_error('Admin Page Error: ' . $e->getMessage());
-        printf(
-            '<div class="notice notice-error"><p>%s</p></div>',
-            esc_html__('An error occurred while loading the Trust Badges settings page. Please try again or contact support.', 'tx-badges')
-        );
-    }
-}
-
-// Add shortcode for displaying badges
-function tx_badges_shortcode($atts)
-{
-    ob_start();
-    include TX_BADGES_PLUGIN_DIR . 'public/partials/tx-badges-public-display.php';
-    return ob_get_clean();
-}
-add_shortcode('tx_badges', 'tx_badges_shortcode');
 
 // AJAX handlers
 function tx_badges_get_settings() {

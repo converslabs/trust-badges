@@ -19,8 +19,8 @@ class TX_Badges {
     private function load_dependencies() {
         require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-loader.php';
         require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-i18n.php';
-        require_once TX_BADGES_PLUGIN_DIR . 'admin/class-tx-badges-admin.php';
-        require_once TX_BADGES_PLUGIN_DIR . 'public/class-tx-badges-public.php';
+        // require_once TX_BADGES_PLUGIN_DIR . 'admin/class-tx-badges-admin.php';
+        // require_once TX_BADGES_PLUGIN_DIR . 'public/class-tx-badges-public.php';
         require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-rest-api.php';
 
         $this->loader = new TX_Badges_Loader();
@@ -32,19 +32,19 @@ class TX_Badges {
     }
 
     private function define_admin_hooks() {
-        $plugin_admin = new TX_Badges_Admin($this->get_plugin_name(), $this->get_version());
+        // $plugin_admin = new TX_Badges_Admin($this->get_plugin_name(), $this->get_version());
 
-        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
-        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
-        $this->loader->add_action('admin_menu', $plugin_admin, 'add_plugin_admin_menu');
+        // $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
+        // $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
+        $this->loader->add_action('admin_menu', $this, 'add_plugin_admin_menu');
     }
 
     private function define_public_hooks() {
-        $plugin_public = new TX_Badges_Public($this->get_plugin_name(), $this->get_version());
+        // $plugin_public = new TX_Badges_Public($this->get_plugin_name(), $this->get_version());
 
-        $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
-        $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts');
-        $this->loader->add_action('woocommerce_after_add_to_cart_form', $plugin_public, 'display_trust_badges');
+        // $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
+        // $this->loader->add_action('wp_0enqueue_scripts', $plugin_public, 'enqueue_scripts');
+        // $this->loader->add_action('woocommerce_after_add_to_cart_form', $plugin_public, 'display_trust_badges');
     }
 
     private function define_rest_api() {
@@ -62,5 +62,27 @@ class TX_Badges {
 
     public function get_version() {
         return $this->version;
+    }
+
+    /**
+     * Add plugin admin menu
+     */
+    public function add_plugin_admin_menu() {
+        add_menu_page(
+            __('TX Trust Badges', 'tx-badges'),
+            __('Trust Badges', 'tx-badges'),
+            'manage_options',
+            $this->plugin_name,
+            array($this, 'display_plugin_setup_page'),
+            'dashicons-shield',
+            25
+        );
+    }
+
+    /**
+     * Render the settings page for this plugin.
+     */
+    public function display_plugin_setup_page() {
+        echo '<div id="tx-badges-app"></div>';
     }
 }
