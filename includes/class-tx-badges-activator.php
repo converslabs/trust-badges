@@ -55,7 +55,7 @@ class TX_Badges_Activator {
                         'showAfterAddToCart' => false,
                         'showBeforeAddToCart' => false,
                         'showOnCheckout' => false,
-                        'selectedBadges' => ['mastercard', 'visa-1', 'paypal-1', 'apple-pay', 'stripe', 'american-express-1']
+                        'selectedBadges' => ["mastercardcolor", "visa1color", "paypal1color", "applepaycolor", "stripecolor", "amazonpay2color", "americanexpress1color"]
                     ])
                 ],
                 [
@@ -84,7 +84,7 @@ class TX_Badges_Activator {
                         'showAfterAddToCart' => false,
                         'showBeforeAddToCart' => false,
                         'showOnCheckout' => false,
-                        'selectedBadges' => ['mastercard', 'visa-1', 'paypal-1', 'apple-pay', 'stripe', 'american-express-1']
+                        'selectedBadges' => ['mastercardcolor', 'visa1color', 'paypal1color', 'applepaycolor', 'stripecolor', 'amazonpay2color', 'americanexpress1color']
                     ])
                 ],
                 [
@@ -111,7 +111,7 @@ class TX_Badges_Activator {
                         'marginLeft' => '0',
                         'marginRight' => '0',
                         'animation' => 'fade',
-                        'selectedBadges' => ['mastercard', 'visa-1', 'paypal-1', 'apple-pay', 'stripe', 'american-express-1']
+                        'selectedBadges' => ["mastercardcolor", "visa1color", "paypal1color", "applepaycolor", "stripecolor", "amazonpay2color", "americanexpress1color"]
                     ])
                 ]
             ];

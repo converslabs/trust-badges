@@ -12,7 +12,7 @@ import { paymentBadges } from "./pages/assets/PaymentBadges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "./ui/use-toast";
-import type { BadgeSize, TrustBadgesSettings, ApiResponse, ApiError } from "../types/badges";
+import type { BadgeSize, TrustBadgesSettings} from "../types/badges";
 import type { BadgeGroup } from "../types/badges";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Separator } from "@/components/ui/separator";
@@ -22,7 +22,7 @@ import { twMerge } from "tailwind-merge";
 
 // Utility function for merging class names
 function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs));
 }
 
 // Add these utility functions at the top of the file
@@ -83,7 +83,7 @@ const defaultSettings: TrustBadgesSettings = {
 	showAfterAddToCart: false,
 	showBeforeAddToCart: false,
 	showOnCheckout: false,
-	selectedBadges: ["mastercard", "visa-1", "paypal-1", "apple-pay", "stripe", "american-express-1"],
+	selectedBadges: ["mastercardcolor", "visa1color", "paypal1color", "applepaycolor", "stripecolor", "amazonpay2color", "americanexpress1color"],
 };
 
 const defaultBadgeGroups: BadgeGroup[] = [
@@ -120,19 +120,45 @@ const defaultBadgeGroups: BadgeGroup[] = [
 	},
 ];
 
-// Add this utility function
+/**
+ * Enhanced API error handler with improved session handling
+ * @param error - The error object from the API call
+ * @param toast - Toast notification function
+ */
 const handleApiError = (error: any, toast: any) => {
-	console.error('API Error:', error);
+	// Log the full error for debugging
+	console.error('API Error:', {
+		message: error.message,
+		status: error.status,
+		stack: error.stack
+	});
 	
+	// Check for session expiration (nonce error)
+	if (error.message?.toLowerCase().includes('session expired')) {
+		console.warn('Session expired - Showing warning to user');
+		toast({
+			title: "Session Expired",
+			description: "Your session has expired. Please refresh the page to continue.",
+			variant: "destructive",
+		});
+		return;
+	}
+	
+	// Handle other API errors
 	toast({
 		title: "Error",
-		description: error.message || "An unexpected error occurred",
+		description: error.message || "An unexpected error occurred. Please try again.",
 		variant: "destructive",
 	});
 };
 
-// Add this function near the top
+/**
+ * Enhanced API fetch wrapper with improved error handling
+ * @param path - API endpoint path
+ * @param options - Fetch options
+ */
 const fetchApi = async (path: string, options: RequestInit = {}) => {
+	// Setup default options with proper headers
 	const defaultOptions: RequestInit = {
 		headers: {
 			'Content-Type': 'application/json',
@@ -141,12 +167,27 @@ const fetchApi = async (path: string, options: RequestInit = {}) => {
 		credentials: 'same-origin'
 	};
 
-	// Ensure path starts with a slash and remove any trailing slashes from restUrl
+	// Clean the path and build the full URL
 	const cleanPath = path.startsWith('/') ? path : `/${path}`;
 	const cleanRestUrl = window.txBadgesSettings.restUrl.replace(/\/+$/, '');
 	const url = `${cleanRestUrl}${cleanPath}`;
 
 	try {
+		// Log request details in debug mode
+		if (window.txBadgesSettings.debug) {
+			console.log('API Request:', {
+				url,
+				options: {
+					...options,
+					headers: {
+						...defaultOptions.headers,
+						...options.headers
+					}
+				}
+			});
+		}
+
+		// Make the API call
 		const response = await fetch(url, {
 			...defaultOptions,
 			...options,
@@ -158,6 +199,7 @@ const fetchApi = async (path: string, options: RequestInit = {}) => {
 
 		const data = await response.json();
 
+		// Handle non-successful responses
 		if (!response.ok) {
 			console.error('API Error Response:', {
 				status: response.status,
@@ -165,34 +207,105 @@ const fetchApi = async (path: string, options: RequestInit = {}) => {
 				data
 			});
 
+			// Handle session expiration
+			if (response.status === 403 && data.message?.toLowerCase().includes('session expired')) {
+				throw new Error('Session expired. Please refresh the page and try again.');
+			}
+
 			throw new Error(data.message || `HTTP error! status: ${response.status}`);
 		}
 
 		return data;
 	} catch (error) {
-		console.error('API Call Failed:', {
-			url,
-			error,
-			options
-		});
+		// Log the full error in debug mode
+		if (window.txBadgesSettings.debug) {
+			console.error('API Call Failed:', {
+				url,
+				error,
+				options
+			});
+		}
 		throw error;
 	}
 };
 
+// Badge Groups API
+const badgeGroupsApi = {
+	// Fetch a single group: This method is for fetching a SINGLE group by its ID
+	fetchGroup: async (groupId: string) => {
+		try {
+			const data = await fetchApi(`settings/${groupId}`);
+			return data;
+		} catch (error) {
+			console.error('Error fetching group:', error);
+			throw error;
+		}
+	},
+
+	// Save a single group: This method is for saving a SINGLE group by its ID
+	saveGroup: async (group: BadgeGroup) => {
+		try {
+			const formattedGroup = {
+				id: group.id,
+				name: group.name,
+				isDefault: group.isDefault,
+				isActive: group.isActive,
+				settings: group.settings,
+				requiredPlugin: group.requiredPlugin
+			};
+
+			const result = await fetchApi('settings/group', {
+				method: 'POST',
+				body: JSON.stringify({ group: formattedGroup }),
+			});
+
+			return result;
+		} catch (error) {
+			console.error('Error saving group:', error);
+			throw error;
+		}
+	},
+
+	// Delete a single group: This method is for deleting a SINGLE group by its ID
+	deleteGroup: async (groupId: string) => {
+		try {
+			const result = await fetchApi(`settings/group/${groupId}`, {
+				method: 'DELETE',
+			});
+			return result;
+		} catch (error) {
+			console.error('Error deleting group:', error);
+			throw error;
+		}
+	},
+
+	// Fetch all groups: This method is used to load ALL badge groups at once when the Settings page initially loads
+	fetchAllGroups: async () => {
+		try {
+			const data = await fetchApi('settings');
+			return data;
+		} catch (error) {
+			console.error('Error fetching all groups:', error);
+			throw error;
+		}
+	}
+};
+
 export function Settings() {
+	// States
 	const [badgeGroups, setBadgeGroups] = useState<BadgeGroup[]>(defaultBadgeGroups);
 	const [badgeSelectorOpen, setBadgeSelectorOpen] = useState(false);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [showCopied, setShowCopied] = useState(false);
-	const [isLoading, setIsLoading] = useState(true);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 	const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
 	const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 	const [originalName, setOriginalName] = useState<string>("");
+	const [unsavedGroups, setUnsavedGroups] = useState<Record<string, boolean>>({});
+	const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+	const [loadingGroups, setLoadingGroups] = useState<Record<string, boolean>>({});
 
 	const { toast } = useToast();
-
-	const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
 
 	const [installedPlugins, setInstalledPlugins] = useState<{
 		woocommerce: boolean;
@@ -202,57 +315,9 @@ export function Settings() {
 		edd: false
 	});
 
-	useEffect(() => {
-		const loadSettings = async () => {
-			try {
-				setIsLoading(true);
-				const data = await fetchApi('settings');
-				
-				// Create a map of default groups for easy lookup
-				const defaultGroupsMap = defaultBadgeGroups.reduce((acc, group) => {
-					acc[group.id] = group;
-					return acc;
-				}, {} as Record<string, BadgeGroup>);
-
-				if (Array.isArray(data)) {
-					// Merge database data with default groups
-					const mergedGroups = defaultBadgeGroups.map(defaultGroup => {
-						// Find matching group from database
-						const dbGroup = data.find(g => g.id === defaultGroup.id);
-						if (dbGroup) {
-							// Merge while preserving default values for missing properties
-							return {
-								...defaultGroup,
-								...dbGroup,
-								settings: {
-									...defaultGroup.settings,
-									...dbGroup.settings
-								}
-							};
-						}
-						return defaultGroup;
-					});
-
-					// Add any custom groups from database
-					const customGroups = data.filter(g => !defaultGroupsMap[g.id]);
-					setBadgeGroups([...mergedGroups, ...customGroups]);
-				} else {
-					throw new Error('Invalid settings data received');
-				}
-			} catch (error) {
-				handleApiError(error, toast);
-				// Set default settings if loading fails
-				setBadgeGroups(defaultBadgeGroups);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadSettings();
-	}, [toast]);
-
+	// Event handlers
 	const handleChange = (badgeGroupId: string, key: string, value: any) => {
-		setBadgeGroups((prev) =>
+		setBadgeGroups((prev: BadgeGroup[]) =>
 			prev.map((group) => {
 				if (group.id === badgeGroupId) {
 					return { ...group, settings: { ...group.settings, [key]: value } };
@@ -260,8 +325,92 @@ export function Settings() {
 				return group;
 			})
 		);
-		setHasUnsavedChanges(true);
+		setUnsavedGroups((prev: Record<string, boolean>) => ({
+			...prev,
+			[badgeGroupId]: true
+		}));
 	};
+
+	const saveGroupSettings = async (group: BadgeGroup) => {
+		try {
+			setLoadingGroups(prev => ({ ...prev, [group.id]: true }));
+			console.log('Preparing to save group settings:', { group });
+
+			// Prevent default form submission behavior
+			event?.preventDefault?.();
+
+			const result = await badgeGroupsApi.saveGroup(group);
+			console.log('Save result:', result);
+
+			// Update the local state to reflect the saved changes
+			setBadgeGroups(prev => prev.map(g => 
+				g.id === group.id ? { ...g, ...result.group } : g
+			));
+
+			// Clear the unsaved changes for this group
+			setUnsavedGroups(prev => {
+				const newState = { ...prev };
+				delete newState[group.id];
+				return newState;
+			});
+
+			toast({
+				title: "Success",
+				description: `${group.name} settings saved successfully`
+			});
+		} catch (error: any) {
+			console.error('Save Group Settings Error:', error);
+			handleApiError(error, toast);
+		} finally {
+			setLoadingGroups(prev => ({ ...prev, [group.id]: false }));
+		}
+	};
+
+	const loadSettings = async () => {
+		try {
+			const data = await badgeGroupsApi.fetchAllGroups();
+			
+			// Create a map of default groups for easy lookup
+			const defaultGroupsMap = defaultBadgeGroups.reduce((acc, group) => {
+				acc[group.id] = group;
+				return acc;
+			}, {} as Record<string, BadgeGroup>);
+
+			if (Array.isArray(data)) {
+				// Merge database data with default groups
+				const mergedGroups = defaultBadgeGroups.map(defaultGroup => {
+					// Find matching group from database
+					const dbGroup = data.find(g => g.id === defaultGroup.id);
+					if (dbGroup) {
+						// Merge while preserving default values for missing properties
+						return {
+							...defaultGroup,
+							...dbGroup,
+							settings: {
+								...defaultGroup.settings,
+								...dbGroup.settings
+							}
+						};
+					}
+					return defaultGroup;
+				});
+
+				// Add any custom groups from database
+				const customGroups = data.filter(g => !defaultGroupsMap[g.id]);
+				setBadgeGroups([...mergedGroups, ...customGroups]);
+			} else {
+				throw new Error('Invalid settings data received');
+			}
+			} catch (error) {
+			handleApiError(error, toast);
+				// Set default settings if loading fails
+				setBadgeGroups(defaultBadgeGroups);
+			}
+		};
+
+	useEffect(() => {
+		loadSettings();
+	}, [toast]);
 
 	// Handle position change for Footer
 	const handlePositionChange = (badgeGroupId: string, position: "left" | "center" | "right") => {
@@ -278,12 +427,23 @@ export function Settings() {
 
 	const saveSettings = async () => {
 		try {
-			setIsLoading(true);
-			console.log('Saving settings:', { groups: badgeGroups });
+			console.log('Preparing to save settings:', { groups: badgeGroups });
+
+			// Convert the data structure to match what the backend expects
+			const formattedGroups = badgeGroups.map(group => ({
+				id: group.id,
+				name: group.name,
+				isDefault: group.isDefault,
+				isActive: group.isActive,
+				settings: group.settings,
+				requiredPlugin: group.requiredPlugin
+			}));
+
+			console.log('Formatted groups for saving:', formattedGroups);
 
 			const result = await fetchApi('settings', {
 				method: 'POST',
-				body: JSON.stringify({ groups: badgeGroups })
+				body: JSON.stringify({ groups: formattedGroups }),
 			});
 
 			console.log('Save result:', result);
@@ -296,8 +456,6 @@ export function Settings() {
 		} catch (error: any) {
 			console.error('Save Settings Error:', error);
 			handleApiError(error, toast);
-		} finally {
-			setIsLoading(false);
 		}
 	};
 
@@ -350,9 +508,9 @@ export function Settings() {
 			},
 			desktop: {
 				"extra-small": "h-8 w-8",
-				small: "h-10 w-10",
-				medium: "h-12 w-12",
-				large: "h-16 w-16",
+				small: "h-12 w-12",
+				medium: "h-16 w-16",
+				large: "h-20 w-20",
 			},
 		} as const;
 
@@ -413,10 +571,25 @@ export function Settings() {
 		setHasUnsavedChanges(true);
 	};
 
-	const handleDeleteGroup = (groupId: string) => {
+	const handleDeleteGroup = async (groupId: string) => {
+		try {
+			await badgeGroupsApi.deleteGroup(groupId);
+			
 		setBadgeGroups((prev) => prev.filter((b) => b.id !== groupId));
 		setGroupToDelete(null);
-		setHasUnsavedChanges(true);
+			
+			toast({
+				title: "Success",
+				description: "Badge group deleted successfully"
+			});
+		} catch (error: any) {
+			console.error('Delete Group Error:', error);
+			toast({
+				title: "Error",
+				description: error.message || "Failed to delete group. Please try again.",
+				variant: "destructive",
+			});
+		}
 	};
 
 	const isPluginInstalled = (plugin?: 'woocommerce' | 'edd') => {
@@ -458,10 +631,10 @@ export function Settings() {
 		const checkInstalledPlugins = async () => {
 			try {
 				const response = await fetchApi('installed-plugins');
-				setInstalledPlugins({
-					woocommerce: Boolean(response.woocommerce),
-					edd: Boolean(response.edd)
-				});
+					setInstalledPlugins({
+						woocommerce: Boolean(response.woocommerce),
+						edd: Boolean(response.edd)
+					});
 			} catch (error) {
 				console.error('Failed to check installed plugins:', error);
 				handleApiError(error, toast);
@@ -475,14 +648,53 @@ export function Settings() {
 		checkInstalledPlugins();
 	}, [toast]);
 
+	// Add this function inside the Settings component
+	const handleDiscardChanges = (group: BadgeGroup) => {
+		try {
+			// Find the original group from the loaded data
+			const originalGroup = defaultBadgeGroups.find(g => g.id === group.id) || group;
+			
+			setBadgeGroups(prev => prev.map(g => {
+				if (g.id === group.id) {
+					return {
+						...originalGroup,
+						isActive: g.isActive // Preserve active state
+					};
+				}
+				return g;
+			}));
+
+			// Remove this group from unsaved changes
+			setUnsavedGroups(prev => {
+				const newState = { ...prev };
+				delete newState[group.id];
+				return newState;
+			});
+
+			toast({
+				title: "Changes Discarded",
+				description: `Changes for ${group.name} have been discarded`,
+			});
+		} catch (error) {
+			console.error('Error discarding changes:', error);
+			toast({
+				title: "Error",
+				description: "Failed to discard changes. Please try again.",
+				variant: "destructive",
+			});
+		}
+	};
+
+	// Add animation options
+	const animationOptions = [
+		{ value: "fade", label: "Fade" },
+		{ value: "slide", label: "Slide" },
+		{ value: "scale", label: "Scale" },
+		{ value: "bounce", label: "Bounce" }
+	];
+
 	return (
 		<div className="space-y-4">
-			{isLoading ? (
-				<div className="flex items-center justify-center min-h-[200px]">
-					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-				</div>
-			) : (
-				<>
 					<div className="flex justify-between items-center mb-8">
 						<h1 className="text-xl font-bold">Badge Settings</h1>
 						<Button onClick={addNewBadgeGroup} className="flex items-center gap-2">
@@ -635,7 +847,6 @@ export function Settings() {
 									!group.isActive && "pointer-events-none select-none"
 								)}>
 									<Separator className="my-4 bg-muted" />
-
 									<div className="p-6 pt-4">
 										{/* Main Settings */}
 										<div className="flex gap-12">
@@ -867,7 +1078,7 @@ export function Settings() {
 																		<div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
 																		<div className="absolute right-2 top-1.5 flex gap-1">
 																			<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(`<div class="convers-trust-badge-${group.id}"></div>`)}>
-																				{showCopied ? <CheckCircle className="h-4 mr-1 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
+																		{showCopied ? <CheckCircle className="h-4 mr-1 text-green-500" /> : <Copy className="h-4 w-4 text-primary hover:text-primary/80" />}
 																			</Button>
 																		</div>
 																		<AnimatePresence>
@@ -925,7 +1136,7 @@ export function Settings() {
 																			}`}>
 																		<div className={`w-10 h-8 rounded flex items-center justify-center ${style.id.includes("card") ? "bg-gray-400 shadow-sm py-1 px-2" : "p-1"}`}>
 																			<img
-																				src={`${window.txBadgesSettings.pluginUrl}assets/images/badges/mastercard_color.svg`}
+																				src={`${window.txBadgesSettings.pluginUrl}assets/images/badges/mastercardcolor.svg`}
 																				alt="Badge Style Preview"
 																				className={`w-full h-full object-contain ${style.id.includes("mono") ? "grayscale" : ""}`}
 																			/>
@@ -1092,10 +1303,11 @@ export function Settings() {
 																		<SelectValue placeholder="Select animation" />
 																	</SelectTrigger>
 																	<SelectContent>
-																		<SelectItem value="fade">Fade</SelectItem>
-																		<SelectItem value="slide">Slide</SelectItem>
-																		<SelectItem value="scale">Scale</SelectItem>
-																		<SelectItem value="bounce">Bounce</SelectItem>
+																		{animationOptions.map((option) => (
+																			<SelectItem key={option.value} value={option.value}>
+																				{option.label}
+																			</SelectItem>
+																		))}
 																	</SelectContent>
 																</Select>
 															</div>
@@ -1107,15 +1319,11 @@ export function Settings() {
 													</div>
 
 													<div
-														className="px-48 py-6 space-y-4 bg-gray-100 mt-6"
+														className="px-24 py-6 space-y-4 bg-gray-100 mt-6"
 														style={{
 															fontSize: `${group.settings.fontSize}px`,
 															textAlign: group.settings.alignment as any,
 															color: group.settings.textColor,
-															marginTop: group.settings.customMargin ? `${group.settings.marginTop}px` : undefined,
-															marginBottom: group.settings.customMargin ? `${group.settings.marginBottom}px` : undefined,
-															marginLeft: group.settings.customMargin ? `${group.settings.marginLeft}px` : undefined,
-															marginRight: group.settings.customMargin ? `${group.settings.marginRight}px` : undefined,
 														}}>
 														{group.settings.showHeader && group.settings.headerText}
 														<AnimatePresence>
@@ -1145,20 +1353,42 @@ export function Settings() {
 																}}>
 																{group.settings.selectedBadges.map((badgeId) => {
 																	const badge = paymentBadges.find((b) => b.id === badgeId);
+																	const isMonoStyle = group.settings.badgeStyle === "mono" || group.settings.badgeStyle === "mono-card";
 																	return badge ? (
-																		<img
+																		<div
 																			key={badgeId}
-																			src={badge.image}
-																			alt={badge.name}
-																			className={`object-contain 
-																				${getBadgeSize(group.settings.badgeSizeDesktop as BadgeSize)} 
-																				md:${getBadgeSize(group.settings.badgeSizeDesktop as BadgeSize)} 
-																				${getBadgeSize(group.settings.badgeSizeMobile as BadgeSize, true)}
-																				${group.settings.badgeStyle === "card" || group.settings.badgeStyle === "mono-card" ? "px-2 bg-gray-400 rounded text-white" : ""}`}
-																			style={{
-																				filter: group.settings.badgeStyle === "mono" || group.settings.badgeStyle === "mono-card" ? "grayscale(100%)" : "none",
-																			}}
-																		/>
+																			className={cn(
+																				"flex items-center justify-center",
+																				group.settings.badgeStyle === "card" || group.settings.badgeStyle === "mono-card" ? "px-2 bg-gray-200 rounded" : ""
+																			)}
+																			style={group.settings.customMargin ? {
+																				marginTop: `${group.settings.marginTop}px`,
+																				marginBottom: `${group.settings.marginBottom}px`,
+																				marginLeft: `${group.settings.marginLeft}px`,
+																				marginRight: `${group.settings.marginRight}px`,
+																			} : undefined}
+																		>
+																			<div
+																				className={`object-contain transition-all duration-300
+																					${getBadgeSize(group.settings.badgeSizeDesktop as BadgeSize)} // Only desktop size for preview
+																				`}
+																				style={{
+																					...(isMonoStyle
+																						? {
+																							WebkitMask: `url(${badge.image}) center/contain no-repeat`,
+																							mask: `url(${badge.image}) center/contain no-repeat`,
+																							backgroundColor: group.settings.badgeColor,
+																						}
+																						: {
+																							backgroundImage: `url(${badge.image})`,
+																							backgroundSize: 'contain',
+																							backgroundPosition: 'center',
+																							backgroundRepeat: 'no-repeat',
+																						}
+																					),
+																				}}
+																			/>
+																		</div>
 																	) : null;
 																})}
 															</motion.div>
@@ -1180,33 +1410,41 @@ export function Settings() {
 											initialSelected={group.settings.selectedBadges}
 											onSave={(selectedBadges) => handleSaveBadges(group.id, selectedBadges)}
 										/>
-									</div>
-								</AccordionContent>
-							</AccordionItem>
-						))}
-					</Accordion>
 
-					{/* Sticky Save Button */}
-					<div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-end">
+								{/* Save and Cancel buttons */}
+								<div className="mt-8 flex items-center justify-between gap-2">
 						<Button
-							onClick={saveSettings}
-							disabled={!hasUnsavedChanges || isLoading}
-							className={`${hasUnsavedChanges ? "bg-primary hover:bg-primary/90" : "bg-gray-200"}`}
-						>
-							{isLoading ? (
+										onClick={() => saveGroupSettings(group)}
+										disabled={!unsavedGroups[group.id] || loadingGroups[group.id]}
+										className={`${unsavedGroups[group.id] ? "bg-primary hover:bg-primary/90" : "bg-gray-200"} gap-2`}
+									>
+										{loadingGroups[group.id] ? (
 								<div className="flex items-center gap-2">
 									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
 									Saving...
 								</div>
-							) : hasUnsavedChanges ? (
-								"Save Changes"
 							) : (
-								"All Changes Saved"
+											<>
+												<Check className="h-4 w-4" />
+												{unsavedGroups[group.id] ? "Save Changes" : "All Changes Saved"}
+											</>
 							)}
 						</Button>
+									<Button
+										onClick={() => handleDiscardChanges(group)}
+										disabled={!unsavedGroups[group.id] || loadingGroups[group.id]}
+										variant="destructive"
+										className="gap-2"
+									>
+										<X className="h-4 w-4" />
+										Cancel
+									</Button>
 					</div>
-				</>
-			)}
+							</div>
+						</AccordionContent>
+					</AccordionItem>
+				))}
+			</Accordion>
 		</div>
 	);
 }
