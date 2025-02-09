@@ -4,7 +4,7 @@ import { Toaster } from "./components/ui/toaster";
 function App() {
 	return (
 		<>
-			<div className="min-h-screen bg-background">
+			<div className="bg-background">
 				<div className="mx-auto max-w-7xl p-8">
 					<Settings />
 				</div>

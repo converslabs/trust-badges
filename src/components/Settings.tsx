@@ -196,6 +196,7 @@ const fetchApi = async (path: string, options: RequestInit = {}) => {
 };
 
 export function Settings() {
+	// States
 	const [badgeGroups, setBadgeGroups] = useState<BadgeGroup[]>(defaultBadgeGroups);
 	const [badgeSelectorOpen, setBadgeSelectorOpen] = useState(false);
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -205,10 +206,10 @@ export function Settings() {
 	const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
 	const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 	const [originalName, setOriginalName] = useState<string>("");
+	const [unsavedGroups, setUnsavedGroups] = useState<Record<string, boolean>>({});
+	const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
 
 	const { toast } = useToast();
-
-	const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
 
 	const [installedPlugins, setInstalledPlugins] = useState<{
 		woocommerce: boolean;
@@ -217,6 +218,74 @@ export function Settings() {
 		woocommerce: false,
 		edd: false
 	});
+
+	// Event handlers
+	const handleChange = (badgeGroupId: string, key: string, value: any) => {
+		setBadgeGroups((prev: BadgeGroup[]) =>
+			prev.map((group) => {
+				if (group.id === badgeGroupId) {
+					return { ...group, settings: { ...group.settings, [key]: value } };
+				}
+				return group;
+			})
+		);
+		setUnsavedGroups((prev: Record<string, boolean>) => ({
+			...prev,
+			[badgeGroupId]: true
+		}));
+	};
+
+	const saveGroupSettings = async (group: BadgeGroup) => {
+		try {
+			setIsLoading(true);
+			console.log('Preparing to save group settings:', { group });
+
+			const formattedGroup = {
+				id: group.id,
+				name: group.name,
+				isDefault: group.isDefault,
+				isActive: group.isActive,
+				settings: group.settings,
+				requiredPlugin: group.requiredPlugin
+			};
+
+			console.log('Formatted group for saving:', formattedGroup);
+
+			const result = await fetchApi('settings', {
+				method: 'POST',
+				body: JSON.stringify({ groups: [formattedGroup] }),
+			});
+
+			console.log('Save result:', result);
+
+			toast({
+				title: "Success",
+				description: `${group.name} settings saved successfully`
+			});
+			
+			setUnsavedGroups((prev: Record<string, boolean>) => {
+				const newState = { ...prev };
+				delete newState[group.id];
+				return newState;
+			});
+		} catch (error: any) {
+			console.error('Save Group Settings Error:', error);
+			
+			toast({
+				title: "Error",
+				description: error.message || "Failed to save settings. Please try again.",
+				variant: "destructive",
+			});
+
+			if (error.message.includes('Session expired')) {
+				setTimeout(() => {
+					window.location.reload();
+				}, 2000);
+			}
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	useEffect(() => {
 		const loadSettings = async () => {
@@ -266,18 +335,6 @@ export function Settings() {
 
 		loadSettings();
 	}, [toast]);
-
-	const handleChange = (badgeGroupId: string, key: string, value: any) => {
-		setBadgeGroups((prev) =>
-			prev.map((group) => {
-				if (group.id === badgeGroupId) {
-					return { ...group, settings: { ...group.settings, [key]: value } };
-				}
-				return group;
-			})
-		);
-		setHasUnsavedChanges(true);
-	};
 
 	// Handle position change for Footer
 	const handlePositionChange = (badgeGroupId: string, position: "left" | "center" | "right") => {
@@ -676,7 +733,6 @@ export function Settings() {
 									!group.isActive && "pointer-events-none select-none"
 								)}>
 									<Separator className="my-4 bg-muted" />
-
 									<div className="p-6 pt-4">
 										{/* Main Settings */}
 										<div className="flex gap-12">
@@ -1221,31 +1277,31 @@ export function Settings() {
 											initialSelected={group.settings.selectedBadges}
 											onSave={(selectedBadges) => handleSaveBadges(group.id, selectedBadges)}
 										/>
+
+										{/* Add save button at the bottom of each accordion */}
+										<div className="mt-8 flex justify-end">
+											<Button
+												onClick={() => saveGroupSettings(group)}
+												disabled={!unsavedGroups[group.id] || isLoading}
+												className={`${unsavedGroups[group.id] ? "bg-primary hover:bg-primary/90" : "bg-gray-200"}`}
+											>
+												{isLoading ? (
+													<div className="flex items-center gap-2">
+														<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+														Saving...
+													</div>
+												) : unsavedGroups[group.id] ? (
+													"Save Changes"
+												) : (
+													"All Changes Saved"
+												)}
+											</Button>
+										</div>
 									</div>
 								</AccordionContent>
 							</AccordionItem>
 						))}
 					</Accordion>
-
-					{/* Sticky Save Button */}
-					<div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-end">
-						<Button
-							onClick={saveSettings}
-							disabled={!hasUnsavedChanges || isLoading}
-							className={`${hasUnsavedChanges ? "bg-primary hover:bg-primary/90" : "bg-gray-200"}`}
-						>
-							{isLoading ? (
-								<div className="flex items-center gap-2">
-									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-									Saving...
-								</div>
-							) : hasUnsavedChanges ? (
-								"Save Changes"
-							) : (
-								"All Changes Saved"
-							)}
-						</Button>
-					</div>
 				</>
 			)}
 		</div>
