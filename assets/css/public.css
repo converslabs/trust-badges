@@ -1,0 +1,57 @@
+/* Trust Badges Styles */
+.convers-trust-badges {
+    margin: 20px 0;
+}
+
+.trust-badges-header {
+    margin-bottom: 15px;
+}
+
+.trust-badges-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+}
+
+/* Alignment classes */
+.convers-trust-badges.align-left .trust-badges-wrapper {
+    justify-content: flex-start;
+}
+
+.convers-trust-badges.align-center .trust-badges-wrapper {
+    justify-content: center;
+}
+
+.convers-trust-badges.align-right .trust-badges-wrapper {
+    justify-content: flex-end;
+}
+
+/* Badge styles */
+.badge-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.style-card .badge-container,
+.style-mono-card .badge-container {
+    background-color: #f3f4f6;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.badge-image {
+    object-fit: contain;
+    transition: all 0.3s ease;
+}
+
+/* Responsive design */
+@media (max-width: 767px) {
+    .convers-trust-badges {
+        margin: 15px 0;
+    }
+
+    .trust-badges-wrapper {
+        gap: 0.8rem;
+    }
+} 

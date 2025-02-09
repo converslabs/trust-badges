@@ -14,6 +14,13 @@ class TX_Badges {
         $this->define_admin_hooks();
         $this->define_public_hooks();
         $this->define_rest_api();
+
+        // Add WooCommerce hooks if WooCommerce is active
+        if (is_plugin_active('woocommerce/woocommerce.php')) {
+            add_action('woocommerce_after_add_to_cart_button', array($this, 'display_badges_after_add_to_cart'));
+            add_action('woocommerce_before_add_to_cart_button', array($this, 'display_badges_before_add_to_cart'));
+            add_action('woocommerce_review_order_before_payment', array($this, 'display_badges_on_checkout'));
+        }
     }
 
     private function load_dependencies() {
@@ -84,5 +91,169 @@ class TX_Badges {
      */
     public function display_plugin_setup_page() {
         echo '<div id="tx-badges-app"></div>';
+    }
+
+    /**
+     * Display badges after add to cart button
+     */
+    public function display_badges_after_add_to_cart() {
+        $this->display_badges_by_position('showAfterAddToCart');
+    }
+
+    /**
+     * Display badges before add to cart button
+     */
+    public function display_badges_before_add_to_cart() {
+        $this->display_badges_by_position('showBeforeAddToCart');
+    }
+
+    /**
+     * Display badges on checkout page
+     */
+    public function display_badges_on_checkout() {
+        $this->display_badges_by_position('showOnCheckout');
+    }
+
+    /**
+     * Helper function to display badges based on position
+     */
+    private function display_badges_by_position($position) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
+
+        // Get active WooCommerce badge groups
+        $groups = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM $table_name 
+                WHERE is_active = 1 
+                AND required_plugin = 'woocommerce'
+                AND group_id = 'woocommerce'"
+            )
+        );
+
+        if (empty($groups)) {
+            return;
+        }
+
+        foreach ($groups as $group) {
+            $settings = json_decode($group->settings, true);
+            
+            // Check if this position is enabled
+            if (!isset($settings[$position]) || !$settings[$position]) {
+                continue;
+            }
+
+            // Generate badge HTML
+            $this->render_badges($settings);
+        }
+    }
+
+    /**
+     * Render badges with settings
+     */
+    private function render_badges($settings) {
+        // Get alignment class
+        $alignment_class = 'align-' . ($settings['badgeAlignment'] ?? 'center');
+        $style_class = 'style-' . ($settings['badgeStyle'] ?? 'original');
+
+        // Start badge container
+        echo '<div class="convers-trust-badges ' . esc_attr($alignment_class) . '">';
+        
+        // Show header if enabled
+        if (!empty($settings['showHeader'])) {
+            echo '<div class="trust-badges-header" style="';
+            echo 'font-size: ' . esc_attr($settings['fontSize']) . 'px;';
+            echo 'color: ' . esc_attr($settings['textColor']) . ';';
+            echo 'text-align: ' . esc_attr($settings['alignment']) . ';">';
+            echo esc_html($settings['headerText']);
+            echo '</div>';
+        }
+
+        // Start badges wrapper
+        echo '<div class="trust-badges-wrapper ' . esc_attr($style_class) . '">';
+
+        // Display selected badges
+        if (!empty($settings['selectedBadges'])) {
+            foreach ($settings['selectedBadges'] as $badge_id) {
+                $badge_url = plugin_dir_url(dirname(__FILE__)) . 'assets/images/badges/' . $badge_id . '_color.svg';
+                
+                // Badge container with margins if custom margins are enabled
+                echo '<div class="badge-container"' . $this->get_margin_style($settings) . '>';
+                
+                // For mono styles, use div with mask
+                if (in_array($settings['badgeStyle'], ['mono', 'mono-card'])) {
+                    echo '<div class="badge-image" style="';
+                    echo '-webkit-mask: url(' . esc_url($badge_url) . ') center/contain no-repeat;';
+                    echo 'mask: url(' . esc_url($badge_url) . ') center/contain no-repeat;';
+                    echo 'background-color: ' . esc_attr($settings['badgeColor']) . ';';
+                    echo '"></div>';
+                } else {
+                    echo '<img src="' . esc_url($badge_url) . '" alt="Trust Badge" class="badge-image" />';
+                }
+                
+                echo '</div>';
+            }
+        }
+
+        // Close badges wrapper
+        echo '</div>';
+        
+        // Close badge container
+        echo '</div>';
+
+        // Add CSS for responsive sizes
+        $this->add_responsive_styles($settings);
+    }
+
+    /**
+     * Get margin style string if custom margins are enabled
+     */
+    private function get_margin_style($settings) {
+        if (empty($settings['customMargin'])) {
+            return '';
+        }
+
+        return sprintf(
+            ' style="margin: %spx %spx %spx %spx;"',
+            esc_attr($settings['marginTop']),
+            esc_attr($settings['marginRight']),
+            esc_attr($settings['marginBottom']),
+            esc_attr($settings['marginLeft'])
+        );
+    }
+
+    /**
+     * Add responsive styles for badge sizes
+     */
+    private function add_responsive_styles($settings) {
+        $desktop_size = $this->get_size_values($settings['badgeSizeDesktop']);
+        $mobile_size = $this->get_size_values($settings['badgeSizeMobile']);
+
+        echo '<style>
+            .badge-image {
+                width: ' . esc_attr($mobile_size) . 'px;
+                height: ' . esc_attr($mobile_size) . 'px;
+            }
+            @media (min-width: 768px) {
+                .badge-image {
+                    width: ' . esc_attr($desktop_size) . 'px;
+                    height: ' . esc_attr($desktop_size) . 'px;
+                }
+            }
+        </style>';
+    }
+
+    /**
+     * Convert size names to pixel values
+     */
+    private function get_size_values($size) {
+        $sizes = [
+            'extra-small' => 24,
+            'small' => 32,
+            'medium' => 48,
+            'large' => 64
+        ];
+
+        return $sizes[$size] ?? 48;
     }
 }

@@ -30,6 +30,43 @@ const toCamelCase = (str: string) => {
 	return str.replace(/([-_][a-z])/g, (group) => group.toUpperCase().replace("-", "").replace("_", ""));
 };
 
+// Utility function to convert hex color to hue-rotate value
+const getHueRotate = (hexColor: string): string => {
+    // Remove the hash if present
+    hexColor = hexColor.replace('#', '');
+    
+    // Convert hex to RGB
+    const r = parseInt(hexColor.slice(0, 2), 16);
+    const g = parseInt(hexColor.slice(2, 4), 16);
+    const b = parseInt(hexColor.slice(4, 6), 16);
+    
+    // Calculate hue
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+
+    if (max === min) {
+        h = 0;
+    } else {
+        const d = max - min;
+        switch (max) {
+            case r:
+                h = (g - b) / d + (g < b ? 6 : 0);
+                break;
+            case g:
+                h = (b - r) / d + 2;
+                break;
+            case b:
+                h = (r - g) / d + 4;
+                break;
+        }
+        h *= 60;
+    }
+
+    // Return the hue rotation value
+    return `${Math.round(h)}deg`;
+};
+
 const toSnakeCase = (str: string) => {
 	return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 };
@@ -508,9 +545,9 @@ export function Settings() {
 			},
 			desktop: {
 				"extra-small": "h-8 w-8",
-				small: "h-10 w-10",
-				medium: "h-12 w-12",
-				large: "h-16 w-16",
+				small: "h-12 w-12",
+				medium: "h-16 w-16",
+				large: "h-20 w-20",
 			},
 		} as const;
 
@@ -1310,15 +1347,11 @@ export function Settings() {
 													</div>
 
 													<div
-														className="px-48 py-6 space-y-4 bg-gray-100 mt-6"
+														className="px-24 py-6 space-y-4 bg-gray-100 mt-6"
 														style={{
 															fontSize: `${group.settings.fontSize}px`,
 															textAlign: group.settings.alignment as any,
 															color: group.settings.textColor,
-															marginTop: group.settings.customMargin ? `${group.settings.marginTop}px` : undefined,
-															marginBottom: group.settings.customMargin ? `${group.settings.marginBottom}px` : undefined,
-															marginLeft: group.settings.customMargin ? `${group.settings.marginLeft}px` : undefined,
-															marginRight: group.settings.customMargin ? `${group.settings.marginRight}px` : undefined,
 														}}>
 														{group.settings.showHeader && group.settings.headerText}
 														<AnimatePresence>
@@ -1348,20 +1381,42 @@ export function Settings() {
 																}}>
 																{group.settings.selectedBadges.map((badgeId) => {
 																	const badge = paymentBadges.find((b) => b.id === badgeId);
+																	const isMonoStyle = group.settings.badgeStyle === "mono" || group.settings.badgeStyle === "mono-card";
 																	return badge ? (
-																		<img
+																		<div
 																			key={badgeId}
-																			src={badge.image}
-																			alt={badge.name}
-																			className={`object-contain 
-																				${getBadgeSize(group.settings.badgeSizeDesktop as BadgeSize)} 
-																				md:${getBadgeSize(group.settings.badgeSizeDesktop as BadgeSize)} 
-																				${getBadgeSize(group.settings.badgeSizeMobile as BadgeSize, true)}
-																				${group.settings.badgeStyle === "card" || group.settings.badgeStyle === "mono-card" ? "px-2 bg-gray-400 rounded text-white" : ""}`}
-																			style={{
-																				filter: group.settings.badgeStyle === "mono" || group.settings.badgeStyle === "mono-card" ? "grayscale(100%)" : "none",
-																			}}
-																		/>
+																			className={cn(
+																				"flex items-center justify-center",
+																				group.settings.badgeStyle === "card" || group.settings.badgeStyle === "mono-card" ? "px-2 bg-gray-200 rounded" : ""
+																			)}
+																			style={group.settings.customMargin ? {
+																				marginTop: `${group.settings.marginTop}px`,
+																				marginBottom: `${group.settings.marginBottom}px`,
+																				marginLeft: `${group.settings.marginLeft}px`,
+																				marginRight: `${group.settings.marginRight}px`,
+																			} : undefined}
+																		>
+																			<div
+																				className={`object-contain transition-all duration-300
+																					${getBadgeSize(group.settings.badgeSizeDesktop as BadgeSize)} // Only desktop size for preview
+																				`}
+																				style={{
+																					...(isMonoStyle
+																						? {
+																							WebkitMask: `url(${badge.image}) center/contain no-repeat`,
+																							mask: `url(${badge.image}) center/contain no-repeat`,
+																							backgroundColor: group.settings.badgeColor,
+																						}
+																						: {
+																							backgroundImage: `url(${badge.image})`,
+																							backgroundSize: 'contain',
+																							backgroundPosition: 'center',
+																							backgroundRepeat: 'no-repeat',
+																						}
+																					),
+																				}}
+																			/>
+																		</div>
 																	) : null;
 																})}
 															</motion.div>
