@@ -108,10 +108,11 @@ class TX_Badges_REST_API {
             ]
         ]);
 
+        // Add new routes for individual group operations
         register_rest_route($this->namespace, '/settings/group', [
             [
                 'methods' => 'POST',
-                'callback' => [$this, 'create_group'],
+                'callback' => [$this, 'save_group'],
                 'permission_callback' => [$this, 'update_settings_permissions_check'],
                 'args' => [
                     'group' => [
@@ -120,6 +121,31 @@ class TX_Badges_REST_API {
                     ],
                 ],
             ]
+        ]);
+
+        register_rest_route($this->namespace, '/settings/group/(?P<id>[a-zA-Z0-9-_]+)', [
+            [
+                'methods' => 'GET',
+                'callback' => [$this, 'get_group'],
+                'permission_callback' => [$this, 'get_settings_permissions_check'],
+                'args' => [
+                    'id' => [
+                        'required' => true,
+                        'type' => 'string',
+                    ],
+                ],
+            ],
+            [
+                'methods' => 'DELETE',
+                'callback' => [$this, 'delete_group'],
+                'permission_callback' => [$this, 'update_settings_permissions_check'],
+                'args' => [
+                    'id' => [
+                        'required' => true,
+                        'type' => 'string',
+                    ],
+                ],
+            ],
         ]);
     }
 
@@ -304,37 +330,165 @@ class TX_Badges_REST_API {
         }
     }
 
-    public function create_group($request) {
+    public function get_group($request) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
+        $group_id = sanitize_text_field($request['id']);
+        
+        $result = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $table_name WHERE group_id = %s",
+                $group_id
+            )
+        );
+        
+        if ($error = $this->handle_db_error($wpdb, 'get_group')) {
+            return $error;
+        }
+
+        if (!$result) {
+            return new WP_Error(
+                'not_found',
+                'Group not found',
+                ['status' => 404]
+            );
+        }
+
+        return new WP_REST_Response([
+            'id' => $result->group_id,
+            'name' => $result->group_name,
+            'isDefault' => (bool)$result->is_default,
+            'isActive' => (bool)$result->is_active,
+            'requiredPlugin' => $result->required_plugin,
+            'settings' => json_decode($result->settings, true)
+        ], 200);
+    }
+
+    public function save_group($request) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
         
         $group = $request->get_param('group');
         
         if (!isset($group['id']) || !isset($group['name']) || !isset($group['settings'])) {
-            return new WP_Error('invalid_data', 'Missing required fields', ['status' => 400]);
+            return new WP_Error(
+                'invalid_data',
+                'Missing required fields',
+                ['status' => 400]
+            );
         }
 
         $data = [
-            'group_id' => sanitize_text_field($group['id']),
             'group_name' => sanitize_text_field($group['name']),
-            'is_default' => 0,
-            'is_active' => 1,
+            'is_active' => isset($group['isActive']) ? (bool)$group['isActive'] : true,
             'settings' => wp_json_encode($group['settings'])
         ];
 
-        $result = $wpdb->insert($table_name, $data);
+        $where = ['group_id' => sanitize_text_field($group['id'])];
         
-        if ($error = $this->handle_db_error($wpdb, 'create_group')) {
+        // Start transaction
+        $wpdb->query('START TRANSACTION');
+
+        try {
+            $existing = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM $table_name WHERE group_id = %s",
+                    $group['id']
+                )
+            );
+
+            if ($existing) {
+                // Update existing group
+                $result = $wpdb->update($table_name, $data, $where);
+            } else {
+                // Insert new group
+                $data['group_id'] = sanitize_text_field($group['id']);
+                $data['is_default'] = isset($group['isDefault']) ? (bool)$group['isDefault'] : false;
+                $result = $wpdb->insert($table_name, $data);
+            }
+            
+            if ($error = $this->handle_db_error($wpdb, 'save_group')) {
+                throw new Exception($error->get_error_message());
+            }
+
+            if ($result === false) {
+                throw new Exception('Failed to save group settings');
+            }
+
+            $wpdb->query('COMMIT');
+            
+            // Clear cache
+            wp_cache_delete('tx_badges_settings');
+            
+            // Return the complete updated group data
+            $updated_group = [
+                'id' => $group['id'],
+                'name' => $data['group_name'],
+                'isActive' => $data['is_active'],
+                'isDefault' => isset($data['is_default']) ? $data['is_default'] : false,
+                'settings' => json_decode($data['settings'], true),
+                'requiredPlugin' => isset($group['requiredPlugin']) ? $group['requiredPlugin'] : null
+            ];
+            
+            return new WP_REST_Response([
+                'message' => 'Group saved successfully',
+                'group' => $updated_group
+            ], 200);
+        } catch (Exception $e) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error(
+                'save_failed',
+                $e->getMessage(),
+                ['status' => 500]
+            );
+        }
+    }
+
+    public function delete_group($request) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
+        $group_id = sanitize_text_field($request['id']);
+
+        // Don't allow deletion of default groups
+        $is_default = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT is_default FROM $table_name WHERE group_id = %s",
+                $group_id
+            )
+        );
+
+        if ($is_default) {
+            return new WP_Error(
+                'delete_failed',
+                'Cannot delete default groups',
+                ['status' => 403]
+            );
+        }
+
+        $result = $wpdb->delete(
+            $table_name,
+            ['group_id' => $group_id],
+            ['%s']
+        );
+        
+        if ($error = $this->handle_db_error($wpdb, 'delete_group')) {
             return $error;
+        }
+
+        if ($result === false) {
+            return new WP_Error(
+                'delete_failed',
+                'Failed to delete group',
+                ['status' => 500]
+            );
         }
 
         // Clear cache
         wp_cache_delete('tx_badges_settings');
         
         return new WP_REST_Response([
-            'message' => 'Group created successfully',
-            'group' => array_merge($group, ['id' => $wpdb->insert_id])
-        ], 201);
+            'message' => 'Group deleted successfully'
+        ], 200);
     }
 
     public function get_installed_plugins() {
