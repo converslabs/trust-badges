@@ -35,118 +35,278 @@ class TX_Badges_REST_API {
         return true;
     }
 
+    /**
+     * Register REST API endpoints with proper error handling
+     */
     public function register_routes() {
-        // Get all badges
-        register_rest_route($this->namespace, '/badges', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_badges'],
-            'permission_callback' => [$this, 'get_badges_permissions_check'],
-        ]);
+        try {
+            // Register settings endpoint
+            register_rest_route(
+                'tx-badges/v1',
+                '/settings',
+                array(
+                    array(
+                        'methods' => 'GET',
+                        'callback' => array($this, 'get_settings'),
+                        'permission_callback' => array($this, 'check_permissions'),
+                    ),
+                    array(
+                        'methods' => 'POST',
+                        'callback' => array($this, 'save_settings'),
+                        'permission_callback' => array($this, 'check_permissions'),
+                    ),
+                )
+            );
 
-        // Add installed plugins endpoint
-        register_rest_route($this->namespace, '/installed-plugins', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_installed_plugins'],
-            'permission_callback' => [$this, 'get_settings_permissions_check'],
-        ]);
+            // Register group settings endpoint
+            register_rest_route(
+                'tx-badges/v1',
+                '/settings/group',
+                array(
+                    'methods' => 'POST',
+                    'callback' => array($this, 'save_group_settings'),
+                    'permission_callback' => array($this, 'check_permissions'),
+                    'args' => array(
+                        'group' => array(
+                            'required' => true,
+                            'type' => 'object',
+                        ),
+                    ),
+                )
+            );
 
-        // Create badge
-        register_rest_route($this->namespace, '/badges', [
-            'methods' => 'POST',
-            'callback' => [$this, 'create_badge'],
-            'permission_callback' => [$this, 'create_badge_permissions_check'],
-            'args' => [
-                'name' => [
-                    'required' => true,
-                    'type' => 'string',
-                    'sanitize_callback' => 'sanitize_text_field',
-                ],
-                'settings' => [
-                    'required' => true,
-                    'type' => 'object',
-                ],
-            ],
-        ]);
+            // Register delete group endpoint
+            register_rest_route(
+                'tx-badges/v1',
+                '/settings/group/(?P<id>[a-zA-Z0-9-]+)',
+                array(
+                    'methods' => 'DELETE',
+                    'callback' => array($this, 'delete_group'),
+                    'permission_callback' => array($this, 'check_permissions'),
+                )
+            );
 
-        // Update badge
-        register_rest_route($this->namespace, '/badges/(?P<id>\d+)', [
-            'methods' => 'PUT',
-            'callback' => [$this, 'update_badge'],
-            'permission_callback' => [$this, 'update_badge_permissions_check'],
-            'args' => [
-                'id' => [
-                    'required' => true,
-                    'type' => 'integer',
-                ],
-            ],
-        ]);
-
-        // Delete badge
-        register_rest_route($this->namespace, '/badges/(?P<id>\d+)', [
-            'methods' => 'DELETE',
-            'callback' => [$this, 'delete_badge'],
-            'permission_callback' => [$this, 'delete_badge_permissions_check'],
-            'args' => [
-                'id' => [
-                    'required' => true,
-                    'type' => 'integer',
-                ],
-            ],
-        ]);
-
-        // Get settings
-        register_rest_route($this->namespace, '/settings', [
-            [
+            // Get all badges
+            register_rest_route($this->namespace, '/badges', [
                 'methods' => 'GET',
-                'callback' => [$this, 'get_settings'],
-                'permission_callback' => [$this, 'get_settings_permissions_check'],
-            ],
-            [
-                'methods' => 'POST',
-                'callback' => [$this, 'save_settings'],
-                'permission_callback' => [$this, 'update_settings_permissions_check'],
-            ]
-        ]);
+                'callback' => [$this, 'get_badges'],
+                'permission_callback' => [$this, 'get_badges_permissions_check'],
+            ]);
 
-        // Add new routes for individual group operations
-        register_rest_route($this->namespace, '/settings/group', [
-            [
+            // Add installed plugins endpoint
+            register_rest_route($this->namespace, '/installed-plugins', [
+                'methods' => 'GET',
+                'callback' => [$this, 'get_installed_plugins'],
+                'permission_callback' => [$this, 'get_settings_permissions_check'],
+            ]);
+
+            // Create badge
+            register_rest_route($this->namespace, '/badges', [
                 'methods' => 'POST',
-                'callback' => [$this, 'save_group'],
-                'permission_callback' => [$this, 'update_settings_permissions_check'],
+                'callback' => [$this, 'create_badge'],
+                'permission_callback' => [$this, 'create_badge_permissions_check'],
                 'args' => [
-                    'group' => [
+                    'name' => [
+                        'required' => true,
+                        'type' => 'string',
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ],
+                    'settings' => [
                         'required' => true,
                         'type' => 'object',
                     ],
                 ],
-            ]
-        ]);
+            ]);
 
-        register_rest_route($this->namespace, '/settings/group/(?P<id>[a-zA-Z0-9-_]+)', [
-            [
-                'methods' => 'GET',
-                'callback' => [$this, 'get_group'],
-                'permission_callback' => [$this, 'get_settings_permissions_check'],
+            // Update badge
+            register_rest_route($this->namespace, '/badges/(?P<id>\d+)', [
+                'methods' => 'PUT',
+                'callback' => [$this, 'update_badge'],
+                'permission_callback' => [$this, 'update_badge_permissions_check'],
                 'args' => [
                     'id' => [
                         'required' => true,
-                        'type' => 'string',
+                        'type' => 'integer',
                     ],
                 ],
-            ],
-            [
+            ]);
+
+            // Delete badge
+            register_rest_route($this->namespace, '/badges/(?P<id>\d+)', [
                 'methods' => 'DELETE',
-                'callback' => [$this, 'delete_group'],
-                'permission_callback' => [$this, 'update_settings_permissions_check'],
+                'callback' => [$this, 'delete_badge'],
+                'permission_callback' => [$this, 'delete_badge_permissions_check'],
                 'args' => [
                     'id' => [
                         'required' => true,
-                        'type' => 'string',
+                        'type' => 'integer',
                     ],
                 ],
-            ],
-        ]);
+            ]);
+
+            // Add new routes for individual group operations
+            register_rest_route($this->namespace, '/settings/group/(?P<id>[a-zA-Z0-9-_]+)', [
+                [
+                    'methods' => 'GET',
+                    'callback' => [$this, 'get_group'],
+                    'permission_callback' => [$this, 'get_settings_permissions_check'],
+                    'args' => [
+                        'id' => [
+                            'required' => true,
+                            'type' => 'string',
+                        ],
+                    ],
+                ],
+            ]);
+        } catch (Exception $e) {
+            error_log('TX Badges REST API Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check user permissions and nonce for REST API requests
+     * @return bool|WP_Error
+     */
+    public function check_permissions() {
+        try {
+            // Verify user is logged in
+            if (!is_user_logged_in()) {
+                return new WP_Error(
+                    'rest_not_logged_in',
+                    __('You must be logged in to manage Trust Badges.', 'tx-badges'),
+                    array('status' => 401)
+                );
+            }
+
+            // Verify user capabilities
+            if (!current_user_can('manage_options')) {
+                return new WP_Error(
+                    'rest_forbidden_capability',
+                    __('You do not have sufficient permissions to manage Trust Badges.', 'tx-badges'),
+                    array('status' => 403)
+                );
+            }
+
+            // Get nonce from headers
+            $nonce = null;
+            if (isset($_SERVER['HTTP_X_WP_NONCE'])) {
+                $nonce = $_SERVER['HTTP_X_WP_NONCE'];
+            }
+
+            // Verify nonce
+            if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest')) {
+                return new WP_Error(
+                    'rest_cookie_invalid_nonce',
+                    __('Session expired. Please refresh the page and try again.', 'tx-badges'),
+                    array('status' => 403)
+                );
+            }
+
+            return true;
+        } catch (Exception $e) {
+            error_log('TX Badges Permission Check Error: ' . $e->getMessage());
+            return new WP_Error(
+                'rest_error',
+                __('An unexpected error occurred.', 'tx-badges'),
+                array('status' => 500)
+            );
+        }
+    }
+
+    /**
+     * Save group settings with improved error handling
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function save_group_settings($request) {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'converswp_trust_badges';
+
+            // Get and validate group data
+            $group = $request->get_param('group');
+            if (empty($group) || !is_array($group)) {
+                return new WP_Error(
+                    'invalid_group_data',
+                    __('Invalid group data provided.', 'tx-badges'),
+                    array('status' => 400)
+                );
+            }
+
+            // Start transaction
+            $wpdb->query('START TRANSACTION');
+
+            try {
+                // Prepare data for database
+                $data = array(
+                    'group_name' => sanitize_text_field($group['name']),
+                    'is_active' => isset($group['isActive']) ? (bool)$group['isActive'] : true,
+                    'settings' => wp_json_encode($group['settings'])
+                );
+
+                $where = array('group_id' => sanitize_text_field($group['id']));
+                
+                // Check if group exists
+                $existing = $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT COUNT(*) FROM $table_name WHERE group_id = %s",
+                        $group['id']
+                    )
+                );
+
+                if ($existing) {
+                    // Update existing group
+                    $result = $wpdb->update($table_name, $data, $where);
+                } else {
+                    // Insert new group
+                    $data['group_id'] = sanitize_text_field($group['id']);
+                    $data['is_default'] = isset($group['isDefault']) ? (bool)$group['isDefault'] : false;
+                    $result = $wpdb->insert($table_name, $data);
+                }
+
+                // Check for database errors
+                if ($error = $this->handle_db_error($wpdb, 'save_group_settings')) {
+                    throw new Exception($error->get_error_message());
+                }
+
+                if ($result === false) {
+                    throw new Exception(__('Failed to save group settings.', 'tx-badges'));
+                }
+
+                // Commit transaction
+                $wpdb->query('COMMIT');
+
+                // Clear cache
+                wp_cache_delete('tx_badges_settings');
+
+                // Return success response with updated group data
+                $updated_group = array(
+                    'id' => $group['id'],
+                    'name' => $data['group_name'],
+                    'isActive' => $data['is_active'],
+                    'isDefault' => isset($data['is_default']) ? $data['is_default'] : false,
+                    'settings' => json_decode($data['settings'], true),
+                    'requiredPlugin' => isset($group['requiredPlugin']) ? $group['requiredPlugin'] : null
+                );
+
+                return rest_ensure_response(array(
+                    'success' => true,
+                    'message' => __('Group settings saved successfully.', 'tx-badges'),
+                    'group' => $updated_group
+                ));
+
+            } catch (Exception $e) {
+                $wpdb->query('ROLLBACK');
+                throw $e;
+            }
+        } catch (Exception $e) {
+            error_log('TX Badges Save Group Error: ' . $e->getMessage());
+            return new WP_Error(
+                'save_error',
+                $e->getMessage(),
+                array('status' => 500)
+            );
+        }
     }
 
     // Permission checks with nonce verification
@@ -362,86 +522,6 @@ class TX_Badges_REST_API {
             'requiredPlugin' => $result->required_plugin,
             'settings' => json_decode($result->settings, true)
         ], 200);
-    }
-
-    public function save_group($request) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'converswp_trust_badges';
-        
-        $group = $request->get_param('group');
-        
-        if (!isset($group['id']) || !isset($group['name']) || !isset($group['settings'])) {
-            return new WP_Error(
-                'invalid_data',
-                'Missing required fields',
-                ['status' => 400]
-            );
-        }
-
-        $data = [
-            'group_name' => sanitize_text_field($group['name']),
-            'is_active' => isset($group['isActive']) ? (bool)$group['isActive'] : true,
-            'settings' => wp_json_encode($group['settings'])
-        ];
-
-        $where = ['group_id' => sanitize_text_field($group['id'])];
-        
-        // Start transaction
-        $wpdb->query('START TRANSACTION');
-
-        try {
-            $existing = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT COUNT(*) FROM $table_name WHERE group_id = %s",
-                    $group['id']
-                )
-            );
-
-            if ($existing) {
-                // Update existing group
-                $result = $wpdb->update($table_name, $data, $where);
-            } else {
-                // Insert new group
-                $data['group_id'] = sanitize_text_field($group['id']);
-                $data['is_default'] = isset($group['isDefault']) ? (bool)$group['isDefault'] : false;
-                $result = $wpdb->insert($table_name, $data);
-            }
-            
-            if ($error = $this->handle_db_error($wpdb, 'save_group')) {
-                throw new Exception($error->get_error_message());
-            }
-
-            if ($result === false) {
-                throw new Exception('Failed to save group settings');
-            }
-
-            $wpdb->query('COMMIT');
-            
-            // Clear cache
-            wp_cache_delete('tx_badges_settings');
-            
-            // Return the complete updated group data
-            $updated_group = [
-                'id' => $group['id'],
-                'name' => $data['group_name'],
-                'isActive' => $data['is_active'],
-                'isDefault' => isset($data['is_default']) ? $data['is_default'] : false,
-                'settings' => json_decode($data['settings'], true),
-                'requiredPlugin' => isset($group['requiredPlugin']) ? $group['requiredPlugin'] : null
-            ];
-            
-            return new WP_REST_Response([
-                'message' => 'Group saved successfully',
-                'group' => $updated_group
-            ], 200);
-        } catch (Exception $e) {
-            $wpdb->query('ROLLBACK');
-            return new WP_Error(
-                'save_failed',
-                $e->getMessage(),
-                ['status' => 500]
-            );
-        }
     }
 
     public function delete_group($request) {

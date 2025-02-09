@@ -122,9 +122,10 @@ function tx_badges_init()
 }
 add_action('plugins_loaded', 'tx_badges_init');
 
-// Update the admin enqueue function
+// Update the admin enqueue function with proper nonce handling
 function tx_badges_admin_enqueue_scripts($hook)
 {
+    // Only load on plugin admin page
     if ('toplevel_page_tx-badges' !== $hook) {
         return;
     }
@@ -133,8 +134,6 @@ function tx_badges_admin_enqueue_scripts($hook)
         // WordPress core scripts
         wp_enqueue_media();
         wp_enqueue_script('jquery');
-        // wp_enqueue_script('wp-element');
-        // wp_enqueue_script('wp-components');
         wp_enqueue_script('wp-i18n');
         wp_enqueue_script('wp-api-fetch');
 
@@ -158,36 +157,38 @@ function tx_badges_admin_enqueue_scripts($hook)
             throw new Exception('Required JS file not found: ' . $js_file);
         }
 
-        // Add REST API nonce
+        // Create nonce specifically for REST API
+        $rest_nonce = wp_create_nonce('wp_rest');
+
+        // Configure REST API settings
         wp_localize_script('wp-api-fetch', 'wpApiSettings', [
             'root' => esc_url_raw(rest_url()),
-            'nonce' => wp_create_nonce('wp_rest')
+            'nonce' => $rest_nonce
         ]);
 
-        // Add settings to window before any scripts
-        $rest_nonce = wp_create_nonce('wp_rest');
+        // Plugin settings object with proper nonce
         $settings = [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => $rest_nonce,
             'restUrl' => rest_url('tx-badges/v1/'),
             'pluginUrl' => TX_BADGES_PLUGIN_URL,
             'mediaTitle' => __('Select or Upload Badge Image', 'tx-badges'),
             'mediaButton' => __('Use this image', 'tx-badges'),
             'debug' => WP_DEBUG,
-            'restNonce' => $rest_nonce
+            'restNonce' => $rest_nonce // Use the same REST nonce
         ];
 
+        // Add settings to window object before any scripts
         wp_add_inline_script(
-            'wp-element',
+            'wp-api-fetch',
             'window.txBadgesSettings = ' . wp_json_encode($settings) . ';',
             'before'
         );
 
-        // Enqueue main JS
+        // Enqueue main JS with proper dependencies
         wp_enqueue_script(
             'tx-badges-admin',
             TX_BADGES_PLUGIN_URL . 'dist/main.js',
-            ['wp-element', 'wp-components', 'wp-i18n', 'wp-api-fetch'],
+            ['wp-api-fetch', 'wp-i18n'],
             TX_BADGES_VERSION,
             true
         );
@@ -355,7 +356,7 @@ function tx_badges_save_settings() {
 }
 add_action('wp_ajax_tx_badges_save_settings', 'tx_badges_save_settings');
 
-// Update REST API authentication
+// Update REST API authentication with improved error handling
 function tx_badges_rest_authentication($result) {
     // If a previous authentication check was applied,
     // pass that result along without modification
@@ -369,7 +370,24 @@ function tx_badges_rest_authentication($result) {
         return $result;
     }
 
-    // Verify the nonce
+    // Verify user is logged in and has proper capabilities
+    if (!is_user_logged_in()) {
+        return new WP_Error(
+            'rest_not_logged_in',
+            __('You must be logged in to manage Trust Badges.', 'tx-badges'),
+            array('status' => 401)
+        );
+    }
+
+    if (!current_user_can('manage_options')) {
+        return new WP_Error(
+            'rest_forbidden_capability',
+            __('You do not have sufficient permissions to manage Trust Badges.', 'tx-badges'),
+            array('status' => 403)
+        );
+    }
+
+    // Get the nonce from headers or request parameters
     $nonce = null;
     if (isset($_SERVER['HTTP_X_WP_NONCE'])) {
         $nonce = $_SERVER['HTTP_X_WP_NONCE'];
@@ -377,19 +395,11 @@ function tx_badges_rest_authentication($result) {
         $nonce = $_REQUEST['_wpnonce'];
     }
 
+    // Verify the nonce
     if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest')) {
         return new WP_Error(
             'rest_cookie_invalid_nonce',
-            __('Cookie check failed', 'tx-badges'),
-            array('status' => 403)
-        );
-    }
-
-    // Check if user is logged in and has required capabilities
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
-        return new WP_Error(
-            'rest_forbidden',
-            __('You do not have sufficient permissions.', 'tx-badges'),
+            __('Session expired. Please refresh the page and try again.', 'tx-badges'),
             array('status' => 403)
         );
     }
