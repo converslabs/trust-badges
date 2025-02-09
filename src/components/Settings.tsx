@@ -147,6 +147,17 @@ const fetchApi = async (path: string, options: RequestInit = {}) => {
 	const url = `${cleanRestUrl}${cleanPath}`;
 
 	try {
+		console.log('API Request:', {
+			url,
+			options: {
+				...options,
+				headers: {
+					...defaultOptions.headers,
+					...options.headers
+				}
+			}
+		});
+
 		const response = await fetch(url, {
 			...defaultOptions,
 			...options,
@@ -164,6 +175,11 @@ const fetchApi = async (path: string, options: RequestInit = {}) => {
 				statusText: response.statusText,
 				data
 			});
+
+			// If it's a nonce error, show specific message
+			if (response.status === 403) {
+				throw new Error('Session expired. Please refresh the page and try again.');
+			}
 
 			throw new Error(data.message || `HTTP error! status: ${response.status}`);
 		}
@@ -279,11 +295,23 @@ export function Settings() {
 	const saveSettings = async () => {
 		try {
 			setIsLoading(true);
-			console.log('Saving settings:', { groups: badgeGroups });
+			console.log('Preparing to save settings:', { groups: badgeGroups });
+
+			// Convert the data structure to match what the backend expects
+			const formattedGroups = badgeGroups.map(group => ({
+				id: group.id,
+				name: group.name,
+				isDefault: group.isDefault,
+				isActive: group.isActive,
+				settings: group.settings,
+				requiredPlugin: group.requiredPlugin
+			}));
+
+			console.log('Formatted groups for saving:', formattedGroups);
 
 			const result = await fetchApi('settings', {
 				method: 'POST',
-				body: JSON.stringify({ groups: badgeGroups })
+				body: JSON.stringify({ groups: formattedGroups }),
 			});
 
 			console.log('Save result:', result);
@@ -295,7 +323,20 @@ export function Settings() {
 			setHasUnsavedChanges(false);
 		} catch (error: any) {
 			console.error('Save Settings Error:', error);
-			handleApiError(error, toast);
+			
+			// Show appropriate error message
+			toast({
+				title: "Error",
+				description: error.message || "Failed to save settings. Please try again.",
+				variant: "destructive",
+			});
+
+			// If it's a nonce error, refresh the page after a delay
+			if (error.message.includes('Session expired')) {
+				setTimeout(() => {
+					window.location.reload();
+				}, 2000);
+			}
 		} finally {
 			setIsLoading(false);
 		}
