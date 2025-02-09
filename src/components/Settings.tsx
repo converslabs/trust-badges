@@ -12,7 +12,7 @@ import { paymentBadges } from "./pages/assets/PaymentBadges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "./ui/use-toast";
-import type { BadgeSize, TrustBadgesSettings, ApiResponse, ApiError } from "../types/badges";
+import type { BadgeSize, TrustBadgesSettings} from "../types/badges";
 import type { BadgeGroup } from "../types/badges";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Separator } from "@/components/ui/separator";
@@ -28,43 +28,6 @@ function cn(...inputs: ClassValue[]) {
 // Add these utility functions at the top of the file
 const toCamelCase = (str: string) => {
 	return str.replace(/([-_][a-z])/g, (group) => group.toUpperCase().replace("-", "").replace("_", ""));
-};
-
-// Utility function to convert hex color to hue-rotate value
-const getHueRotate = (hexColor: string): string => {
-    // Remove the hash if present
-    hexColor = hexColor.replace('#', '');
-    
-    // Convert hex to RGB
-    const r = parseInt(hexColor.slice(0, 2), 16);
-    const g = parseInt(hexColor.slice(2, 4), 16);
-    const b = parseInt(hexColor.slice(4, 6), 16);
-    
-    // Calculate hue
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h = 0;
-
-    if (max === min) {
-        h = 0;
-    } else {
-        const d = max - min;
-        switch (max) {
-            case r:
-                h = (g - b) / d + (g < b ? 6 : 0);
-                break;
-            case g:
-                h = (b - r) / d + 2;
-                break;
-            case b:
-                h = (r - g) / d + 4;
-                break;
-        }
-        h *= 60;
-    }
-
-    // Return the hue rotation value
-    return `${Math.round(h)}deg`;
 };
 
 const toSnakeCase = (str: string) => {
@@ -120,7 +83,7 @@ const defaultSettings: TrustBadgesSettings = {
 	showAfterAddToCart: false,
 	showBeforeAddToCart: false,
 	showOnCheckout: false,
-	selectedBadges: ["mastercard", "visa-1", "paypal-1", "apple-pay", "stripe", "american-express-1"],
+	selectedBadges: ["mastercardcolor", "visa1color", "paypal1color", "applepaycolor", "stripecolor", "amazonpay2color", "americanexpress1color"],
 };
 
 const defaultBadgeGroups: BadgeGroup[] = [
@@ -722,6 +685,14 @@ export function Settings() {
 		}
 	};
 
+	// Add animation options
+	const animationOptions = [
+		{ value: "fade", label: "Fade" },
+		{ value: "slide", label: "Slide" },
+		{ value: "scale", label: "Scale" },
+		{ value: "bounce", label: "Bounce" }
+	];
+
 	return (
 		<div className="space-y-4">
 					<div className="flex justify-between items-center mb-8">
@@ -1165,7 +1136,7 @@ export function Settings() {
 																			}`}>
 																		<div className={`w-10 h-8 rounded flex items-center justify-center ${style.id.includes("card") ? "bg-gray-400 shadow-sm py-1 px-2" : "p-1"}`}>
 																			<img
-																				src={`${window.txBadgesSettings.pluginUrl}assets/images/badges/mastercard_color.svg`}
+																				src={`${window.txBadgesSettings.pluginUrl}assets/images/badges/mastercardcolor.svg`}
 																				alt="Badge Style Preview"
 																				className={`w-full h-full object-contain ${style.id.includes("mono") ? "grayscale" : ""}`}
 																			/>
@@ -1332,10 +1303,11 @@ export function Settings() {
 																		<SelectValue placeholder="Select animation" />
 																	</SelectTrigger>
 																	<SelectContent>
-																		<SelectItem value="fade">Fade</SelectItem>
-																		<SelectItem value="slide">Slide</SelectItem>
-																		<SelectItem value="scale">Scale</SelectItem>
-																		<SelectItem value="bounce">Bounce</SelectItem>
+																		{animationOptions.map((option) => (
+																			<SelectItem key={option.value} value={option.value}>
+																				{option.label}
+																			</SelectItem>
+																		))}
 																	</SelectContent>
 																</Select>
 															</div>

@@ -1,16 +1,22 @@
 /* Trust Badges Styles */
 .convers-trust-badges {
     margin: 20px 0;
+    width: 100%;
+    opacity: 0;
+    animation: badgeFade 0.5s ease forwards;
 }
 
 .trust-badges-header {
     margin-bottom: 15px;
+    line-height: 1.4;
 }
 
 .trust-badges-wrapper {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 1.2rem;
+    gap: 1.5rem;
+    padding: 10px 0;
 }
 
 /* Alignment classes */
@@ -33,16 +39,55 @@
     justify-content: center;
 }
 
+.badge-image {
+    object-fit: contain;
+    max-width: 100%;
+    height: auto;
+}
+
+/* Style variations */
+.style-original .badge-image {
+    filter: none;
+}
+
+.style-mono .badge-image,
+.style-mono-card .badge-image {
+    filter: grayscale(100%);
+}
+
 .style-card .badge-container,
 .style-mono-card .badge-container {
     background-color: #f3f4f6;
-    padding: 0.5rem;
-    border-radius: 0.375rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
 }
 
-.badge-image {
-    object-fit: contain;
-    transition: all 0.3s ease;
+/* Animation keyframes */
+@keyframes badgeFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes badgeSlide {
+    from { 
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes badgeScale {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 /* Responsive design */
@@ -52,6 +97,6 @@
     }
 
     .trust-badges-wrapper {
-        gap: 0.8rem;
+        gap: 1rem;
     }
 } 

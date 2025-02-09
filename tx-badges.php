@@ -20,6 +20,9 @@ define('TX_BADGES_VERSION', '1.0.0');
 define('TX_BADGES_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('TX_BADGES_PLUGIN_URL', plugin_dir_url(__FILE__));
 
+// Log plugin URL for debugging
+error_log('TX Badges Plugin URL: ' . TX_BADGES_PLUGIN_URL);
+
 // Add this near the top after plugin constants
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
