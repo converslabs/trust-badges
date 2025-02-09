@@ -124,17 +124,6 @@ const defaultBadgeGroups: BadgeGroup[] = [
 const handleApiError = (error: any, toast: any) => {
 	console.error('API Error:', error);
 	
-	// Handle specific error cases
-	if (error.message.includes('Cookie check failed') || error.message.includes('Authentication failed')) {
-		toast({
-			title: "Authentication Error",
-			description: "Your session has expired. The page will refresh.",
-			variant: "destructive",
-		});
-		setTimeout(() => window.location.reload(), 2000);
-		return;
-	}
-
 	toast({
 		title: "Error",
 		description: error.message || "An unexpected error occurred",
@@ -157,26 +146,37 @@ const fetchApi = async (path: string, options: RequestInit = {}) => {
 	const cleanRestUrl = window.txBadgesSettings.restUrl.replace(/\/+$/, '');
 	const url = `${cleanRestUrl}${cleanPath}`;
 
-	const response = await fetch(url, {
-		...defaultOptions,
-		...options,
-		headers: {
-			...defaultOptions.headers,
-			...options.headers
-		}
-	});
+	try {
+		const response = await fetch(url, {
+			...defaultOptions,
+			...options,
+			headers: {
+				...defaultOptions.headers,
+				...options.headers
+			}
+		});
 
-	if (!response.ok) {
-		if (response.status === 403) {
-			// Handle authentication errors
-			window.location.reload(); // Reload to get fresh nonce
-			throw new Error('Authentication failed. Please try again.');
+		const data = await response.json();
+
+		if (!response.ok) {
+			console.error('API Error Response:', {
+				status: response.status,
+				statusText: response.statusText,
+				data
+			});
+
+			throw new Error(data.message || `HTTP error! status: ${response.status}`);
 		}
-		const error = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-		throw new Error(error.message || `HTTP error! status: ${response.status}`);
+
+		return data;
+	} catch (error) {
+		console.error('API Call Failed:', {
+			url,
+			error,
+			options
+		});
+		throw error;
 	}
-
-	return response.json();
 };
 
 export function Settings() {
@@ -279,17 +279,22 @@ export function Settings() {
 	const saveSettings = async () => {
 		try {
 			setIsLoading(true);
+			console.log('Saving settings:', { groups: badgeGroups });
+
 			const result = await fetchApi('settings', {
 				method: 'POST',
 				body: JSON.stringify({ groups: badgeGroups })
 			});
+
+			console.log('Save result:', result);
 
 			toast({
 				title: "Success",
 				description: result.message || "Settings saved successfully"
 			});
 			setHasUnsavedChanges(false);
-		} catch (error) {
+		} catch (error: any) {
+			console.error('Save Settings Error:', error);
 			handleApiError(error, toast);
 		} finally {
 			setIsLoading(false);
