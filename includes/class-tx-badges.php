@@ -15,13 +15,19 @@ class TX_Badges {
         $this->define_public_hooks();
         $this->define_rest_api();
 
+        add_filter( 'woocommerce_should_load_cart_block', '__return_false' );
+        add_filter( 'woocommerce_should_load_checkout_block', '__return_false' );
+
         // Add WooCommerce hooks if WooCommerce is active
         if (is_plugin_active('woocommerce/woocommerce.php')) {
-            add_action('woocommerce_after_add_to_cart_button', array($this, 'display_badges_after_add_to_cart'));
-            add_action('woocommerce_before_add_to_cart_button', array($this, 'display_badges_before_add_to_cart'));
-            add_action('woocommerce_checkout_before_order_review', array($this, 'display_badges_on_checkout'));
-            add_action('woocommerce_review_order_before_payment', array($this, 'display_badges_on_checkout'));
+            add_action('woocommerce_after_add_to_cart_form', array($this, 'display_badges_after_add_to_cart'));
+            add_action('woocommerce_before_add_to_cart_form', array($this, 'display_badges_before_add_to_cart'));
+
+            add_action('woocommerce_after_cart_totals', array($this, 'display_badges_after_cart_totals_on_cart'));
         }
+
+        // Add footer hook for displaying badges
+        add_action('wp_footer', array($this, 'display_footer_badges'));
     }
 
     private function load_dependencies() {
@@ -103,9 +109,9 @@ class TX_Badges {
     }
 
     /**
-     * Display badges on checkout page
+     * Display badges on cart page
      */
-    public function display_badges_on_checkout() {
+    public function display_badges_after_cart_totals_on_cart() {
         $this->display_badges_by_position('showOnCheckout');
     }
 
@@ -136,21 +142,14 @@ class TX_Badges {
         $settings = json_decode($group->settings, true);
         
         // Debug log to check settings
-        error_log('Badge Position Settings: ' . print_r([
+        error_log('Badge Display Check: ' . print_r([
             'position' => $position,
-            'settings' => $settings,
-            'showOnCheckout' => isset($settings['showOnCheckout']) ? $settings['showOnCheckout'] : false
+            'enabled' => isset($settings[$position]) ? $settings[$position] : false
         ], true));
         
         // Check if this position is enabled
-        if ($position === 'showOnCheckout') {
-            if (empty($settings['showOnCheckout'])) {
-                return;
-            }
-        } else {
-            if (!isset($settings[$position]) || !$settings[$position]) {
-                return;
-            }
+        if (!isset($settings[$position]) || !$settings[$position]) {
+            return;
         }
 
         // Render badges with exact settings
@@ -177,19 +176,16 @@ class TX_Badges {
             return '';
         }
 
-        // Get margin values, default to 0 if empty or not set
-        $marginTop = isset($settings['marginTop']) && $settings['marginTop'] !== '' ? $settings['marginTop'] : '0';
-        $marginRight = isset($settings['marginRight']) && $settings['marginRight'] !== '' ? $settings['marginRight'] : '0';
-        $marginBottom = isset($settings['marginBottom']) && $settings['marginBottom'] !== '' ? $settings['marginBottom'] : '0';
-        $marginLeft = isset($settings['marginLeft']) && $settings['marginLeft'] !== '' ? $settings['marginLeft'] : '0';
+        $top = isset($settings['marginTop']) ? intval($settings['marginTop']) : 0;
+        $right = isset($settings['marginRight']) ? intval($settings['marginRight']) : 0;
+        $bottom = isset($settings['marginBottom']) ? intval($settings['marginBottom']) : 0;
+        $left = isset($settings['marginLeft']) ? intval($settings['marginLeft']) : 0;
 
-        // Build margin style string
-        return sprintf(
-            'margin: %spx %spx %spx %spx;',
-            esc_attr($marginTop),
-            esc_attr($marginRight),
-            esc_attr($marginBottom),
-            esc_attr($marginLeft)
+        return sprintf('margin: %dpx %dpx %dpx %dpx;',
+            $top,
+            $right,
+            $bottom,
+            $left
         );
     }
 
@@ -315,11 +311,14 @@ class TX_Badges {
         $style_class = 'style-' . ($settings['badgeStyle'] ?? 'original');
         $animation_class = $settings['animation'] ? $this->get_animation_class($settings['animation']) : '';
 
+        // Get margin style if custom margin is enabled
+        $margin_style = $this->get_margin_style($settings);
+
         // Get exact sizes
         $desktop_size = $this->get_size_values($settings['badgeSizeDesktop']);
         $mobile_size = $this->get_size_values($settings['badgeSizeMobile']);
 
-        // Start badge container with exact classes
+        // Start badge container without margin style
         echo '<div class="convers-trust-badges ' . esc_attr($alignment_class) . ' ' . esc_attr($animation_class) . '">';
         
         // Show header if enabled with exact settings
@@ -328,7 +327,6 @@ class TX_Badges {
             echo 'font-size: ' . esc_attr($settings['fontSize']) . 'px;';
             echo 'color: ' . esc_attr($settings['textColor']) . ';';
             echo 'text-align: ' . esc_attr($settings['alignment']) . ';';
-            echo 'margin-bottom: 15px;';
             if (!empty($settings['customStyles'])) {
                 echo esc_attr($settings['customStyles']);
             }
@@ -337,7 +335,7 @@ class TX_Badges {
             echo '</div>';
         }
 
-        // Start badges wrapper with exact style class and flex properties
+        // Start badges wrapper
         echo '<div class="trust-badges-wrapper ' . esc_attr($style_class) . '" style="';
         echo 'display: flex;';
         echo 'flex-wrap: wrap;';
@@ -352,8 +350,8 @@ class TX_Badges {
                 $filename = $this->get_badge_filename($badge_id);
                 $badge_url = plugins_url('assets/images/badges/' . $filename, dirname(__FILE__));
                 
-                // Add badge index for staggered animation
-                echo '<div class="badge-container" style="--badge-index: ' . esc_attr($index) . ';">';
+                // Add badge index and margin style to each badge container
+                echo '<div class="badge-container" style="--badge-index: ' . esc_attr($index) . ';' . $margin_style . '">';
                 
                 if (in_array($settings['badgeStyle'], ['mono', 'mono-card'])) {
                     echo '<div class="badge-image" style="';
@@ -365,7 +363,7 @@ class TX_Badges {
                     echo 'transition: all 0.3s ease;';
                     echo '"></div>';
                 } else {
-                    echo '<img src="' . esc_url($badge_url) . '" alt="Trust Badge" class="badge-image" style="';
+                    echo '<img src="' . esc_url($badge_url) . '" alt="converswp-trust-badge" class="badge-image" style="';
                     echo 'width: ' . esc_attr($mobile_size) . 'px;';
                     echo 'height: auto;';
                     echo 'max-height: ' . esc_attr($mobile_size) . 'px;';
@@ -396,15 +394,23 @@ class TX_Badges {
         // Get animation styles based on settings
         $animation_styles = $this->get_animation_styles($animation);
 
+        // Get design settings from database
+        $badge_padding = isset($settings['badgePadding']) ? intval($settings['badgePadding']) : 5;
+        $badge_gap = isset($settings['badgeGap']) ? intval($settings['badgeGap']) : 10;
+        $container_margin = isset($settings['containerMargin']) ? intval($settings['containerMargin']) : 15;
+        $border_radius = isset($settings['borderRadius']) ? intval($settings['borderRadius']) : 4;
+        $hover_transform = isset($settings['hoverTransform']) ? $settings['hoverTransform'] : 'translateY(-2px)';
+        $transition = isset($settings['transition']) ? $settings['transition'] : 'all 0.3s ease';
+
         echo '<style>
             .convers-trust-badges {
-                margin: 15px 0;
+                margin: ' . $container_margin . 'px 0;
                 width: 100%;
             }
             .trust-badges-wrapper {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 10px;
+                gap: ' . $badge_gap . 'px;
                 align-items: center;
                 width: 100%;
             }
@@ -412,8 +418,8 @@ class TX_Badges {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                padding: 5px;
-                transition: all 0.3s ease;
+                padding: ' . $badge_padding . 'px;
+                transition: ' . esc_attr($transition) . ';
             }
             
             /* Mobile styles (default) */
@@ -421,7 +427,7 @@ class TX_Badges {
                 width: ' . esc_attr($mobile_size) . 'px !important;
                 height: auto !important;
                 max-height: ' . esc_attr($mobile_size) . 'px !important;
-                transition: all 0.3s ease;
+                transition: ' . esc_attr($transition) . ';
                 object-fit: contain;
             }
             
@@ -455,7 +461,7 @@ class TX_Badges {
             
             /* Hover effects */
             .badge-container:hover {
-                transform: translateY(-2px);
+                transform: ' . esc_attr($hover_transform) . ';
             }
             .badge-container:hover .badge-image {
                 transform: scale(1.05);
@@ -464,15 +470,9 @@ class TX_Badges {
             /* Card styles */
             .style-card .badge-container,
             .style-mono-card .badge-container {
-                background: #fff;
-                padding: 8px 12px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            }
-            
-            .style-card .badge-container:hover,
-            .style-mono-card .badge-container:hover {
-                box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+                background-color: #e5e7eb;
+                padding: ' . ($badge_padding + 3) . 'px ' . ($badge_padding + 7) . 'px;
+                border-radius: ' . esc_attr($border_radius) . 'px;
             }
             
             /* Alignment */
@@ -503,5 +503,75 @@ class TX_Badges {
         // Implement the logic to determine the correct filename based on the badge_id
         // This is a placeholder and should be replaced with the actual implementation
         return str_replace('-', '_', $badge_id) . '.svg';
+    }
+
+    /**
+     * Display badges in footer
+     */
+    public function display_footer_badges() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
+
+        // Get active footer badge group
+        $group = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $table_name 
+                WHERE is_active = 1 
+                AND group_id = %s",
+                'footer'
+            )
+        );
+
+        if (!$group || !$group->settings) {
+            return;
+        }
+
+        // Decode settings
+        $settings = json_decode($group->settings, true);
+        
+        // Get position from settings (left, center, right)
+        $position = isset($settings['position']) ? $settings['position'] : 'center';
+        
+        // Create container with position class
+        echo '<div class="convers-trust-badges-footer">';
+        $this->render_badges($settings);
+        echo '</div>';
+
+        // Add footer-specific styles with position
+        $this->add_footer_styles($position);
+    }
+
+    /**
+     * Add footer-specific styles
+     */
+    private function add_footer_styles($position) {
+        echo '<style>
+            .convers-trust-badges-footer {
+                width: 100%;
+                padding: 20px;
+            }
+            
+            .convers-trust-badges-footer .trust-badges-wrapper {
+                justify-content: ' . $this->get_position_style($position) . ';
+            }
+            
+            @media screen and (max-width: 768px) {
+                .convers-trust-badges-footer {
+                    padding: 15px;
+                }
+            }
+        </style>';
+    }
+
+    /**
+     * Get position style value
+     */
+    private function get_position_style($position) {
+        $styles = [
+            'left' => 'flex-start',
+            'center' => 'center',
+            'right' => 'flex-end'
+        ];
+        return $styles[$position] ?? 'center';
     }
 }
