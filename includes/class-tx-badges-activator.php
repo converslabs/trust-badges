@@ -3,93 +3,121 @@
 class TX_Badges_Activator {
     public static function activate() {
         global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // Create badges table
-        $table_name = $wpdb->prefix . 'tx_badges';
         $sql = "CREATE TABLE IF NOT EXISTS $table_name (
             id bigint(20) NOT NULL AUTO_INCREMENT,
-            title varchar(255) NOT NULL,
-            image_url text NOT NULL,
-            link_url text,
-            position int(11) DEFAULT 0,
-            status varchar(20) DEFAULT 'active',
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY  (id)
-        ) $charset_collate;";
-
-        // Create settings table
-        $settings_table = $wpdb->prefix . 'tx_badges_settings';
-        $settings_sql = "CREATE TABLE IF NOT EXISTS $settings_table (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            setting_name varchar(255) NOT NULL,
-            setting_value longtext NOT NULL,
-            setting_group varchar(50) DEFAULT 'general',
+            group_id varchar(50) NOT NULL,
+            group_name varchar(100) NOT NULL,
+            is_default tinyint(1) DEFAULT 0,
             is_active tinyint(1) DEFAULT 1,
+            required_plugin varchar(50) DEFAULT NULL,
+            settings longtext NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
-            UNIQUE KEY setting_name (setting_name)
+            KEY group_id (group_id)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
-        dbDelta($settings_sql);
 
-        // Insert or update default settings
-        $default_settings = [
-            'show_header' => true,
-            'header_text' => 'Secure Checkout With',
-            'font_size' => '18',
-            'alignment' => 'center',
-            'badge_alignment' => 'center',
-            'text_color' => '#000000',
-            'badge_style' => 'original',
-            'badge_size_desktop' => 'medium',
-            'badge_size_mobile' => 'small',
-            'badge_color' => '#0066FF',
-            'custom_margin' => false,
-            'margin_top' => '0',
-            'margin_bottom' => '0',
-            'margin_left' => '0',
-            'margin_right' => '0',
-            'animation' => 'fade',
-            'show_on_product_page' => true,
-            'selected_badges' => ['mastercard', 'visa-1', 'paypal-1', 'apple-pay', 'stripe', 'american-express-1']
-        ];
+        // Insert default settings if table is empty
+        $count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+        
+        if ($count == 0) {
+            $default_groups = [
+                [
+                    'group_id' => 'woocommerce',
+                    'group_name' => 'WooCommerce',
+                    'is_default' => 1,
+                    'is_active' => 1,
+                    'required_plugin' => 'woocommerce',
+                    'settings' => json_encode([
+                        'showHeader' => true,
+                        'headerText' => 'Secure Checkout With',
+                        'fontSize' => '18',
+                        'alignment' => 'center',
+                        'badgeAlignment' => 'center',
+                        'textColor' => '#000000',
+                        'badgeStyle' => 'original',
+                        'badgeSizeDesktop' => 'medium',
+                        'badgeSizeMobile' => 'small',
+                        'badgeColor' => '#0066FF',
+                        'customMargin' => false,
+                        'marginTop' => '0',
+                        'marginBottom' => '0',
+                        'marginLeft' => '0',
+                        'marginRight' => '0',
+                        'animation' => 'fade',
+                        'showAfterAddToCart' => false,
+                        'showBeforeAddToCart' => false,
+                        'showOnCheckout' => false,
+                        'selectedBadges' => ["mastercardcolor", "visa1color", "paypal1color", "applepaycolor", "stripecolor", "amazonpay2color", "americanexpress1color"]
+                    ])
+                ],
+                [
+                    'group_id' => 'edd',
+                    'group_name' => 'Easy Digital Downloads',
+                    'is_default' => 1,
+                    'is_active' => 0,
+                    'required_plugin' => 'edd',
+                    'settings' => json_encode([
+                        'showHeader' => true,
+                        'headerText' => 'Secure Payment Methods',
+                        'fontSize' => '18',
+                        'alignment' => 'left',
+                        'badgeAlignment' => 'center',
+                        'textColor' => '#000000',
+                        'badgeStyle' => 'original',
+                        'badgeSizeDesktop' => 'medium',
+                        'badgeSizeMobile' => 'small',
+                        'badgeColor' => '#0066FF',
+                        'customMargin' => false,
+                        'marginTop' => '0',
+                        'marginBottom' => '0',
+                        'marginLeft' => '0',
+                        'marginRight' => '0',
+                        'animation' => 'fade',
+                        'showAfterAddToCart' => false,
+                        'showBeforeAddToCart' => false,
+                        'showOnCheckout' => false,
+                        'selectedBadges' => ['mastercardcolor', 'visa1color', 'paypal1color', 'applepaycolor', 'stripecolor', 'amazonpay2color', 'americanexpress1color']
+                    ])
+                ],
+                [
+                    'group_id' => 'footer',
+                    'group_name' => 'Footer',
+                    'is_default' => 1,
+                    'is_active' => 0,
+                    'required_plugin' => null,
+                    'settings' => json_encode([
+                        'showHeader' => true,
+                        'headerText' => 'Payment Options',
+                        'fontSize' => '18',
+                        'alignment' => 'right',
+                        'badgeAlignment' => 'center',
+                        'position' => 'center',
+                        'textColor' => '#000000',
+                        'badgeStyle' => 'original',
+                        'badgeSizeDesktop' => 'medium',
+                        'badgeSizeMobile' => 'small',
+                        'badgeColor' => '#0066FF',
+                        'customMargin' => false,
+                        'marginTop' => '0',
+                        'marginBottom' => '0',
+                        'marginLeft' => '0',
+                        'marginRight' => '0',
+                        'animation' => 'fade',
+                        'selectedBadges' => ["mastercardcolor", "visa1color", "paypal1color", "applepaycolor", "stripecolor", "amazonpay2color", "americanexpress1color"]
+                    ])
+                ]
+            ];
 
-        foreach ($default_settings as $name => $value) {
-            $existing = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $settings_table WHERE setting_name = %s",
-                $name
-            ));
-
-            $db_value = is_bool($value) ? ($value ? '1' : '0') : 
-                      (is_array($value) ? wp_json_encode($value) : $value);
-
-            if ($existing) {
-                $wpdb->update(
-                    $settings_table,
-                    [
-                        'setting_value' => $db_value,
-                        'is_active' => 1
-                    ],
-                    ['setting_name' => $name],
-                    ['%s', '%d'],
-                    ['%s']
-                );
-            } else {
-                $wpdb->insert(
-                    $settings_table,
-                    [
-                        'setting_name' => $name,
-                        'setting_value' => $db_value,
-                        'setting_group' => 'general',
-                        'is_active' => 1
-                    ],
-                    ['%s', '%s', '%s', '%d']
-                );
+            foreach ($default_groups as $group) {
+                $wpdb->insert($table_name, $group);
             }
         }
     }
