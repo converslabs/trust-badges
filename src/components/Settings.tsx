@@ -1543,12 +1543,13 @@ export function Settings() {
 
                             {/* Badge Color */}
                             <div className="space-y-2" style={{ marginTop: 0 }}>
-                              <Label className="font-medium block">Color</Label>
-                              <div
-                                className={`flex items-center p-2 border w-[50px] h-[42px] rounded-md bg-white ${
-                                  !group.settings.showHeader ? "opacity-50" : ""
-                                }`}
-                              >
+                              <Label className={cn(
+                                "font-medium block",
+                                (group.settings.badgeStyle === "original" || group.settings.badgeStyle === "card") && "opacity-50"
+                              )}>
+                                Color
+                              </Label>
+                              <div className="flex items-center p-2 border w-[50px] h-[42px] rounded-md bg-white">
                                 <Input
                                   type="color"
                                   value={group.settings.badgeColor}
@@ -1560,6 +1561,7 @@ export function Settings() {
                                     )
                                   }
                                   className="w-11 h-8 p-0 border-0"
+                                  disabled={group.settings.badgeStyle === "original" || group.settings.badgeStyle === "card"}
                                 />
                               </div>
                             </div>
