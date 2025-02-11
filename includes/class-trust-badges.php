@@ -77,7 +77,7 @@ class TX_Badges {
      */
     public function add_plugin_admin_menu() {
         add_menu_page(
-            __('TX Trust Badges', 'trust-badges'),
+            __('Trust Badges', 'trust-badges'),
             __('Trust Badges', 'trust-badges'),
             'manage_options',
             $this->plugin_name,

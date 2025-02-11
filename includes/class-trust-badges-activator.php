@@ -31,7 +31,7 @@ class TX_Badges_Activator {
             $default_groups = [
                 [
                     'group_id' => 'woocommerce',
-                    'group_name' => 'WooCommerce',
+                    'group_name' => 'Checkout',
                     'is_default' => 1,
                     'is_active' => 1,
                     'required_plugin' => 'woocommerce',
@@ -60,7 +60,7 @@ class TX_Badges_Activator {
                 ],
                 [
                     'group_id' => 'edd',
-                    'group_name' => 'Easy Digital Downloads',
+                    'group_name' => 'Product Page',
                     'is_default' => 1,
                     'is_active' => 0,
                     'required_plugin' => 'edd',

@@ -35,6 +35,7 @@
 		"react": "^18.2.0",
 		"react-beautiful-dnd": "^13.1.1",
 		"react-dom": "^18.2.0",
+		"react-icons": "^5.4.0",
 		"shadcn-ui": "^0.9.4",
 		"tailwind-merge": "^2.6.0",
 		"tailwindcss-animate": "^1.0.7"

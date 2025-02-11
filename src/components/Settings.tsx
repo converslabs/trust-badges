@@ -139,12 +139,13 @@ const defaultSettings: TrustBadgesSettings = {
     "amazonpay2color",
     "americanexpress1color",
   ],
+  showShortcode: false,
 };
 
 const defaultBadgeGroups: BadgeGroup[] = [
   {
     id: "woocommerce",
-    name: "WooCommerce",
+    name: "Checkout",
     isDefault: true,
     isActive: true,
     settings: { ...defaultSettings },
@@ -152,7 +153,7 @@ const defaultBadgeGroups: BadgeGroup[] = [
   },
   {
     id: "edd",
-    name: "Easy Digital Downloads",
+    name: "Product Page",
     isDefault: true,
     isActive: false,
     settings: {
@@ -355,14 +356,14 @@ const badgeGroupsApi = {
 };
 
 // Add this new component near the top of the file, after the imports
-const LoadingSwitch = ({ 
-  checked, 
-  onCheckedChange, 
-  disabled, 
-  loading 
-}: { 
-  checked: boolean; 
-  onCheckedChange: (checked: boolean) => void; 
+const LoadingSwitch = ({
+  checked,
+  onCheckedChange,
+  disabled,
+  loading,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
   disabled?: boolean;
   loading?: boolean;
 }) => {
@@ -640,12 +641,12 @@ export function Settings() {
     try {
       setLoadingGroups((prev) => ({ ...prev, [groupId]: true }));
 
-      const groupToUpdate = badgeGroups.find(g => g.id === groupId);
+      const groupToUpdate = badgeGroups.find((g) => g.id === groupId);
       if (!groupToUpdate) return;
 
       const updatedGroup = {
         ...groupToUpdate,
-        isActive: !groupToUpdate.isActive
+        isActive: !groupToUpdate.isActive,
       };
 
       // Update local state
@@ -668,9 +669,10 @@ export function Settings() {
 
       toast({
         title: "Success",
-        description: `Badge group ${updatedGroup.isActive ? 'activated' : 'deactivated'} successfully`,
+        description: `Badge group ${
+          updatedGroup.isActive ? "activated" : "deactivated"
+        } successfully`,
       });
-
     } catch (error: any) {
       // Revert the local state if save fails
       setBadgeGroups((prev) =>
@@ -823,7 +825,11 @@ export function Settings() {
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-xl font-bold">Badge Settings</h1>
-        <Button onClick={addNewBadgeGroup} className="flex items-center gap-2" variant="outline">
+        <Button
+          onClick={addNewBadgeGroup}
+          className="flex items-center gap-2"
+          variant="outline"
+        >
           <PlusCircle className="w-4 h-4" />
           Add New Badge
         </Button>
@@ -1179,148 +1185,98 @@ export function Settings() {
                         <div className="space-y-4">
                           {/* Show different options based on group type */}
                           {group.id !== "footer" && (
-                            group.requiredPlugin ? (
+                            group.id === "woocommerce" || group.id === "edd" ? (
                               <>
-                                <h4 className="text-sm font-medium mb-4">
-                                  Show badge on:
-                                </h4>
+                                <h4 className="text-sm font-medium mb-4">Show badge on:</h4>
                                 <div className="space-y-4">
-                                  {/* After add to cart button */}
+                                  {/* WooCommerce Option */}
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                       <Checkbox
-                                        id="show-after-add-to-cart"
-                                        checked={
-                                          group.settings.showAfterAddToCart
-                                        }
+                                        id={`show-woocommerce-${group.id}`}
+                                        checked={group.settings.showAfterAddToCart}
                                         onCheckedChange={(checked) =>
-                                          handleChange(
-                                            group.id,
-                                            "showAfterAddToCart",
-                                            checked
-                                          )
+                                          handleChange(group.id, "showAfterAddToCart", checked)
                                         }
                                       />
-                                      <Label
-                                        htmlFor="show-after-add-to-cart"
-                                        className="text-sm"
-                                      >
-                                        After add to cart button
+                                      <Label htmlFor={`show-woocommerce-${group.id}`} className="text-sm">
+                                        WooCommerce
                                       </Label>
                                     </div>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-5 w-5"
-                                          >
-                                            <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p className="w-[200px] text-xs">
-                                            Display the trust badges below the Add
-                                            to Cart button on product pages
-                                          </p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
                                   </div>
 
-                                  {/* Before add to cart button */}
+                                  {/* EDD Option */}
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                       <Checkbox
-                                        id="show-before-add-to-cart"
-                                        checked={
-                                          group.settings.showBeforeAddToCart
-                                        }
+                                        id={`show-edd-${group.id}`}
+                                        checked={group.settings.showBeforeAddToCart}
                                         onCheckedChange={(checked) =>
-                                          handleChange(
-                                            group.id,
-                                            "showBeforeAddToCart",
-                                            checked
-                                          )
+                                          handleChange(group.id, "showBeforeAddToCart", checked)
                                         }
                                       />
-                                      <Label
-                                        htmlFor="show-before-add-to-cart"
-                                        className="text-sm"
-                                      >
-                                        Before add to cart button
+                                      <Label htmlFor={`show-edd-${group.id}`} className="text-sm">
+                                        Easy Digital Downloads <span className="text-xs text-gray-400">[EDD]</span>
                                       </Label>
                                     </div>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-5 w-5"
-                                          >
-                                            <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p className="w-[200px] text-xs">
-                                            Display the trust badges above the Add
-                                            to Cart button on product pages
-                                          </p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
                                   </div>
 
-                                  {/* Checkout page */}
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <Checkbox
-                                        id="show-on-checkout"
-                                        checked={group.settings.showOnCheckout}
-                                        onCheckedChange={(checked) =>
-                                          handleChange(
-                                            group.id,
-                                            "showOnCheckout",
-                                            checked
-                                          )
+                                  {/* Always show shortcode section */}
+                                  <div className="space-y-2 mt-6">
+                                    <p className="text-sm">
+                                      Use this shortcode to display the badges anywhere in{" "}
+                                      {group.id === "woocommerce" ? "checkout" : "product page"}:
+                                    </p>
+                                    <div className="relative">
+                                      <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
+                                        {group.id === "woocommerce" 
+                                          ? "[trust_badges_checkout]" 
+                                          : "[trust_badges_product_page]"
                                         }
-                                      />
-                                      <Label
-                                        htmlFor="show-on-checkout"
-                                        className="text-sm"
-                                      >
-                                        Checkout page
-                                      </Label>
-                                    </div>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-5 w-5"
+                                      </div>
+                                      <div className="absolute right-2 top-1.5 flex gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => 
+                                            copyToClipboard(
+                                              group.id === "woocommerce" 
+                                                ? "[trust_badges_checkout]" 
+                                                : "[trust_badges_product_page]"
+                                            )
+                                          }
+                                        >
+                                          {showCopied ? (
+                                            <CheckCircle className="h-4 mr-1 text-green-500" />
+                                          ) : (
+                                            <Copy className="h-4 w-4 text-primary hover:text-primary/80" />
+                                          )}
+                                        </Button>
+                                      </div>
+                                      <AnimatePresence>
+                                        {showCopied && (
+                                          <motion.div
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0 }}
+                                            className="absolute left-0 right-0 top-full mt-2 text-center z-10"
                                           >
-                                            <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p className="w-[200px] text-xs">
-                                            Display the trust badges on the
-                                            checkout page
-                                          </p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
+                                              <CheckCircle className="h-4 mr-1 text-green-500" />{" "}
+                                              Shortcode copied to clipboard
+                                            </span>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
                                   </div>
                                 </div>
                               </>
                             ) : (
                               <div className="space-y-2">
                                 <p className="text-sm">
-                                  Use this shortcode to display the badges in a
-                                  custom location:
+                                  Use this shortcode to display the badges in a custom location:
                                 </p>
                                 <div className="relative">
                                   <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
@@ -1362,7 +1318,7 @@ export function Settings() {
                             )
                           )}
 
-                          <div className="space-y-2">
+                          {/* <div className="space-y-2">
                             <p className="text-sm font-medium">Need help?</p>
                             <div className="flex items-center gap-4">
                               <Button
@@ -1376,7 +1332,7 @@ export function Settings() {
                                 </a>
                               </Button>
                             </div>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </div>
@@ -1862,7 +1818,10 @@ export function Settings() {
                       </div>
 
                       <div className="p-6 pt-0 text-center pt-4">
-                        <Button variant="outline" onClick={() => setBadgeSelectorOpen(true)}>
+                        <Button
+                          variant="outline"
+                          onClick={() => setBadgeSelectorOpen(true)}
+                        >
                           Select Badges
                         </Button>
                       </div>

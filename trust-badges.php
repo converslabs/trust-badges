@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: ConversWP Trust Badges
+ * Plugin Name: Trust Badges
  * Plugin URI: https://converswp.com/trust-badges
  * Description: Display customizable trust badges on your website to boost visitor confidence and increase conversions.
  * Version: 1.0.0
