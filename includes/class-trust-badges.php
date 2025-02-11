@@ -44,7 +44,11 @@ class TX_Badges {
     }
 
     private function define_admin_hooks() {
+        // Add menu
         $this->loader->add_action('admin_menu', $this, 'add_plugin_admin_menu');
+        
+        // Add admin scripts and styles
+        $this->loader->add_action('admin_enqueue_scripts', $this, 'enqueue_admin_assets');
     }
 
     private function define_public_hooks() {
@@ -76,14 +80,61 @@ class TX_Badges {
      * Add plugin admin menu
      */
     public function add_plugin_admin_menu() {
-        add_menu_page(
+        add_options_page(
             __('Trust Badges', 'trust-badges'),
             __('Trust Badges', 'trust-badges'),
             'manage_options',
             $this->plugin_name,
-            array($this, 'display_plugin_setup_page'),
-            'dashicons-shield',
-            25
+            array($this, 'display_plugin_setup_page')
+        );
+    }
+
+    /**
+     * Enqueue admin assets only on plugin page
+     */
+    public function enqueue_admin_assets($hook) {
+        // Check if we're on the correct settings page
+        if ('settings_page_trust-badges' !== $hook && 'toplevel_page_trust-badges' !== $hook) {
+            return;
+        }
+
+        // Get plugin directory URL
+        $plugin_url = plugin_dir_url(dirname(__FILE__));
+
+        // Debug information
+        error_log('Plugin URL: ' . $plugin_url);
+        error_log('Current Hook: ' . $hook);
+        error_log('CSS Path: ' . $plugin_url . 'dist/main.css');
+        error_log('JS Path: ' . $plugin_url . 'dist/main.js');
+
+        // Enqueue admin assets with version as timestamp for cache busting
+        $version = defined('WP_DEBUG') && WP_DEBUG ? time() : $this->version;
+
+        wp_enqueue_style(
+            $this->plugin_name . '-admin',
+            $plugin_url . 'dist/main.css',
+            array(),
+            $version
+        );
+
+        wp_enqueue_script(
+            $this->plugin_name . '-admin',
+            $plugin_url . 'dist/main.js',
+            array('wp-element', 'wp-components', 'wp-i18n'),
+            $version,
+            true
+        );
+
+        // Add any localized script data if needed
+        wp_localize_script(
+            $this->plugin_name . '-admin',
+            'trustBadgesData',
+            array(
+                'apiUrl' => rest_url('trust-badges/v1'),
+                'nonce' => wp_create_nonce('wp_rest'),
+                'pluginUrl' => $plugin_url,
+                'isDebug' => defined('WP_DEBUG') && WP_DEBUG
+            )
         );
     }
 

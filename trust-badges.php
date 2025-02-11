@@ -129,7 +129,7 @@ add_action('plugins_loaded', 'tx_badges_init');
 function tx_badges_admin_enqueue_scripts($hook)
 {
     // Only load on plugin admin page
-    if ('toplevel_page_trust-badges' !== $hook) {
+    if ('settings_page_trust-badges' !== $hook) {
         return;
     }
 
