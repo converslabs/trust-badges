@@ -31,6 +31,7 @@ import {
   X,
   Monitor,
   Smartphone,
+  ListRestart,
 } from "lucide-react";
 import { paymentBadges } from "./pages/assets/PaymentBadges";
 import {
@@ -822,7 +823,7 @@ export function Settings() {
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-xl font-bold">Badge Settings</h1>
-        <Button onClick={addNewBadgeGroup} className="flex items-center gap-2">
+        <Button onClick={addNewBadgeGroup} className="flex items-center gap-2" variant="outline">
           <PlusCircle className="w-4 h-4" />
           Add New Badge
         </Button>
@@ -1086,7 +1087,7 @@ export function Settings() {
                                 <Button
                                   variant={
                                     group.settings.alignment === "left"
-                                      ? "default"
+                                      ? "secondary"
                                       : "ghost"
                                   }
                                   size="sm"
@@ -1101,7 +1102,7 @@ export function Settings() {
                                 <Button
                                   variant={
                                     group.settings.alignment === "center"
-                                      ? "default"
+                                      ? "secondary"
                                       : "ghost"
                                   }
                                   size="sm"
@@ -1120,7 +1121,7 @@ export function Settings() {
                                 <Button
                                   variant={
                                     group.settings.alignment === "right"
-                                      ? "default"
+                                      ? "secondary"
                                       : "ghost"
                                   }
                                   size="sm"
@@ -1455,7 +1456,7 @@ export function Settings() {
                                 <Button
                                   variant={
                                     group.settings.badgeAlignment === "left"
-                                      ? "default"
+                                      ? "secondary"
                                       : "ghost"
                                   }
                                   size="sm"
@@ -1473,7 +1474,7 @@ export function Settings() {
                                 <Button
                                   variant={
                                     group.settings.badgeAlignment === "center"
-                                      ? "default"
+                                      ? "secondary"
                                       : "ghost"
                                   }
                                   size="sm"
@@ -1491,7 +1492,7 @@ export function Settings() {
                                 <Button
                                   variant={
                                     group.settings.badgeAlignment === "right"
-                                      ? "default"
+                                      ? "secondary"
                                       : "ghost"
                                   }
                                   size="sm"
@@ -1861,7 +1862,7 @@ export function Settings() {
                       </div>
 
                       <div className="p-6 pt-0 text-center pt-4">
-                        <Button onClick={() => setBadgeSelectorOpen(true)}>
+                        <Button variant="outline" onClick={() => setBadgeSelectorOpen(true)}>
                           Select Badges
                         </Button>
                       </div>
@@ -1882,6 +1883,18 @@ export function Settings() {
 
                 {/* Save and Cancel buttons */}
                 <div className="mt-8 flex items-center justify-between gap-2">
+                  <Button
+                    onClick={() => handleDiscardChanges(group)}
+                    disabled={
+                      !unsavedGroups[group.id] || loadingGroups[group.id]
+                    }
+                    variant="secondary"
+                    className="gap-2"
+                  >
+                    <ListRestart className="h-4 w-4" />
+                    Reset
+                  </Button>
+
                   <Button
                     onClick={() => saveGroupSettings(group)}
                     disabled={
@@ -1906,17 +1919,6 @@ export function Settings() {
                           : "All Changes Saved"}
                       </>
                     )}
-                  </Button>
-                  <Button
-                    onClick={() => handleDiscardChanges(group)}
-                    disabled={
-                      !unsavedGroups[group.id] || loadingGroups[group.id]
-                    }
-                    variant="destructive"
-                    className="gap-2"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancel
                   </Button>
                 </div>
               </div>
