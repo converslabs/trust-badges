@@ -1,7 +1,7 @@
 <?php
 
 class TX_Badges_REST_API {
-    private $namespace = 'tx-badges/v1';
+    private $namespace = 'trust-badges/v1';
     private $cache_expiry = 3600; // 1 hour cache
 
     // Utility method for handling database errors
@@ -42,7 +42,7 @@ class TX_Badges_REST_API {
         try {
             // Register settings endpoint
             register_rest_route(
-                'tx-badges/v1',
+                'trust-badges/v1',
                 '/settings',
                 array(
                     array(
@@ -60,7 +60,7 @@ class TX_Badges_REST_API {
 
             // Register group settings endpoint
             register_rest_route(
-                'tx-badges/v1',
+                'trust-badges/v1',
                 '/settings/group',
                 array(
                     'methods' => 'POST',
@@ -77,7 +77,7 @@ class TX_Badges_REST_API {
 
             // Register delete group endpoint
             register_rest_route(
-                'tx-badges/v1',
+                'trust-badges/v1',
                 '/settings/group/(?P<id>[a-zA-Z0-9-]+)',
                 array(
                     'methods' => 'DELETE',
@@ -173,7 +173,7 @@ class TX_Badges_REST_API {
             if (!is_user_logged_in()) {
                 return new WP_Error(
                     'rest_not_logged_in',
-                    __('You must be logged in to manage Trust Badges.', 'tx-badges'),
+                    __('You must be logged in to manage Trust Badges.', 'trust-badges'),
                     array('status' => 401)
                 );
             }
@@ -182,7 +182,7 @@ class TX_Badges_REST_API {
             if (!current_user_can('manage_options')) {
                 return new WP_Error(
                     'rest_forbidden_capability',
-                    __('You do not have sufficient permissions to manage Trust Badges.', 'tx-badges'),
+                    __('You do not have sufficient permissions to manage Trust Badges.', 'trust-badges'),
                     array('status' => 403)
                 );
             }
@@ -197,7 +197,7 @@ class TX_Badges_REST_API {
             if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest')) {
                 return new WP_Error(
                     'rest_cookie_invalid_nonce',
-                    __('Session expired. Please refresh the page and try again.', 'tx-badges'),
+                    __('Session expired. Please refresh the page and try again.', 'trust-badges'),
                     array('status' => 403)
                 );
             }
@@ -207,7 +207,7 @@ class TX_Badges_REST_API {
             error_log('TX Badges Permission Check Error: ' . $e->getMessage());
             return new WP_Error(
                 'rest_error',
-                __('An unexpected error occurred.', 'tx-badges'),
+                __('An unexpected error occurred.', 'trust-badges'),
                 array('status' => 500)
             );
         }
@@ -228,7 +228,7 @@ class TX_Badges_REST_API {
             if (empty($group) || !is_array($group)) {
                 return new WP_Error(
                     'invalid_group_data',
-                    __('Invalid group data provided.', 'tx-badges'),
+                    __('Invalid group data provided.', 'trust-badges'),
                     array('status' => 400)
                 );
             }
@@ -270,7 +270,7 @@ class TX_Badges_REST_API {
                 }
 
                 if ($result === false) {
-                    throw new Exception(__('Failed to save group settings.', 'tx-badges'));
+                    throw new Exception(__('Failed to save group settings.', 'trust-badges'));
                 }
 
                 // Commit transaction
@@ -291,7 +291,7 @@ class TX_Badges_REST_API {
 
                 return rest_ensure_response(array(
                     'success' => true,
-                    'message' => __('Group settings saved successfully.', 'tx-badges'),
+                    'message' => __('Group settings saved successfully.', 'trust-badges'),
                     'group' => $updated_group
                 ));
 

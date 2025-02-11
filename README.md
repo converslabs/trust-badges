@@ -18,7 +18,7 @@ A WordPress plugin that allows you to add and manage trust badges on your WooCom
 
 ## Installation
 
-1. Upload the `tx-badges` directory to the `/wp-content/plugins/` directory
+1. Upload the `trust-badges` directory to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Go to 'Trust Badges' in the admin menu to manage your badges
 

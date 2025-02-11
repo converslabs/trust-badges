@@ -26,7 +26,7 @@ export function BadgeManager() {
 
     const fetchBadges = async () => {
         try {
-            const response = await fetch('/wp-json/tx-badges/v1/badges');
+            const response = await fetch('/wp-json/trust-badges/v1/badges');
             const data = await response.json();
             setBadges(data);
             setLoading(false);
@@ -56,7 +56,7 @@ export function BadgeManager() {
 
         // Update positions in database
         try {
-            await fetch(`/wp-json/tx-badges/v1/badges/${reorderedItem.id}`, {
+            await fetch(`/wp-json/trust-badges/v1/badges/${reorderedItem.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: TX Trust Badges 1.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/tx-badges\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/trust-badges\n"
 "POT-Creation-Date: 2024-01-14T23:00:00+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
@@ -13,14 +13,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: WP-CLI 2.8.1\n"
-"X-Domain: tx-badges\n"
+"X-Domain: trust-badges\n"
 
 #. Plugin Name of the plugin
 msgid "TX Trust Badges"
 msgstr ""
 
 #. Plugin URI of the plugin
-msgid "https://yourwebsite.com/tx-badges"
+msgid "https://yourwebsite.com/trust-badges"
 msgstr ""
 
 #. Description of the plugin

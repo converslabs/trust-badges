@@ -7,7 +7,7 @@ class TX_Badges {
 
     public function __construct() {
         $this->version = TX_BADGES_VERSION;
-        $this->plugin_name = 'tx-badges';
+        $this->plugin_name = 'trust-badges';
 
         $this->load_dependencies();
         $this->set_locale();
@@ -31,9 +31,9 @@ class TX_Badges {
     }
 
     private function load_dependencies() {
-        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-loader.php';
-        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-i18n.php';
-        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-rest-api.php';
+        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-loader.php';
+        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-i18n.php';
+        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-rest-api.php';
 
         $this->loader = new TX_Badges_Loader();
     }
@@ -77,8 +77,8 @@ class TX_Badges {
      */
     public function add_plugin_admin_menu() {
         add_menu_page(
-            __('TX Trust Badges', 'tx-badges'),
-            __('Trust Badges', 'tx-badges'),
+            __('TX Trust Badges', 'trust-badges'),
+            __('Trust Badges', 'trust-badges'),
             'manage_options',
             $this->plugin_name,
             array($this, 'display_plugin_setup_page'),
@@ -91,7 +91,7 @@ class TX_Badges {
      * Render the settings page for this plugin.
      */
     public function display_plugin_setup_page() {
-        echo '<div id="tx-badges-app"></div>';
+        echo '<div id="trust-badges-app"></div>';
     }
 
     /**

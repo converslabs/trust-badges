@@ -2,12 +2,12 @@
 
 /**
  * Plugin Name: ConversWP Trust Badges
- * Plugin URI: https://converswp.com/converswp-trust-badges
+ * Plugin URI: https://converswp.com/trust-badges
  * Description: Display customizable trust badges on your website to boost visitor confidence and increase conversions.
  * Version: 1.0.0
  * Author: ConversWP
  * Author URI: https://converswp.com
- * Text Domain: tx-badges
+ * Text Domain: trust-badges
  * Requires PHP: 7.4
  */
 
@@ -43,7 +43,7 @@ function tx_badges_activate()
     ob_start();
     
     try {
-        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-activator.php';
+        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-activator.php';
         TX_Badges_Activator::activate();
         
         // Ensure database tables are created
@@ -102,7 +102,7 @@ function tx_badges_maybe_create_tables() {
 register_deactivation_hook(__FILE__, 'tx_badges_deactivate');
 function tx_badges_deactivate()
 {
-    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-deactivator.php';
+    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-deactivator.php';
     TX_Badges_Deactivator::deactivate();
     flush_rewrite_rules();
 }
@@ -110,7 +110,7 @@ function tx_badges_deactivate()
 // Initialize REST API
 function tx_badges_init_rest_api()
 {
-    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges-rest-api.php';
+    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-rest-api.php';
     $rest_api = new TX_Badges_REST_API();
     $rest_api->register_routes();
 }
@@ -119,7 +119,7 @@ add_action('rest_api_init', 'tx_badges_init_rest_api');
 // Initialize the plugin
 function tx_badges_init()
 {
-    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-tx-badges.php';
+    require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges.php';
     $plugin = new TX_Badges();
     $plugin->run();
 }
@@ -129,7 +129,7 @@ add_action('plugins_loaded', 'tx_badges_init');
 function tx_badges_admin_enqueue_scripts($hook)
 {
     // Only load on plugin admin page
-    if ('toplevel_page_tx-badges' !== $hook) {
+    if ('toplevel_page_trust-badges' !== $hook) {
         return;
     }
 
@@ -148,7 +148,7 @@ function tx_badges_admin_enqueue_scripts($hook)
 
         // Enqueue main CSS
         wp_enqueue_style(
-            'tx-badges-admin',
+            'trust-badges-admin',
             TX_BADGES_PLUGIN_URL . 'dist/main.css',
             [],
             TX_BADGES_VERSION
@@ -172,10 +172,10 @@ function tx_badges_admin_enqueue_scripts($hook)
         // Plugin settings object with proper nonce
         $settings = [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'restUrl' => rest_url('tx-badges/v1/'),
+            'restUrl' => rest_url('trust-badges/v1/'),
             'pluginUrl' => TX_BADGES_PLUGIN_URL,
-            'mediaTitle' => __('Select or Upload Badge Image', 'tx-badges'),
-            'mediaButton' => __('Use this image', 'tx-badges'),
+            'mediaTitle' => __('Select or Upload Badge Image', 'trust-badges'),
+            'mediaButton' => __('Use this image', 'trust-badges'),
             'debug' => WP_DEBUG,
             'restNonce' => $rest_nonce // Use the same REST nonce
         ];
@@ -189,7 +189,7 @@ function tx_badges_admin_enqueue_scripts($hook)
 
         // Enqueue main JS with proper dependencies
         wp_enqueue_script(
-            'tx-badges-admin',
+            'trust-badges-admin',
             TX_BADGES_PLUGIN_URL . 'dist/main.js',
             ['wp-api-fetch', 'wp-i18n'],
             TX_BADGES_VERSION,
@@ -201,7 +201,7 @@ function tx_badges_admin_enqueue_scripts($hook)
         add_action('admin_notices', function() use ($e) {
             printf(
                 '<div class="notice notice-error"><p>%s</p></div>',
-                esc_html__('Failed to load TX Badges plugin resources. Please check error logs for details.', 'tx-badges')
+                esc_html__('Failed to load TX Badges plugin resources. Please check error logs for details.', 'trust-badges')
             );
         });
     }
@@ -369,7 +369,7 @@ function tx_badges_rest_authentication($result) {
 
     // Skip authentication for non-plugin endpoints
     $current_route = $_SERVER['REQUEST_URI'];
-    if (strpos($current_route, '/tx-badges/v1/') === false) {
+    if (strpos($current_route, '/trust-badges/v1/') === false) {
         return $result;
     }
 
@@ -377,7 +377,7 @@ function tx_badges_rest_authentication($result) {
     if (!is_user_logged_in()) {
         return new WP_Error(
             'rest_not_logged_in',
-            __('You must be logged in to manage Trust Badges.', 'tx-badges'),
+            __('You must be logged in to manage Trust Badges.', 'trust-badges'),
             array('status' => 401)
         );
     }
@@ -385,7 +385,7 @@ function tx_badges_rest_authentication($result) {
     if (!current_user_can('manage_options')) {
         return new WP_Error(
             'rest_forbidden_capability',
-            __('You do not have sufficient permissions to manage Trust Badges.', 'tx-badges'),
+            __('You do not have sufficient permissions to manage Trust Badges.', 'trust-badges'),
             array('status' => 403)
         );
     }
@@ -402,7 +402,7 @@ function tx_badges_rest_authentication($result) {
     if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest')) {
         return new WP_Error(
             'rest_cookie_invalid_nonce',
-            __('Session expired. Please refresh the page and try again.', 'tx-badges'),
+            __('Session expired. Please refresh the page and try again.', 'trust-badges'),
             array('status' => 403)
         );
     }

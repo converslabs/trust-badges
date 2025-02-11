@@ -51,7 +51,7 @@ export function AddBadgeDialog({ open, onOpenChange }: AddBadgeDialogProps) {
 		}
 
 		try {
-			const response = await fetch("/wp-json/tx-badges/v1/badges", {
+			const response = await fetch("/wp-json/trust-badges/v1/badges", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

@@ -5,7 +5,7 @@ class TX_Badges_REST_Controller {
     private $rest_base;
     
     public function __construct() {
-        $this->namespace = 'tx-badges/v1';
+        $this->namespace = 'trust-badges/v1';
         $this->rest_base = 'badges';
     }
 
@@ -147,7 +147,7 @@ class TX_Badges_REST_Controller {
             if (empty($settings) || !is_array($settings)) {
                 return new WP_Error(
                     'invalid_settings',
-                    __('Invalid settings data provided.', 'tx-badges'),
+                    __('Invalid settings data provided.', 'trust-badges'),
                     array('status' => 400)
                 );
             }
@@ -175,7 +175,7 @@ class TX_Badges_REST_Controller {
                 if ($result === false && $wpdb->last_error) {
                     return new WP_Error(
                         'update_failed',
-                        sprintf(__('Failed to update setting: %s. Error: %s', 'tx-badges'), $name, $wpdb->last_error),
+                        sprintf(__('Failed to update setting: %s. Error: %s', 'trust-badges'), $name, $wpdb->last_error),
                         array('status' => 500)
                     );
                 }
@@ -183,7 +183,7 @@ class TX_Badges_REST_Controller {
 
             return rest_ensure_response(array(
                 'success' => true,
-                'message' => __('Settings updated successfully.', 'tx-badges')
+                'message' => __('Settings updated successfully.', 'trust-badges')
             ));
         } catch (Exception $e) {
             return new WP_Error(

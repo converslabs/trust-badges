@@ -353,6 +353,35 @@ const badgeGroupsApi = {
   },
 };
 
+// Add this new component near the top of the file, after the imports
+const LoadingSwitch = ({ 
+  checked, 
+  onCheckedChange, 
+  disabled, 
+  loading 
+}: { 
+  checked: boolean; 
+  onCheckedChange: (checked: boolean) => void; 
+  disabled?: boolean;
+  loading?: boolean;
+}) => {
+  return (
+    <div className="relative">
+      <Switch
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        disabled={disabled || loading}
+        className={cn(loading && "opacity-50 cursor-wait")}
+      />
+      {loading && (
+        <div className="flex absolute inset-0 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-primary/50 border-t-primary rounded-full animate-spin mb-1" />
+        </div>
+      )}
+    </div>
+  );
+};
+
 export function Settings() {
   // States
   const [badgeGroups, setBadgeGroups] =
@@ -606,28 +635,61 @@ export function Settings() {
     setHasUnsavedChanges(true);
   };
 
-  const toggleBadgeGroupActive = (groupId: string) => {
-    setBadgeGroups((prev) =>
-      prev.map((group) => {
-        if (group.id === groupId) {
-          const newIsActive = !group.isActive;
+  const toggleBadgeGroupActive = async (groupId: string) => {
+    try {
+      setLoadingGroups((prev) => ({ ...prev, [groupId]: true }));
 
-          // If turning off, close the accordion
-          if (!newIsActive) {
-            setActiveAccordion(null);
+      const groupToUpdate = badgeGroups.find(g => g.id === groupId);
+      if (!groupToUpdate) return;
+
+      const updatedGroup = {
+        ...groupToUpdate,
+        isActive: !groupToUpdate.isActive
+      };
+
+      // Update local state
+      setBadgeGroups((prev) =>
+        prev.map((group) => {
+          if (group.id === groupId) {
+            return updatedGroup;
           }
+          return group;
+        })
+      );
 
-          return { ...group, isActive: newIsActive };
-        }
-        return group;
-      })
-    );
+      // If deactivating, close the accordion
+      if (!updatedGroup.isActive && activeAccordion === groupId) {
+        setActiveAccordion(null);
+      }
 
-    // Mark the group as having unsaved changes
-    setUnsavedGroups((prev) => ({
-      ...prev,
-      [groupId]: true,
-    }));
+      // Save to database
+      const result = await badgeGroupsApi.saveGroup(updatedGroup);
+
+      toast({
+        title: "Success",
+        description: `Badge group ${updatedGroup.isActive ? 'activated' : 'deactivated'} successfully`,
+      });
+
+    } catch (error: any) {
+      // Revert the local state if save fails
+      setBadgeGroups((prev) =>
+        prev.map((group) => {
+          if (group.id === groupId) {
+            return { ...group, isActive: !group.isActive };
+          }
+          return group;
+        })
+      );
+
+      console.error("Toggle Active State Error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update badge group state",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingGroups((prev) => ({ ...prev, [groupId]: false }));
+    }
   };
 
   const handleDeleteGroup = async (groupId: string) => {
@@ -772,11 +834,8 @@ export function Settings() {
         className="space-y-4"
         value={activeAccordion || undefined}
         onValueChange={(value) => {
-          // Only allow expanding if the group is active
-          const group = badgeGroups.find((g) => g.id === value);
-          if (group?.isActive || value === null) {
-            setActiveAccordion(value);
-          }
+          // Simply update the active accordion state
+          setActiveAccordion(value);
         }}
         defaultValue={null}
       >
@@ -908,18 +967,18 @@ export function Settings() {
 
                 {getPluginWarning(group.requiredPlugin)}
 
-                <Switch
+                <LoadingSwitch
                   checked={group.isActive}
                   onCheckedChange={() => toggleBadgeGroupActive(group.id)}
-                  aria-label="Toggle badge group active state"
-                  onClick={(e) => e.stopPropagation()}
                   disabled={!isPluginInstalled(group.requiredPlugin)}
+                  loading={loadingGroups[group.id]}
                 />
 
                 <AccordionTrigger
                   className={cn(
                     "h-8 w-8 p-0",
-                    !group.isActive && "pointer-events-none"
+                    !group.isActive && "pointer-events-none cursor-not-allowed",
+                    group.isActive && "cursor-pointer"
                   )}
                 />
               </div>
@@ -1118,272 +1177,188 @@ export function Settings() {
                       <div className="space-y-6">
                         <div className="space-y-4">
                           {/* Show different options based on group type */}
-                          {group.id === "footer" ? (
-                            <>
-                              <h4 className="text-sm font-medium mb-4">
-                                Badge Position:
-                              </h4>
-                              <div className="flex flex-col gap-4">
-                                {/* Position Left */}
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    id={`position-left-${group.id}`}
-                                    name={`badge-position-${group.id}`}
-                                    checked={group.settings.position === "left"}
-                                    onChange={() =>
-                                      handlePositionChange(group.id, "left")
-                                    }
-                                    className="w-4 h-4"
-                                  />
-                                  <Label htmlFor={`position-left-${group.id}`}>
-                                    Left
-                                  </Label>
-                                </div>
+                          {group.id !== "footer" && (
+                            group.requiredPlugin ? (
+                              <>
+                                <h4 className="text-sm font-medium mb-4">
+                                  Show badge on:
+                                </h4>
+                                <div className="space-y-4">
+                                  {/* After add to cart button */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Checkbox
+                                        id="show-after-add-to-cart"
+                                        checked={
+                                          group.settings.showAfterAddToCart
+                                        }
+                                        onCheckedChange={(checked) =>
+                                          handleChange(
+                                            group.id,
+                                            "showAfterAddToCart",
+                                            checked
+                                          )
+                                        }
+                                      />
+                                      <Label
+                                        htmlFor="show-after-add-to-cart"
+                                        className="text-sm"
+                                      >
+                                        After add to cart button
+                                      </Label>
+                                    </div>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5"
+                                          >
+                                            <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="w-[200px] text-xs">
+                                            Display the trust badges below the Add
+                                            to Cart button on product pages
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
 
-                                {/* Position Center */}
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    id={`position-center-${group.id}`}
-                                    name={`badge-position-${group.id}`}
-                                    checked={
-                                      group.settings.position === "center"
-                                    }
-                                    onChange={() =>
-                                      handlePositionChange(group.id, "center")
-                                    }
-                                    className="w-4 h-4"
-                                  />
-                                  <Label
-                                    htmlFor={`position-center-${group.id}`}
-                                  >
-                                    Center
-                                  </Label>
-                                </div>
+                                  {/* Before add to cart button */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Checkbox
+                                        id="show-before-add-to-cart"
+                                        checked={
+                                          group.settings.showBeforeAddToCart
+                                        }
+                                        onCheckedChange={(checked) =>
+                                          handleChange(
+                                            group.id,
+                                            "showBeforeAddToCart",
+                                            checked
+                                          )
+                                        }
+                                      />
+                                      <Label
+                                        htmlFor="show-before-add-to-cart"
+                                        className="text-sm"
+                                      >
+                                        Before add to cart button
+                                      </Label>
+                                    </div>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5"
+                                          >
+                                            <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="w-[200px] text-xs">
+                                            Display the trust badges above the Add
+                                            to Cart button on product pages
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
 
-                                {/* Position Right */}
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    id={`position-right-${group.id}`}
-                                    name={`badge-position-${group.id}`}
-                                    checked={
-                                      group.settings.position === "right"
-                                    }
-                                    onChange={() =>
-                                      handlePositionChange(group.id, "right")
-                                    }
-                                    className="w-4 h-4"
-                                  />
-                                  <Label htmlFor={`position-right-${group.id}`}>
-                                    Right
-                                  </Label>
+                                  {/* Checkout page */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Checkbox
+                                        id="show-on-checkout"
+                                        checked={group.settings.showOnCheckout}
+                                        onCheckedChange={(checked) =>
+                                          handleChange(
+                                            group.id,
+                                            "showOnCheckout",
+                                            checked
+                                          )
+                                        }
+                                      />
+                                      <Label
+                                        htmlFor="show-on-checkout"
+                                        className="text-sm"
+                                      >
+                                        Checkout page
+                                      </Label>
+                                    </div>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5"
+                                          >
+                                            <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="w-[200px] text-xs">
+                                            Display the trust badges on the
+                                            checkout page
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </div>
-                              </div>
-
-                              {/* Add a visual preview */}
-                              <div className="mt-4 p-4 border rounded-md bg-gray-50">
-                                <div
-                                  className={cn(
-                                    "flex items-center justify-center p-2 bg-white rounded border",
-                                    {
-                                      "justify-start":
-                                        group.settings.position === "left",
-                                      "justify-center":
-                                        group.settings.position === "center",
-                                      "justify-end":
-                                        group.settings.position === "right",
-                                    }
-                                  )}
-                                >
-                                  <div className="w-16 h-8 bg-gray-200 rounded"></div>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-2 text-center">
-                                  Preview of footer badge position
+                              </>
+                            ) : (
+                              <div className="space-y-2">
+                                <p className="text-sm">
+                                  Use this shortcode to display the badges in a
+                                  custom location:
                                 </p>
-                              </div>
-                            </>
-                          ) : group.requiredPlugin ? (
-                            <>
-                              <h4 className="text-sm font-medium mb-4">
-                                Show badge on:
-                              </h4>
-                              <div className="space-y-4">
-                                {/* After add to cart button */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <Checkbox
-                                      id="show-after-add-to-cart"
-                                      checked={
-                                        group.settings.showAfterAddToCart
-                                      }
-                                      onCheckedChange={(checked) =>
-                                        handleChange(
-                                          group.id,
-                                          "showAfterAddToCart",
-                                          checked
+                                <div className="relative">
+                                  <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
+                                  <div className="absolute right-2 top-1.5 flex gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() =>
+                                        copyToClipboard(
+                                          `<div class="convers-trust-badge-${group.id}"></div>`
                                         )
                                       }
-                                    />
-                                    <Label
-                                      htmlFor="show-after-add-to-cart"
-                                      className="text-sm"
                                     >
-                                      After add to cart button
-                                    </Label>
+                                      {showCopied ? (
+                                        <CheckCircle className="h-4 mr-1 text-green-500" />
+                                      ) : (
+                                        <Copy className="h-4 w-4 text-primary hover:text-primary/80" />
+                                      )}
+                                    </Button>
                                   </div>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-5 w-5"
-                                        >
-                                          <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="w-[200px] text-xs">
-                                          Display the trust badges below the Add
-                                          to Cart button on product pages
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-
-                                {/* Before add to cart button */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <Checkbox
-                                      id="show-before-add-to-cart"
-                                      checked={
-                                        group.settings.showBeforeAddToCart
-                                      }
-                                      onCheckedChange={(checked) =>
-                                        handleChange(
-                                          group.id,
-                                          "showBeforeAddToCart",
-                                          checked
-                                        )
-                                      }
-                                    />
-                                    <Label
-                                      htmlFor="show-before-add-to-cart"
-                                      className="text-sm"
-                                    >
-                                      Before add to cart button
-                                    </Label>
-                                  </div>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-5 w-5"
-                                        >
-                                          <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="w-[200px] text-xs">
-                                          Display the trust badges above the Add
-                                          to Cart button on product pages
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-
-                                {/* Checkout page */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <Checkbox
-                                      id="show-on-checkout"
-                                      checked={group.settings.showOnCheckout}
-                                      onCheckedChange={(checked) =>
-                                        handleChange(
-                                          group.id,
-                                          "showOnCheckout",
-                                          checked
-                                        )
-                                      }
-                                    />
-                                    <Label
-                                      htmlFor="show-on-checkout"
-                                      className="text-sm"
-                                    >
-                                      Checkout page
-                                    </Label>
-                                  </div>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-5 w-5"
-                                        >
-                                          <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="w-[200px] text-xs">
-                                          Display the trust badges on the
-                                          checkout page
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="space-y-2">
-                              <p className="text-sm">
-                                Use this shortcode to display the badges in a
-                                custom location:
-                              </p>
-                              <div className="relative">
-                                <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
-                                <div className="absolute right-2 top-1.5 flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={() =>
-                                      copyToClipboard(
-                                        `<div class="convers-trust-badge-${group.id}"></div>`
-                                      )
-                                    }
-                                  >
-                                    {showCopied ? (
-                                      <CheckCircle className="h-4 mr-1 text-green-500" />
-                                    ) : (
-                                      <Copy className="h-4 w-4 text-primary hover:text-primary/80" />
+                                  <AnimatePresence>
+                                    {showCopied && (
+                                      <motion.div
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        className="absolute left-0 right-0 top-full mt-2 text-center z-10"
+                                      >
+                                        <span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
+                                          <CheckCircle className="h-4 mr-1 text-green-500" />{" "}
+                                          Shortcode copied to clipboard
+                                        </span>
+                                      </motion.div>
                                     )}
-                                  </Button>
+                                  </AnimatePresence>
                                 </div>
-                                <AnimatePresence>
-                                  {showCopied && (
-                                    <motion.div
-                                      initial={{ opacity: 0, y: 5 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      exit={{ opacity: 0 }}
-                                      className="absolute left-0 right-0 top-full mt-2 text-center z-10"
-                                    >
-                                      <span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
-                                        <CheckCircle className="h-4 mr-1 text-green-500" />{" "}
-                                        Shortcode copied to clipboard
-                                      </span>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
                               </div>
-                            </div>
+                            )
                           )}
 
                           <div className="space-y-2">
