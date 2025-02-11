@@ -1470,9 +1470,21 @@ export function Settings() {
                             <div className="space-y-2" style={{ marginTop: 0 }}>
                               <div className="flex gap-4">
                                 <div>
-                                  <Label className="font-medium block mb-2">
-                                    Desktop Size
-                                  </Label>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Label className="font-medium block">
+                                      Desktop Size
+                                    </Label>
+                                    <TooltipProvider delayDuration={0}>
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent sideOffset={5} className="w-48">
+                                          <p>Size of badges on desktop devices will apply after (768px) width.</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                   <Select
                                     value={group.settings.badgeSizeDesktop}
                                     onValueChange={(value) =>
@@ -1505,9 +1517,21 @@ export function Settings() {
                                 </div>
 
                                 <div>
-                                  <Label className="font-medium block mb-2">
-                                    Mobile Size
-                                  </Label>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Label className="font-medium block">
+                                      Mobile Size
+                                    </Label>
+                                    <TooltipProvider delayDuration={0}>
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent sideOffset={5} className="w-48">
+                                          <p>Size of badges on mobile devices will effect below of width (768px). And mobile sizes will not show on bar preview.</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                   <Select
                                     value={group.settings.badgeSizeMobile}
                                     onValueChange={(value) =>
