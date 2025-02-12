@@ -24,13 +24,17 @@ class TX_Badges_Activator {
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
 
+        // Check if required plugins are active
+        $woocommerce_active = is_plugin_active('woocommerce/woocommerce.php');
+        $edd_active = is_plugin_active('easy-digital-downloads/easy-digital-downloads.php');
+
         // Insert default groups if they don't exist
         $default_groups = [
             [
                 'group_id' => 'checkout',
                 'group_name' => 'Checkout',
                 'is_default' => 1,
-                'is_active' => 1,
+                'is_active' => $woocommerce_active || $edd_active ? 1 : 0,
                 'required_plugin' => 'woocommerce',
                 'settings' => json_encode([
                     'showHeader' => true,
@@ -50,8 +54,10 @@ class TX_Badges_Activator {
                     'marginLeft' => '0',
                     'marginRight' => '0',
                     'animation' => 'fade',
-                    'checkoutBeforeOrderReview' => true,
-                    'eddCheckoutBeforePurchaseForm' => true,
+                    'woocommerce' => $woocommerce_active,
+                    'edd' => $edd_active,
+                    'checkoutBeforeOrderReview' => $woocommerce_active,
+                    'eddCheckoutBeforePurchaseForm' => $edd_active,
                     'selectedBadges' => [
                         'mastercardcolor',
                         'visa1color',
@@ -67,7 +73,7 @@ class TX_Badges_Activator {
                 'group_id' => 'product_page',
                 'group_name' => 'Product Page',
                 'is_default' => 1,
-                'is_active' => 1,
+                'is_active' => $woocommerce_active || $edd_active ? 1 : 0,
                 'required_plugin' => 'woocommerce',
                 'settings' => json_encode([
                     'showHeader' => true,
@@ -87,8 +93,10 @@ class TX_Badges_Activator {
                     'marginLeft' => '0',
                     'marginRight' => '0',
                     'animation' => 'fade',
-                    'showAfterAddToCart' => true,
-                    'eddPurchaseLinkEnd' => true,
+                    'woocommerce' => $woocommerce_active,
+                    'edd' => $edd_active,
+                    'showAfterAddToCart' => $woocommerce_active,
+                    'eddPurchaseLinkEnd' => $edd_active,
                     'selectedBadges' => [
                         'mastercardcolor',
                         'visa1color',

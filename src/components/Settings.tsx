@@ -110,7 +110,7 @@ const convertKeysToCamelCase = (obj: any): any => {
 };
 
 // Base default settings without accordion-specific settings
-const baseDefaultSettings = {
+const baseDefaultSettings: Omit<TrustBadgesSettings, 'checkoutBeforeOrderReview' | 'eddCheckoutBeforePurchaseForm' | 'showAfterAddToCart' | 'eddPurchaseLinkEnd'> = {
   showHeader: true,
   headerText: "Secure Checkout With",
   fontSize: "18",
@@ -128,8 +128,6 @@ const baseDefaultSettings = {
   marginLeft: "0",
   marginRight: "0",
   animation: "fade",
-  woocommerce: false,
-  edd: false,
   selectedBadges: [
     "mastercardcolor",
     "visa1color",
@@ -139,7 +137,8 @@ const baseDefaultSettings = {
     "amazonpay2color",
     "americanexpress1color"
   ],
-  showShortcode: false,
+  woocommerce: false,
+  edd: false
 };
 
 const defaultBadgeGroups: BadgeGroup[] = [
@@ -421,35 +420,27 @@ export function Settings() {
     setBadgeGroups((prev: BadgeGroup[]) =>
       prev.map((group) => {
         if (group.id === badgeGroupId) {
-          const newSettings = { ...group.settings };
+          const newSettings = { ...group.settings } as TrustBadgesSettings;
 
           // Handle plugin-specific settings
           if (key === 'woocommerce') {
             newSettings.woocommerce = value;
-            // Only update the relevant feature flag for this accordion
+            // Update the relevant feature flag for this accordion
             if (group.id === 'checkout') {
               newSettings.checkoutBeforeOrderReview = value;
-              // Remove product page setting if it exists
-              delete newSettings.showAfterAddToCart;
             } else if (group.id === 'product_page') {
               newSettings.showAfterAddToCart = value;
-              // Remove checkout setting if it exists
-              delete newSettings.checkoutBeforeOrderReview;
             }
           } else if (key === 'edd') {
             newSettings.edd = value;
-            // Only update the relevant feature flag for this accordion
+            // Update the relevant feature flag for this accordion
             if (group.id === 'checkout') {
               newSettings.eddCheckoutBeforePurchaseForm = value;
-              // Remove product page setting if it exists
-              delete newSettings.eddPurchaseLinkEnd;
             } else if (group.id === 'product_page') {
               newSettings.eddPurchaseLinkEnd = value;
-              // Remove checkout setting if it exists
-              delete newSettings.eddCheckoutBeforePurchaseForm;
             }
           } else {
-            newSettings[key as keyof TrustBadgesSettings] = value;
+            (newSettings as any)[key] = value;
           }
 
           return { ...group, settings: newSettings };

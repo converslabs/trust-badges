@@ -1,31 +1,31 @@
-export interface TrustBadgesSettings {
+export type TrustBadgesSettings = {
     showHeader: boolean;
     headerText: string;
     fontSize: string;
-    alignment: "left" | "center" | "right";
-    badgeAlignment: "left" | "center" | "right";
-    position: "left" | "center" | "right";
+    alignment: string;
+    badgeAlignment: string;
+    position: string;
     textColor: string;
-    badgeStyle: "mono" | "original" | "mono-card" | "card";
-    badgeSizeDesktop: BadgeSize;
-    badgeSizeMobile: BadgeSize;
+    badgeStyle: string;
+    badgeSizeDesktop: string;
+    badgeSizeMobile: string;
     badgeColor: string;
     customMargin: boolean;
     marginTop: string;
     marginBottom: string;
     marginLeft: string;
     marginRight: string;
-    animation: "fade" | "slide" | "scale" | "bounce";
-    checkoutBeforeOrderReview: boolean;
-    eddCheckoutBeforePurchaseForm: boolean;
-    showAfterAddToCart: boolean;
-    eddPurchaseLinkEnd: boolean;
-    showShortcode?: boolean;
-    woocommerce: boolean;
-    edd: boolean;
+    animation: string;
     selectedBadges: string[];
-    customStyles?: string;
-}
+    woocommerce?: boolean;
+    edd?: boolean;
+    // Checkout specific settings
+    checkoutBeforeOrderReview?: boolean;
+    eddCheckoutBeforePurchaseForm?: boolean;
+    // Product page specific settings
+    showAfterAddToCart?: boolean;
+    eddPurchaseLinkEnd?: boolean;
+};
 
 export interface BadgeGroup {
     id: string;
