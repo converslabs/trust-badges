@@ -16,17 +16,23 @@ export interface TrustBadgesSettings {
     marginLeft: string;
     marginRight: string;
     animation: "fade" | "slide" | "scale" | "bounce";
-    checkoutBeforeOrderReview?: boolean;
-    showAfterAddToCart?: boolean;
+    checkoutBeforeOrderReview: boolean;
+    eddCheckoutBeforePurchaseForm: boolean;
+    showAfterAddToCart: boolean;
+    eddPurchaseLinkEnd: boolean;
+    showShortcode?: boolean;
+    woocommerce: boolean;
+    edd: boolean;
     selectedBadges: string[];
+    customStyles?: string;
 }
 
 export interface BadgeGroup {
     id: string;
     name: string;
     settings: TrustBadgesSettings;
-    isDefault?: boolean;
-    isActive?: boolean;
+    isDefault: boolean;
+    isActive: boolean;
     requiredPlugin?: 'woocommerce' | 'edd';
 }
 

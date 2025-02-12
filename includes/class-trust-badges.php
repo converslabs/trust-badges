@@ -21,10 +21,18 @@ class TX_Badges {
         // Add WooCommerce hooks if WooCommerce is active
         if (is_plugin_active('woocommerce/woocommerce.php')) {
             // Product page hook
-            add_action('woocommerce_after_add_to_cart_form', array($this, 'display_badges_product_page'));
+            add_action('woocommerce_after_add_to_cart_form', array($this, 'display_badges_product_page_woo'));
             
             // Checkout page hook
-            add_action('woocommerce_checkout_before_order_review', array($this, 'display_badges_checkout'));
+            add_action('woocommerce_checkout_before_order_review', array($this, 'display_badges_checkout_woo'));
+        }
+
+        // Add EDD hooks if EDD is active
+        if (is_plugin_active('easy-digital-downloads/easy-digital-downloads.php')) {
+            // Product page hook
+            add_action('edd_purchase_link_end', array($this, 'display_badges_product_page_edd'));
+            // Checkout page hook
+            add_action('edd_checkout_before_purchase_form', array($this, 'display_badges_checkout_edd'));
         }
 
         // Add footer hook for displaying badges
@@ -147,29 +155,55 @@ class TX_Badges {
     }
 
     /**
-     * Display badges on product page
+     * Display badges on WooCommerce product page
      */
-    public function display_badges_product_page() {
-        $this->display_badges_by_position('showAfterAddToCart');
+    public function display_badges_product_page_woo() {
+        $this->display_badges_by_position('showAfterAddToCart', 'woocommerce');
     }
 
     /**
-     * Display badges on checkout page
+     * Display badges on WooCommerce checkout
      */
-    public function display_badges_checkout() {
-        $this->display_badges_by_position('checkoutBeforeOrderReview');
+    public function display_badges_checkout_woo() {
+        $this->display_badges_by_position('checkoutBeforeOrderReview', 'woocommerce');
     }
 
     /**
-     * Helper function to display badges based on position
+     * Display badges on EDD product page
      */
-    private function display_badges_by_position($position) {
+    public function display_badges_product_page_edd() {
+        $this->display_badges_by_position('edd_purchase_link_end', 'edd');
+    }
+
+    /**
+     * Display badges on EDD checkout
+     */
+    public function display_badges_checkout_edd() {
+        $this->display_badges_by_position('edd_checkout_before_purchase_form', 'edd');
+    }
+
+    /**
+     * Helper function to display badges based on position and plugin
+     */
+    private function display_badges_by_position($position, $plugin) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
 
-        // Get active badge group with specific settings
-        $group_id = $position === 'checkoutBeforeOrderReview' ? 'checkout' : 'product_page';
-        
+        // Get the correct group based on position
+        $group_id = '';
+        switch ($position) {
+            case 'showAfterAddToCart':
+            case 'eddPurchaseLinkEnd':
+                $group_id = 'product_page';
+                break;
+            case 'checkoutBeforeOrderReview':
+            case 'eddCheckoutBeforePurchaseForm':
+                $group_id = 'checkout';
+                break;
+            default:
+                $group_id = 'footer';
+        }
+
         $group = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM $table_name 
@@ -183,15 +217,36 @@ class TX_Badges {
             return;
         }
 
-        // Decode settings
         $settings = json_decode($group->settings, true);
         
-        // Check if this position is enabled
-        if (!isset($settings[$position]) || !$settings[$position]) {
-            return;
+        // Check plugin state and corresponding feature flag
+        if ($plugin === 'woocommerce') {
+            if (!isset($settings['woocommerce']) || !$settings['woocommerce']) {
+                return;
+            }
+            
+            // Check specific feature flag based on position
+            if ($position === 'showAfterAddToCart' && !$settings['showAfterAddToCart']) {
+                return;
+            }
+            if ($position === 'checkoutBeforeOrderReview' && !$settings['checkoutBeforeOrderReview']) {
+                return;
+            }
+        } else if ($plugin === 'edd') {
+            if (!isset($settings['edd']) || !$settings['edd']) {
+                return;
+            }
+            
+            // Check specific feature flag based on position
+            if ($position === 'eddPurchaseLinkEnd' && !$settings['eddPurchaseLinkEnd']) {
+                return;
+            }
+            if ($position === 'eddCheckoutBeforePurchaseForm' && !$settings['eddCheckoutBeforePurchaseForm']) {
+                return;
+            }
         }
 
-        // Render badges with exact settings
+        // Render badges with settings
         $this->render_badges($settings);
     }
 
