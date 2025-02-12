@@ -16,9 +16,8 @@ export interface TrustBadgesSettings {
     marginLeft: string;
     marginRight: string;
     animation: "fade" | "slide" | "scale" | "bounce";
-    showAfterAddToCart: boolean;
-    showBeforeAddToCart: boolean;
-    showOnCheckout: boolean;
+    checkoutBeforeOrderReview?: boolean;
+    showAfterAddToCart?: boolean;
     selectedBadges: string[];
 }
 

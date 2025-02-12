@@ -21,7 +21,6 @@ import {
   CheckCircle,
   Copy,
   HelpCircle,
-  PlayCircle,
   PlusCircle,
   Trash2,
   Lock,
@@ -32,6 +31,7 @@ import {
   Monitor,
   Smartphone,
   ListRestart,
+  AlertCircle,
 } from "lucide-react";
 import { paymentBadges } from "./pages/assets/PaymentBadges";
 import {
@@ -127,9 +127,8 @@ const defaultSettings: TrustBadgesSettings = {
   marginLeft: "0",
   marginRight: "0",
   animation: "fade",
+  checkoutBeforeOrderReview: false,
   showAfterAddToCart: false,
-  showBeforeAddToCart: false,
-  showOnCheckout: false,
   selectedBadges: [
     "mastercardcolor",
     "visa1color",
@@ -144,7 +143,7 @@ const defaultSettings: TrustBadgesSettings = {
 
 const defaultBadgeGroups: BadgeGroup[] = [
   {
-    id: "woocommerce",
+    id: "checkout",
     name: "Checkout",
     isDefault: true,
     isActive: true,
@@ -152,7 +151,7 @@ const defaultBadgeGroups: BadgeGroup[] = [
     requiredPlugin: "woocommerce",
   },
   {
-    id: "edd",
+    id: "product_page",
     name: "Product Page",
     isDefault: true,
     isActive: false,
@@ -161,7 +160,7 @@ const defaultBadgeGroups: BadgeGroup[] = [
       headerText: "Secure Payment Methods",
       alignment: "left",
     },
-    requiredPlugin: "edd",
+    requiredPlugin: "woocommerce",
   },
   {
     id: "footer",
@@ -405,12 +404,9 @@ export function Settings() {
 
   const { toast } = useToast();
 
-  const [installedPlugins, setInstalledPlugins] = useState<{
-    woocommerce: boolean;
-    edd: boolean;
-  }>({
+  const [installedPlugins, setInstalledPlugins] = useState({
     woocommerce: false,
-    edd: false,
+    edd: false
   });
 
   // Event handlers
@@ -467,35 +463,16 @@ export function Settings() {
   const loadSettings = async () => {
     try {
       const data = await badgeGroupsApi.fetchAllGroups();
-
-      // Create a map of default groups for easy lookup
-      const defaultGroupsMap = defaultBadgeGroups.reduce((acc, group) => {
-        acc[group.id] = group;
-        return acc;
-      }, {} as Record<string, BadgeGroup>);
-
+      
       if (Array.isArray(data)) {
-        // Merge database data with default groups
-        const mergedGroups = defaultBadgeGroups.map((defaultGroup) => {
-          // Find matching group from database
-          const dbGroup = data.find((g) => g.id === defaultGroup.id);
-          if (dbGroup) {
-            // Merge while preserving default values for missing properties
-            return {
-              ...defaultGroup,
-              ...dbGroup,
-              settings: {
-                ...defaultGroup.settings,
-                ...dbGroup.settings,
-              },
-            };
+        // Set the badge groups directly from the database
+        setBadgeGroups(data.map(group => ({
+          ...group,
+          settings: {
+            ...defaultSettings,
+            ...group.settings
           }
-          return defaultGroup;
-        });
-
-        // Add any custom groups from database
-        const customGroups = data.filter((g) => !defaultGroupsMap[g.id]);
-        setBadgeGroups([...mergedGroups, ...customGroups]);
+        })));
       } else {
         throw new Error("Invalid settings data received");
       }
@@ -753,25 +730,22 @@ export function Settings() {
   };
 
   useEffect(() => {
-    const checkInstalledPlugins = async () => {
+    const fetchPluginStatus = async () => {
       try {
-        const response = await fetchApi("installed-plugins");
-        setInstalledPlugins({
-          woocommerce: Boolean(response.woocommerce),
-          edd: Boolean(response.edd),
+        const response = await fetch('/wp-json/trust-badges/v1/installed-plugins', {
+          headers: {
+            'X-WP-Nonce': window.txBadgesSettings.restNonce
+          }
         });
+        const data = await response.json();
+        setInstalledPlugins(data);
       } catch (error) {
-        console.error("Failed to check installed plugins:", error);
-        handleApiError(error, toast);
-        setInstalledPlugins({
-          woocommerce: false,
-          edd: false,
-        });
+        console.error('Failed to fetch plugin status:', error);
       }
     };
 
-    checkInstalledPlugins();
-  }, [toast]);
+    fetchPluginStatus();
+  }, []);
 
   // Add this function inside the Settings component
   const handleDiscardChanges = (group: BadgeGroup) => {
@@ -850,11 +824,11 @@ export function Settings() {
           <AccordionItem
             key={group.id}
             value={group.id}
+            disabled={!installedPlugins.woocommerce && !installedPlugins.edd && group.id !== 'footer'}
             className={cn(
               "border rounded-lg overflow-hidden",
               !group.isActive && "opacity-60"
             )}
-            disabled={!group.isActive}
           >
             <div className="flex items-center justify-between px-4">
               <div
@@ -1184,25 +1158,44 @@ export function Settings() {
                       <div className="space-y-6">
                         <div className="space-y-4">
                           {/* Show different options based on group type */}
-                          {group.id !== "footer" && (
-                            group.id === "woocommerce" || group.id === "edd" ? (
+                          {group.id !== "footer" &&
+                            (group.id === "checkout" ||
+                            group.id === "product_page" ? (
                               <>
-                                <h4 className="text-sm font-medium mb-4">Show badge on:</h4>
+                                <h4 className="text-sm font-medium mb-4">
+                                  Show badge on:
+                                </h4>
                                 <div className="space-y-4">
                                   {/* WooCommerce Option */}
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                       <Checkbox
-                                        id={`show-woocommerce-${group.id}`}
-                                        checked={group.settings.showAfterAddToCart}
+                                        id={`show-woo-${group.id}`}
+                                        checked={group.settings.checkoutBeforeOrderReview}
                                         onCheckedChange={(checked) =>
-                                          handleChange(group.id, "showAfterAddToCart", checked)
+                                          handleChange(group.id, "checkoutBeforeOrderReview", checked)
                                         }
+                                        disabled={!installedPlugins.woocommerce}
                                       />
-                                      <Label htmlFor={`show-woocommerce-${group.id}`} className="text-sm">
+                                      <Label htmlFor={`show-woo-${group.id}`} className="text-sm">
                                         WooCommerce
                                       </Label>
                                     </div>
+                                    {!installedPlugins.woocommerce && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger>
+                                            <div className="flex items-center text-amber-500">
+                                              <AlertCircle className="h-4 w-4 mr-1" />
+                                              <span className="text-xs">Required Plugin</span>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>WooCommerce plugin is required</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
                                   </div>
 
                                   {/* EDD Option */}
@@ -1210,28 +1203,46 @@ export function Settings() {
                                     <div className="flex items-center gap-2">
                                       <Checkbox
                                         id={`show-edd-${group.id}`}
-                                        checked={group.settings.showBeforeAddToCart}
+                                        checked={group.settings.showAfterAddToCart}
                                         onCheckedChange={(checked) =>
-                                          handleChange(group.id, "showBeforeAddToCart", checked)
+                                          handleChange(group.id, "showAfterAddToCart", checked)
                                         }
+                                        disabled={!installedPlugins.edd}
                                       />
                                       <Label htmlFor={`show-edd-${group.id}`} className="text-sm">
-                                        Easy Digital Downloads <span className="text-xs text-gray-400">[EDD]</span>
+                                        Easy Digital Downloads{" "}
+                                        <span className="text-xs text-gray-400">[EDD]</span>
                                       </Label>
                                     </div>
+                                    {!installedPlugins.edd && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger>
+                                            <div className="flex items-center text-amber-500">
+                                              <AlertCircle className="h-4 w-4 mr-1" />
+                                              <span className="text-xs">Required Plugin</span>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Easy Digital Downloads plugin is required</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
                                   </div>
 
-                                  {/* Always show shortcode section */}
+                                  {/* Shortcode section */}
                                   <div className="space-y-2 mt-6">
                                     <p className="text-sm">
-                                      Use this shortcode to display the badges anywhere in{" "}
-                                      {group.id === "woocommerce" ? "checkout" : "product page"}:
+                                      Use this shortcode to display the badges
+                                      anywhere in{" "}
+                                      {group.id === "checkout" ? "checkout" : "product page"}:
                                     </p>
                                     <div className="relative">
                                       <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
-                                        {group.id === "woocommerce" 
-                                          ? "[trust_badges_checkout]" 
-                                          : "[trust_badges_product_page]"
+                                        {group.id === "checkout"
+                                          ? "[trust_badges_checkout]"
+                                          : "[trust_badges_product]"
                                         }
                                       </div>
                                       <div className="absolute right-2 top-1.5 flex gap-1">
@@ -1239,11 +1250,11 @@ export function Settings() {
                                           variant="ghost"
                                           size="icon"
                                           className="h-7 w-7"
-                                          onClick={() => 
+                                          onClick={() =>
                                             copyToClipboard(
-                                              group.id === "woocommerce" 
-                                                ? "[trust_badges_checkout]" 
-                                                : "[trust_badges_product_page]"
+                                              group.id === "checkout"
+                                                ? "[trust_badges_checkout]"
+                                                : "[trust_badges_product]"
                                             )
                                           }
                                         >
@@ -1276,7 +1287,8 @@ export function Settings() {
                             ) : (
                               <div className="space-y-2">
                                 <p className="text-sm">
-                                  Use this shortcode to display the badges in a custom location:
+                                  Use this shortcode to display the badges in a
+                                  custom location:
                                 </p>
                                 <div className="relative">
                                   <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">{`<div class="convers-trust-badge-${group.id}"></div>`}</div>
@@ -1315,8 +1327,7 @@ export function Settings() {
                                   </AnimatePresence>
                                 </div>
                               </div>
-                            )
-                          )}
+                            ))}
 
                           {/* <div className="space-y-2">
                             <p className="text-sm font-medium">Need help?</p>
@@ -1479,8 +1490,14 @@ export function Settings() {
                                         <TooltipTrigger>
                                           <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                         </TooltipTrigger>
-                                        <TooltipContent sideOffset={5} className="w-48">
-                                          <p>Size of badges on desktop devices will apply after (768px) width.</p>
+                                        <TooltipContent
+                                          sideOffset={5}
+                                          className="w-48"
+                                        >
+                                          <p>
+                                            Size of badges on desktop devices
+                                            will apply after (768px) width.
+                                          </p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -1526,8 +1543,16 @@ export function Settings() {
                                         <TooltipTrigger>
                                           <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                         </TooltipTrigger>
-                                        <TooltipContent sideOffset={5} className="w-48">
-                                          <p>Size of badges on mobile devices will effect below of width (768px). And mobile sizes will not show on bar preview.</p>
+                                        <TooltipContent
+                                          sideOffset={5}
+                                          className="w-48"
+                                        >
+                                          <p>
+                                            Size of badges on mobile devices
+                                            will effect below of width (768px).
+                                            And mobile sizes will not show on
+                                            bar preview.
+                                          </p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -1567,10 +1592,14 @@ export function Settings() {
 
                             {/* Badge Color */}
                             <div className="space-y-2" style={{ marginTop: 0 }}>
-                              <Label className={cn(
-                                "font-medium block",
-                                (group.settings.badgeStyle === "original" || group.settings.badgeStyle === "card") && "opacity-50"
-                              )}>
+                              <Label
+                                className={cn(
+                                  "font-medium block",
+                                  (group.settings.badgeStyle === "original" ||
+                                    group.settings.badgeStyle === "card") &&
+                                    "opacity-50"
+                                )}
+                              >
                                 Color
                               </Label>
                               <div className="flex items-center p-2 border w-[50px] h-[42px] rounded-md bg-white">
@@ -1585,7 +1614,10 @@ export function Settings() {
                                     )
                                   }
                                   className="w-11 h-8 p-0 border-0"
-                                  disabled={group.settings.badgeStyle === "original" || group.settings.badgeStyle === "card"}
+                                  disabled={
+                                    group.settings.badgeStyle === "original" ||
+                                    group.settings.badgeStyle === "card"
+                                  }
                                 />
                               </div>
                             </div>

@@ -20,10 +20,11 @@ class TX_Badges {
 
         // Add WooCommerce hooks if WooCommerce is active
         if (is_plugin_active('woocommerce/woocommerce.php')) {
-            add_action('woocommerce_after_add_to_cart_form', array($this, 'display_badges_after_add_to_cart'));
-            add_action('woocommerce_before_add_to_cart_form', array($this, 'display_badges_before_add_to_cart'));
-
-            add_action('woocommerce_after_cart_totals', array($this, 'display_badges_after_cart_totals_on_cart'));
+            // Product page hook
+            add_action('woocommerce_after_add_to_cart_form', array($this, 'display_badges_product_page'));
+            
+            // Checkout page hook
+            add_action('woocommerce_checkout_before_order_review', array($this, 'display_badges_checkout'));
         }
 
         // Add footer hook for displaying badges
@@ -146,24 +147,17 @@ class TX_Badges {
     }
 
     /**
-     * Display badges after add to cart button
+     * Display badges on product page
      */
-    public function display_badges_after_add_to_cart() {
+    public function display_badges_product_page() {
         $this->display_badges_by_position('showAfterAddToCart');
     }
 
     /**
-     * Display badges before add to cart button
+     * Display badges on checkout page
      */
-    public function display_badges_before_add_to_cart() {
-        $this->display_badges_by_position('showBeforeAddToCart');
-    }
-
-    /**
-     * Display badges on cart page
-     */
-    public function display_badges_after_cart_totals_on_cart() {
-        $this->display_badges_by_position('showOnCheckout');
+    public function display_badges_checkout() {
+        $this->display_badges_by_position('checkoutBeforeOrderReview');
     }
 
     /**
@@ -173,15 +167,15 @@ class TX_Badges {
         global $wpdb;
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
 
-        // Get active WooCommerce badge group with specific settings
+        // Get active badge group with specific settings
+        $group_id = $position === 'checkoutBeforeOrderReview' ? 'checkout' : 'product_page';
+        
         $group = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM $table_name 
                 WHERE is_active = 1 
-                AND required_plugin = %s 
                 AND group_id = %s",
-                'woocommerce',
-                'woocommerce'
+                $group_id
             )
         );
 
@@ -191,12 +185,6 @@ class TX_Badges {
 
         // Decode settings
         $settings = json_decode($group->settings, true);
-        
-        // Debug log to check settings
-        error_log('Badge Display Check: ' . print_r([
-            'position' => $position,
-            'enabled' => isset($settings[$position]) ? $settings[$position] : false
-        ], true));
         
         // Check if this position is enabled
         if (!isset($settings[$position]) || !$settings[$position]) {

@@ -414,37 +414,30 @@ class TX_Badges_REST_API {
         ], 201);
     }
 
-    public function get_settings($request) {
+    public function get_settings() {
         global $wpdb;
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
         
-        // Try to get from cache first
-        $cache_key = 'tx_badges_settings';
-        $cached_settings = wp_cache_get($cache_key);
+        $groups = $wpdb->get_results(
+            "SELECT * FROM $table_name ORDER BY id ASC"
+        );
         
-        if (false !== $cached_settings) {
-            return new WP_REST_Response($cached_settings, 200);
+        if (!$groups) {
+            return new WP_REST_Response([], 200);
         }
         
-        $results = $wpdb->get_results("SELECT * FROM $table_name ORDER BY id ASC");
-        
-        if ($error = $this->handle_db_error($wpdb, 'get_settings')) {
-            return $error;
-        }
-
-        $groups = array_map(function($row) {
+        $formatted_groups = array_map(function($group) {
             return [
-                'id' => $row->group_id,
-                'name' => $row->group_name,
-                'isDefault' => (bool)$row->is_default,
-                'isActive' => (bool)$row->is_active,
-                'requiredPlugin' => $row->required_plugin,
-                'settings' => json_decode($row->settings, true)
+                'id' => $group->group_id,
+                'name' => $group->group_name,
+                'isDefault' => (bool)$group->is_default,
+                'isActive' => (bool)$group->is_active,
+                'requiredPlugin' => $group->required_plugin,
+                'settings' => json_decode($group->settings, true)
             ];
-        }, $results);
-
-        wp_cache_set($cache_key, $groups, '', $this->cache_expiry);
-        return new WP_REST_Response($groups, 200);
+        }, $groups);
+        
+        return new WP_REST_Response($formatted_groups, 200);
     }
 
     public function save_settings($request) {
