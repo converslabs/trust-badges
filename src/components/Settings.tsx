@@ -1034,8 +1034,7 @@ export function Settings() {
                 <AccordionTrigger
                   className={cn(
                     "h-8 w-8 p-0",
-                    !group.isActive && "pointer-events-none cursor-not-allowed",
-                    group.isActive && "cursor-pointer"
+                    "cursor-pointer"
                   )}
                 />
               </div>
@@ -1043,7 +1042,7 @@ export function Settings() {
 
             <AccordionContent
               className={cn(
-                !group.isActive && "pointer-events-none select-none"
+                !group.isActive && "opacity-50 select-none"
               )}
             >
               <Separator className="my-4 bg-muted" />
