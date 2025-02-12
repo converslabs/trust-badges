@@ -150,8 +150,8 @@ const defaultBadgeGroups: BadgeGroup[] = [
     isActive: true,
     settings: {
       ...baseDefaultSettings,
-      checkoutBeforeOrderReview: false,
-      eddCheckoutBeforePurchaseForm: false,
+      checkoutBeforeOrderReview: true,
+      eddCheckoutBeforePurchaseForm: true,
     },
     requiredPlugin: "woocommerce",
   },
@@ -164,8 +164,8 @@ const defaultBadgeGroups: BadgeGroup[] = [
       ...baseDefaultSettings,
       headerText: "Secure Payment Methods",
       alignment: "left",
-      showAfterAddToCart: false,
-      eddPurchaseLinkEnd: false,
+      showAfterAddToCart: true,
+      eddPurchaseLinkEnd: true,
     },
     requiredPlugin: "woocommerce",
   },
@@ -177,7 +177,7 @@ const defaultBadgeGroups: BadgeGroup[] = [
     settings: {
       ...baseDefaultSettings,
       headerText: "Payment Options",
-      alignment: "right",
+      alignment: "center",
       position: "center",
     },
   },
@@ -807,18 +807,34 @@ export function Settings() {
   }, []);
 
   // Add this function inside the Settings component
-  const handleDiscardChanges = (group: BadgeGroup) => {
+  const handleDiscardChanges = async (group: BadgeGroup) => {
     try {
-      // Find the original group from the loaded data
-      const originalGroup =
-        defaultBadgeGroups.find((g) => g.id === group.id) || group;
+      setLoadingGroups((prev) => ({ ...prev, [group.id]: true }));
 
+      // Load all groups to get the last saved state
+      const data = await badgeGroupsApi.fetchAllGroups();
+      
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid settings data received");
+      }
+
+      // Find the saved settings for this group
+      const savedGroup = data.find(g => g.id === group.id);
+      
+      if (!savedGroup) {
+        throw new Error("No saved settings found for this group");
+      }
+
+      // Update the group with saved settings
       setBadgeGroups((prev) =>
         prev.map((g) => {
           if (g.id === group.id) {
             return {
-              ...originalGroup,
-              isActive: g.isActive, // Preserve active state
+              ...g,
+              settings: {
+                ...baseDefaultSettings,
+                ...savedGroup.settings
+              }
             };
           }
           return g;
@@ -833,16 +849,18 @@ export function Settings() {
       });
 
       toast({
-        title: "Changes Discarded",
-        description: `Changes for ${group.name} have been discarded`,
+        title: "Changes Reset",
+        description: `Settings for ${group.name} have been reset to last saved state`,
       });
     } catch (error) {
-      console.error("Error discarding changes:", error);
+      console.error("Error resetting changes:", error);
       toast({
         title: "Error",
-        description: "Failed to discard changes. Please try again.",
-        variant: "destructive",
+        description: "Failed to reset changes. Please try again.",
+        variant: "destructive"
       });
+    } finally {
+      setLoadingGroups((prev) => ({ ...prev, [group.id]: false }));
     }
   };
 
