@@ -61,11 +61,9 @@ class TX_Badges {
     }
 
     private function define_public_hooks() {
-        // $plugin_public = new TX_Badges_Public($this->get_plugin_name(), $this->get_version());
-
-        // $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
-        // $this->loader->add_action('wp_0enqueue_scripts', $plugin_public, 'enqueue_scripts');
-        // $this->loader->add_action('woocommerce_after_add_to_cart_form', $plugin_public, 'display_trust_badges');
+        // Register shortcodes
+        add_shortcode('trust_badges_product', array($this, 'product_shortcode'));
+        add_shortcode('trust_badges_checkout', array($this, 'checkout_shortcode'));
     }
 
     private function define_rest_api() {
@@ -667,5 +665,52 @@ class TX_Badges {
             'right' => 'flex-end'
         ];
         return $styles[$position] ?? 'center';
+    }
+
+    /**
+     * Handle the product page shortcode
+     */
+    public function product_shortcode($atts) {
+        // Start output buffering to capture the rendered badges
+        ob_start();
+
+        // Get the current page ID
+        $current_page_id = get_the_ID();
+
+        // Check if we're on a WooCommerce product page
+        $is_woo_product = function_exists('is_product') && is_product();
+        
+        // Check if we're on an EDD download page
+        $is_edd_download = function_exists('is_singular') && is_singular('download');
+
+        // Only proceed if we're on a product/download page
+        if ($is_woo_product || $is_edd_download) {
+            $this->display_badges_by_position('showAfterAddToCart', $is_woo_product ? 'woocommerce' : 'edd');
+        }
+
+        // Return the captured output
+        return ob_get_clean();
+    }
+
+    /**
+     * Handle the checkout shortcode
+     */
+    public function checkout_shortcode($atts) {
+        // Start output buffering to capture the rendered badges
+        ob_start();
+
+        // Check if we're on a WooCommerce checkout page
+        $is_woo_checkout = function_exists('is_checkout') && is_checkout();
+        
+        // Check if we're on an EDD checkout page
+        $is_edd_checkout = function_exists('edd_is_checkout') && edd_is_checkout();
+
+        // Only proceed if we're on a checkout page
+        if ($is_woo_checkout || $is_edd_checkout) {
+            $this->display_badges_by_position('checkoutBeforeOrderReview', $is_woo_checkout ? 'woocommerce' : 'edd');
+        }
+
+        // Return the captured output
+        return ob_get_clean();
     }
 }
