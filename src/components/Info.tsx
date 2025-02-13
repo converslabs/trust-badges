@@ -1,8 +1,5 @@
 export function Info() {
-  const amazonPayImage = `${window.txBadgesSettings.pluginUrl}assets/images/needed/amazonpay.svg`;
-  const amexColorImage = `${window.txBadgesSettings.pluginUrl}assets/images/needed/amexcolor.svg`;
-  const anydayColorImage = `${window.txBadgesSettings.pluginUrl}assets/images/needed/anydaycolor.svg`;
-  const applePay2ColorImage = `${window.txBadgesSettings.pluginUrl}assets/images/needed/applepay2color.svg`;
+  const payment = `${window.txBadgesSettings.pluginUrl}assets/images/needed/payment.png`;
 
   return (
     <div className="space-y-4">
@@ -10,29 +7,14 @@ export function Info() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">How It Works</h1>
 
-          <div className="space-y-2 items-center grid grid-cols-4 gap-4">
+          <div className="space-y-2 items-center grid grid-cols-1 gap-4">
             <img
-              src={amazonPayImage}
-              alt="Amazon Pay"
-              className="w-full"
-            />
-            <img
-              src={amexColorImage}
+              src={payment}
               alt="American Express"
-              className="w-full"
+              className="w-full h-full rounded"
             />
-            <img
-              src={anydayColorImage}
-              alt="Anyday"
-              className="w-full"
-            />
-            <img
-              src={applePay2ColorImage}
-              alt="Apple Pay"
-              className="w-full"
-            />
-          </div>
-
+    
+        </div>
           <div className="pt-8 space-y-4">
             <p className="text-base font-normal">
               Below are some information about how this plugin works and a little explanation.
