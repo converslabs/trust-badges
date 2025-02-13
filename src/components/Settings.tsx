@@ -1239,8 +1239,7 @@ export function Settings() {
                                 disabled={!installedPlugins.woocommerce}
                               />
                               <Label htmlFor={`show-woo-${group.id}`} className="text-sm">
-                                WooCommerce{" "}
-                                <span className="text-xs text-gray-400">[WOO]</span>
+                                WooCommerce
                               </Label>
                             </div>
                             {!installedPlugins.woocommerce && (
@@ -1276,8 +1275,7 @@ export function Settings() {
                                 disabled={!installedPlugins.edd}
                               />
                               <Label htmlFor={`show-edd-${group.id}`} className="text-sm">
-                                Easy Digital Downloads{" "}
-                                <span className="text-xs text-gray-400">[EDD]</span>
+                                Easy Digital Downloads
                               </Label>
                             </div>
                             {!installedPlugins.edd && (
