@@ -1300,19 +1300,14 @@ export function Settings() {
                               </div>
                             )}
 
-                            {/* Shortcode section */}
+                            {/* Shortcode section for custom accordions */}
                             <div className="space-y-2 mt-6">
                               <p className="text-sm">
-                                Use this shortcode to display the badges
-                                anywhere in{" "}
-                                {group.id === "checkout" ? "checkout" : "product page"}:
+                                Use this shortcode to display the badges anywhere in the website:
                               </p>
                               <div className="relative">
                                 <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
-                                  {group.id === "checkout"
-                                    ? "[trust_badges_checkout]"
-                                    : "[trust_badges_product]"
-                                  }
+                                  {`[trust_badges_${group.id}]`}
                                 </div>
                                 <div className="absolute right-2 top-1.5 flex gap-1">
                                   <Button
@@ -1320,11 +1315,7 @@ export function Settings() {
                                     size="icon"
                                     className="h-7 w-7"
                                     onClick={() =>
-                                      copyToClipboard(
-                                        group.id === "checkout"
-                                          ? "[trust_badges_checkout]"
-                                          : "[trust_badges_product]"
-                                      )
+                                      copyToClipboard(`[trust_badges_${group.id}]`)
                                     }
                                   >
                                     {showCopied ? (
