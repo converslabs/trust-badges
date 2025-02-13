@@ -1216,106 +1216,99 @@ export function Settings() {
                       </div>
                     </>
 
-                    {/* Only show Badge Placement section for non-footer groups */}
-                    {group.id !== "footer" ? (
+                    {/* Badge Placement */}
+                    {group.id !== "footer" && (
                       <div className="mt-8">
                         <h2 className="text-lg font-semibold border-b pb-2 mb-4">
                           Badge Placement
                         </h2>
                         <div className="space-y-6">
                           <div className="space-y-4">
-                            {/* Only show WooCommerce and EDD options for default groups */}
-                            {group.isDefault ? (
-                              <>
-                                {/* WooCommerce Option */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <Checkbox
-                                      id={`show-woo-${group.id}`}
-                                      checked={
-                                        group.id === "checkout"
-                                          ? group.settings.checkoutBeforeOrderReview
-                                          : group.settings.showAfterAddToCart
-                                      }
-                                      onCheckedChange={(checked) => {
-                                        handleChange(group.id, "woocommerce", checked);
-                                      }}
-                                      disabled={!installedPlugins.woocommerce}
-                                    />
-                                    <Label htmlFor={`show-woo-${group.id}`} className="text-sm">
-                                      WooCommerce
-                                    </Label>
-                                  </div>
-                                  {!installedPlugins.woocommerce && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <div className="flex items-center text-amber-500">
-                                            <AlertCircle className="h-4 mr-1" />
-                                            <span className="text-xs">Required Plugin</span>
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>WooCommerce plugin is required</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                </div>
+                            {/* WooCommerce Option */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id={`show-woo-${group.id}`}
+                                  checked={
+                                    group.id === "checkout"
+                                      ? group.settings.checkoutBeforeOrderReview
+                                      : group.settings.showAfterAddToCart
+                                  }
+                                  onCheckedChange={(checked) => {
+                                    handleChange(group.id, "woocommerce", checked);
+                                  }}
+                                  disabled={!installedPlugins.woocommerce}
+                                />
+                                <Label htmlFor={`show-woo-${group.id}`} className="text-sm">
+                                  WooCommerce
+                                </Label>
+                              </div>
+                              {!installedPlugins.woocommerce && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <div className="flex items-center text-amber-500">
+                                        <AlertCircle className="h-4 mr-1" />
+                                        <span className="text-xs">Required Plugin</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>WooCommerce plugin is required</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
 
-                                {/* EDD Option */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <Checkbox
-                                      id={`show-edd-${group.id}`}
-                                      checked={
-                                        group.id === "checkout"
-                                          ? group.settings.eddCheckoutBeforePurchaseForm
-                                          : group.settings.eddPurchaseLinkEnd
-                                      }
-                                      onCheckedChange={(checked) => {
-                                        handleChange(group.id, "edd", checked);
-                                      }}
-                                      disabled={!installedPlugins.edd}
-                                    />
-                                    <Label htmlFor={`show-edd-${group.id}`} className="text-sm">
-                                      Easy Digital Downloads
-                                    </Label>
-                                  </div>
-                                  {!installedPlugins.edd && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <div className="flex items-center text-amber-500">
-                                            <AlertCircle className="h-4 mr-1" />
-                                            <span className="text-xs">Required Plugin</span>
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Easy Digital Downloads plugin is required</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                </div>
-                              </>
-                            ) : null}
+                            {/* EDD Option */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id={`show-edd-${group.id}`}
+                                  checked={
+                                    group.id === "checkout"
+                                      ? group.settings.eddCheckoutBeforePurchaseForm
+                                      : group.settings.eddPurchaseLinkEnd
+                                  }
+                                  onCheckedChange={(checked) => {
+                                    handleChange(group.id, "edd", checked);
+                                  }}
+                                  disabled={!installedPlugins.edd}
+                                />
+                                <Label htmlFor={`show-edd-${group.id}`} className="text-sm">
+                                  Easy Digital Downloads
+                                </Label>
+                              </div>
+                              {!installedPlugins.edd && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <div className="flex items-center text-amber-500">
+                                        <AlertCircle className="h-4 mr-1" />
+                                        <span className="text-xs">Required Plugin</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Easy Digital Downloads plugin is required</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
 
                             {/* Shortcode section */}
                             <div className="space-y-2 mt-6">
                               <p className="text-sm">
-                                Use this shortcode to display the badges{" "}
-                                {group.isDefault 
-                                  ? `anywhere in ${group.id === "checkout" ? "checkout" : "product page"}`
-                                  : "anywhere in your website"}:
+                                Use this shortcode to display the badges
+                                anywhere in{" "}
+                                {group.id === "checkout" ? "checkout" : "product page"}:
                               </p>
                               <div className="relative">
                                 <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
                                   {group.id === "checkout"
                                     ? "[trust_badges_checkout]"
-                                    : group.isDefault
-                                      ? "[trust_badges_product]"
-                                      : `[trust_badges_${group.id}]`}
+                                    : "[trust_badges_product]"
+                                  }
                                 </div>
                                 <div className="absolute right-2 top-1.5 flex gap-1">
                                   <Button
@@ -1326,9 +1319,7 @@ export function Settings() {
                                       copyToClipboard(
                                         group.id === "checkout"
                                           ? "[trust_badges_checkout]"
-                                          : group.isDefault
-                                            ? "[trust_badges_product]"
-                                            : `[trust_badges_${group.id}]`
+                                          : "[trust_badges_product]"
                                       )
                                     }
                                   >
@@ -1339,12 +1330,27 @@ export function Settings() {
                                     )}
                                   </Button>
                                 </div>
+                                <AnimatePresence>
+                                  {showCopied && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 5 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0 }}
+                                      className="absolute left-0 right-0 top-full mt-2 text-center z-10"
+                                    >
+                                      <span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
+                                        <CheckCircle className="h-4 mr-1 text-green-500" />{" "}
+                                        Shortcode copied to clipboard
+                                      </span>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    ) : null}
+                    )}
                   </div>
 
                   <Separator
