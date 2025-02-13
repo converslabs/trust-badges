@@ -37,6 +37,27 @@ class TX_Badges {
 
         // Add footer hook for displaying badges
         add_action('wp_footer', array($this, 'display_footer_badges'));
+
+        add_shortcode('trust_badges', array($this, 'render_trust_badges'));// [trust_badges id="2"]
+
+    }
+
+    // Function to render the trust badges shortcode
+    public static function render_trust_badges($attributes) {
+        // Extract the 'id' attribute, defaulting to 1 if not provided
+        $attributes = shortcode_atts(array(
+            'id' => '1'
+        ), $attributes);
+
+        // Sanitize and get the ID
+        $id = intval($attributes['id']);
+
+        // now get the badge from ids
+        $response = new TX_Badges();
+        $output = $response->getBadgesById($id);
+
+        // Return the output with the dynamic ID
+        return $output;
     }
 
     private function load_dependencies() {
@@ -411,30 +432,31 @@ class TX_Badges {
         $mobile_size = $this->get_size_values($settings['badgeSizeMobile']);
 
         // Start badge container without margin style
-        echo '<div class="convers-trust-badges ' . esc_attr($alignment_class) . ' ' . esc_attr($animation_class) . '">';
+        $html = '';
+        $html .=  '<div class="convers-trust-badges ' . esc_attr($alignment_class) . ' ' . esc_attr($animation_class) . '">';
         
         // Show header if enabled with exact settings
         if (!empty($settings['showHeader'])) {
-            echo '<div class="trust-badges-header" style="';
-            echo 'font-size: ' . esc_attr($settings['fontSize']) . 'px;';
-            echo 'color: ' . esc_attr($settings['textColor']) . ';';
-            echo 'text-align: ' . esc_attr($settings['alignment']) . ';';
+            $html .=  '<div class="trust-badges-header" style="';
+            $html .=  'font-size: ' . esc_attr($settings['fontSize']) . 'px;';
+            $html .=  'color: ' . esc_attr($settings['textColor']) . ';';
+            $html .=  'text-align: ' . esc_attr($settings['alignment']) . ';';
             if (!empty($settings['customStyles'])) {
-                echo esc_attr($settings['customStyles']);
+                $html .=  esc_attr($settings['customStyles']);
             }
-            echo '">';
-            echo esc_html($settings['headerText']);
-            echo '</div>';
+            $html .=  '">';
+            $html .=  esc_html($settings['headerText']);
+            $html .=  '</div>';
         }
 
         // Start badges wrapper
-        echo '<div class="trust-badges-wrapper ' . esc_attr($style_class) . '" style="';
-        echo 'display: flex;';
-        echo 'flex-wrap: wrap;';
-        echo 'gap: 10px;';
-        echo 'justify-content: ' . $this->get_alignment_style($settings['badgeAlignment'] ?? 'center') . ';';
-        echo 'align-items: center;';
-        echo '">';
+        $html .=  '<div class="trust-badges-wrapper ' . esc_attr($style_class) . '" style="';
+        $html .=  'display: flex;';
+        $html .=  'flex-wrap: wrap;';
+        $html .=  'gap: 10px;';
+        $html .=  'justify-content: ' . $this->get_alignment_style($settings['badgeAlignment'] ?? 'center') . ';';
+        $html .=  'align-items: center;';
+        $html .=  '">';
 
         // Display selected badges with exact settings
         if (!empty($settings['selectedBadges'])) {
@@ -443,36 +465,38 @@ class TX_Badges {
                 $badge_url = plugins_url('assets/images/badges/' . $filename, dirname(__FILE__));
                 
                 // Add badge index and margin style to each badge container
-                echo '<div class="badge-container" style="--badge-index: ' . esc_attr($index) . ';' . $margin_style . '">';
+                $html .=  '<div class="badge-container" style="--badge-index: ' . esc_attr($index) . ';' . $margin_style . '">';
                 
                 if (in_array($settings['badgeStyle'], ['mono', 'mono-card'])) {
-                    echo '<div class="badge-image" style="';
-                    echo '-webkit-mask: url(' . esc_url($badge_url) . ') center/contain no-repeat;';
-                    echo 'mask: url(' . esc_url($badge_url) . ') center/contain no-repeat;';
-                    echo 'background-color: ' . esc_attr($settings['badgeColor']) . ';';
-                    echo 'width: ' . esc_attr($mobile_size) . 'px;';
-                    echo 'height: ' . esc_attr($mobile_size) . 'px;';
-                    echo 'transition: all 0.3s ease;';
-                    echo '"></div>';
+                    $html .=  '<div class="badge-image" style="';
+                    $html .=  '-webkit-mask: url(' . esc_url($badge_url) . ') center/contain no-repeat;';
+                    $html .=  'mask: url(' . esc_url($badge_url) . ') center/contain no-repeat;';
+                    $html .=  'background-color: ' . esc_attr($settings['badgeColor']) . ';';
+                    $html .=  'width: ' . esc_attr($mobile_size) . 'px;';
+                    $html .=  'height: ' . esc_attr($mobile_size) . 'px;';
+                    $html .=  'transition: all 0.3s ease;';
+                    $html .=  '"></div>';
                 } else {
-                    echo '<img src="' . esc_url($badge_url) . '" alt="converswp-trust-badge" class="badge-image" style="';
-                    echo 'width: ' . esc_attr($mobile_size) . 'px;';
-                    echo 'height: auto;';
-                    echo 'max-height: ' . esc_attr($mobile_size) . 'px;';
-                    echo 'transition: all 0.3s ease;';
-                    echo 'object-fit: contain;';
-                    echo '" />';
+                    $html .=  '<img src="' . esc_url($badge_url) . '" alt="converswp-trust-badge" class="badge-image" style="';
+                    $html .=  'width: ' . esc_attr($mobile_size) . 'px;';
+                    $html .=  'height: auto;';
+                    $html .=  'max-height: ' . esc_attr($mobile_size) . 'px;';
+                    $html .=  'transition: all 0.3s ease;';
+                    $html .=  'object-fit: contain;';
+                    $html .=  '" />';
                 }
                 
-                echo '</div>';
+                $html .=  '</div>';
             }
         }
 
-        echo '</div>'; // Close badges wrapper
-        echo '</div>'; // Close badge container
+        $html .=  '</div>'; // Close badges wrapper
+        $html .=  '</div>'; // Close badge container
 
         // Add responsive styles with exact sizes
         $this->add_responsive_styles($settings);
+
+        return $html;
     }
 
     /**
@@ -592,9 +616,59 @@ class TX_Badges {
     }
 
     private function get_badge_filename($badge_id) {
-        // Implement the logic to determine the correct filename based on the badge_id
-        // This is a placeholder and should be replaced with the actual implementation
-        return str_replace('-', '_', $badge_id) . '.svg';
+        $badgeJsonPath = TX_BADGES_PLUGIN_DIR . 'assets/badges.json';
+
+        // now load file content as json
+        $badges = json_decode(file_get_contents($badgeJsonPath), true);
+        
+        // now find the badge by id
+        $badge = array_filter($badges, function($item) use ($badge_id) {
+            return $item['id'] == $badge_id;
+        });
+
+        // get image index of the badge
+        $imagePath = array_values($badge)[0]['image'];
+
+        // now return the image name from imagePath
+        return basename($imagePath);
+    }
+
+
+    public function getBadgesById($id = 0) {
+        if($id == 0) {
+            return [];
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'converswp_trust_badges';
+
+        // Get active footer badge group
+        $group = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $table_name 
+                WHERE is_active = 1 
+                AND group_id = %s",
+                $id
+            )
+        );
+
+        if (!$group || !$group->settings) {
+            return;
+        }
+        // Decode settings
+        $settings = json_decode($group->settings, true);
+        
+        // Get position from settings (left, center, right)
+        $position = isset($settings['position']) ? $settings['position'] : 'center';
+        
+        // Create container with position class
+        $html =  '<div id="convers-trust-badges-'.$id.'">';
+        $html .= $this->render_badges($settings);
+        $html .= '</div>';
+
+        // Add footer-specific styles with position
+        $this->add_footer_styles($position);
+        return $html;
     }
 
     /**
@@ -625,12 +699,15 @@ class TX_Badges {
         $position = isset($settings['position']) ? $settings['position'] : 'center';
         
         // Create container with position class
-        echo '<div class="convers-trust-badges-footer">';
-        $this->render_badges($settings);
-        echo '</div>';
+        $html = '';
+        $html .= '<div class="convers-trust-badges-footer">';
+        $html .= $this->render_badges($settings);
+        $html .= '</div>';
 
         // Add footer-specific styles with position
         $this->add_footer_styles($position);
+        
+        echo $html;
     }
 
     /**

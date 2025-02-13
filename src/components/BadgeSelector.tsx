@@ -31,6 +31,8 @@ export function BadgeSelector({ open, onOpenChange, onSave, badges, initialSelec
 		setSelectedBadges((prev) => (prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]));
 	};
 
+	console.log(badges);
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-[1000px]">
