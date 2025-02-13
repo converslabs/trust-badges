@@ -12,7 +12,7 @@ class TX_Badges {
         $this->load_dependencies();
         $this->set_locale();
         $this->define_admin_hooks();
-        $this->define_public_hooks();
+        // $this->define_public_hooks();
         $this->define_rest_api();
 
         add_filter( 'woocommerce_should_load_cart_block', '__return_false' );
@@ -24,7 +24,7 @@ class TX_Badges {
             add_action('woocommerce_after_add_to_cart_form', array($this, 'display_badges_product_page_woo'));
             
             // Checkout page hook
-            add_action('woocommerce_checkout_before_order_review', array($this, 'display_badges_checkout_woo'));
+            add_action('woocommerce_pay_order_after_submit', array($this, 'display_badges_checkout_woo'));
         }
 
         // Add EDD hooks if EDD is active
@@ -81,11 +81,11 @@ class TX_Badges {
         $this->loader->add_action('admin_enqueue_scripts', $this, 'enqueue_admin_assets');
     }
 
-    private function define_public_hooks() {
-        // Register shortcodes
-        add_shortcode('trust_badges_product', array($this, 'product_shortcode'));
-        add_shortcode('trust_badges_checkout', array($this, 'checkout_shortcode'));
-    }
+    // private function define_public_hooks() {
+    //     // Register shortcodes
+    //     add_shortcode('trust_badges_product', array($this, 'product_shortcode'));
+    //     add_shortcode('trust_badges_checkout', array($this, 'checkout_shortcode'));
+    // }
 
     private function define_rest_api() {
         $plugin_rest = new TX_Badges_REST_API();
@@ -177,28 +177,28 @@ class TX_Badges {
      * Display badges on WooCommerce product page
      */
     public function display_badges_product_page_woo() {
-        $this->display_badges_by_position('showAfterAddToCart', 'woocommerce');
+        echo $this->display_badges_by_position('showAfterAddToCart', 'woocommerce');
     }
 
     /**
      * Display badges on WooCommerce checkout
      */
     public function display_badges_checkout_woo() {
-        $this->display_badges_by_position('checkoutBeforeOrderReview', 'woocommerce');
+        echo $this->display_badges_by_position('checkoutBeforeOrderReview', 'woocommerce');
     }
 
     /**
      * Display badges on EDD product page
      */
     public function display_badges_product_page_edd() {
-        $this->display_badges_by_position('edd_purchase_link_end', 'edd');
+        echo $this->display_badges_by_position('edd_purchase_link_end', 'edd');
     }
 
     /**
      * Display badges on EDD checkout
      */
     public function display_badges_checkout_edd() {
-        $this->display_badges_by_position('edd_checkout_before_purchase_form', 'edd');
+        echo $this->display_badges_by_position('edd_checkout_before_purchase_form', 'edd');
     }
 
     /**
@@ -266,7 +266,7 @@ class TX_Badges {
         }
 
         // Render badges with settings
-        $this->render_badges($settings);
+        return $this->render_badges($settings);
     }
 
     /**
