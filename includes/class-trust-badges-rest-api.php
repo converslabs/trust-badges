@@ -220,92 +220,28 @@ class TX_Badges_REST_API {
      */
     public function save_group_settings($request) {
         try {
-            global $wpdb;
-            $table_name = $wpdb->prefix . 'converswp_trust_badges';
-
-            // Get and validate group data
             $group = $request->get_param('group');
-            if (empty($group) || !is_array($group)) {
-                return new WP_Error(
-                    'invalid_group_data',
-                    __('Invalid group data provided.', 'trust-badges'),
-                    array('status' => 400)
-                );
+            
+            if (!$group) {
+                return new WP_Error('invalid_group', 'Invalid group data');
             }
-
-            // Start transaction
-            $wpdb->query('START TRANSACTION');
-
-            try {
-                // Prepare data for database
-                $data = array(
-                    'group_name' => sanitize_text_field($group['name']),
-                    'is_active' => isset($group['isActive']) ? (bool)$group['isActive'] : true,
-                    'settings' => wp_json_encode($group['settings'])
-                );
-
-                $where = array('group_id' => sanitize_text_field($group['id']));
-                
-                // Check if group exists
-                $existing = $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT COUNT(*) FROM $table_name WHERE group_id = %s",
-                        $group['id']
-                    )
-                );
-
-                if ($existing) {
-                    // Update existing group
-                    $result = $wpdb->update($table_name, $data, $where);
-                } else {
-                    // Insert new group
-                    $data['group_id'] = sanitize_text_field($group['id']);
-                    $data['is_default'] = isset($group['isDefault']) ? (bool)$group['isDefault'] : false;
-                    $result = $wpdb->insert($table_name, $data);
-                }
-
-                // Check for database errors
-                if ($error = $this->handle_db_error($wpdb, 'save_group_settings')) {
-                    throw new Exception($error->get_error_message());
-                }
-
-                if ($result === false) {
-                    throw new Exception(__('Failed to save group settings.', 'trust-badges'));
-                }
-
-                // Commit transaction
-                $wpdb->query('COMMIT');
-
-                // Clear cache
-                wp_cache_delete('tx_badges_settings');
-
-                // Return success response with updated group data
-                $updated_group = array(
-                    'id' => $group['id'],
-                    'name' => $data['group_name'],
-                    'isActive' => $data['is_active'],
-                    'isDefault' => isset($data['is_default']) ? $data['is_default'] : false,
-                    'settings' => json_decode($data['settings'], true),
-                    'requiredPlugin' => isset($group['requiredPlugin']) ? $group['requiredPlugin'] : null
-                );
-
-                return rest_ensure_response(array(
-                    'success' => true,
-                    'message' => __('Group settings saved successfully.', 'trust-badges'),
-                    'group' => $updated_group
-                ));
-
-            } catch (Exception $e) {
-                $wpdb->query('ROLLBACK');
-                throw $e;
+            
+            // Save the group settings
+            if (!$group['isDefault']) {
+                save_custom_badge_group($group);
             }
+            
+            // Clear any cached shortcodes
+            wp_cache_delete('trust_badges_shortcodes', 'trust-badges');
+            
+            return rest_ensure_response(array(
+                'success' => true,
+                'message' => 'Settings saved successfully',
+                'group' => $group
+            ));
+            
         } catch (Exception $e) {
-            error_log('TX Badges Save Group Error: ' . $e->getMessage());
-            return new WP_Error(
-                'save_error',
-                $e->getMessage(),
-                array('status' => 500)
-            );
+            return new WP_Error('save_failed', $e->getMessage());
         }
     }
 
