@@ -30,7 +30,7 @@ export function Info() {
           </div>
         </div>
 
-        <div className="items-center space-y-4">
+        {/* <div className="items-center space-y-4">
           <h1 className="text-xl font-bold">Build Your Badges</h1>
 
           <iframe
@@ -43,7 +43,7 @@ export function Info() {
                 allowFullScreen
                 className='rounded'
             ></iframe>
-        </div>
+        </div> */}
       </div>
     </div>
   );

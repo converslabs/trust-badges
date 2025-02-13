@@ -1966,12 +1966,12 @@ export function Settings() {
                 className="w-full h-full rounded"
               />
               <img
-                src={free}
+                src={trust}
                 alt="American Express"
                 className="w-full h-full rounded"
               />
               <img
-                src={trust}
+                src={free}
                 alt="American Express"
                 className="w-full h-full rounded"
               />
