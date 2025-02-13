@@ -865,16 +865,25 @@ export function Settings() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-xl font-bold">Badge Settings</h1>
-        <Button
-          onClick={addNewBadgeGroup}
-          className="flex items-center gap-2"
-          variant="outline"
-        >
-          <PlusCircle className="w-4 h-4" />
-          Add New Badge
-        </Button>
+      <div className="mb-6 space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold">Trust Badges</h1>
+          <p className="text-sm text-muted-foreground">
+            Easily manage your trust badges and customize their display settings to boost credibility and trust with your customers within your WordPress site.
+          </p>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <h1 className="text-lg font-bold">Your Badges</h1>
+          <Button
+            onClick={addNewBadgeGroup}
+            className="flex items-center gap-2"
+            variant="outline"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Add New Badge
+          </Button>
+        </div>
       </div>
 
       <Accordion
