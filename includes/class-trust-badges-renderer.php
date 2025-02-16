@@ -107,7 +107,7 @@ class TX_Badges_Renderer {
         $html .=  'flex-wrap: wrap;';
         $html .=  'gap: 10px;';
         $html .=  'justify-content: ' . self::get_alignment_style($settings['badgeAlignment'] ?? 'center') . ';';
-        $html .=  'align-items: center;';
+        $html .=  'align-items: stretch;';
         $html .=  '">';
 
         // Display selected badges with exact settings
@@ -183,7 +183,7 @@ class TX_Badges_Renderer {
             display: flex;
             flex-wrap: wrap;
             gap: ' . (int) $badge_gap . 'px;
-            align-items: center;
+            align-items: stretch;
             width: 100%;
         }
         ' . $html_id . ' .badge-container {
