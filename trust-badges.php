@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Trust Badges
  * Plugin URI: https://converswp.com/trust-badges
- * Description: Display customizable trust badges on your website to boost visitor confidence and increase conversions.
+ * Description: Trust Badges adds customizable trust icons and badges to WooCommerce and EDD, boosting customer confidence and sales.
  * Version: 1.0.0
  * Author: ConversWP
  * Author URI: https://converswp.com
@@ -38,11 +38,14 @@ add_action( 'plugins_loaded', function () {
 // Plugin activation with improved error handling
 register_activation_hook(__FILE__, ['TrustBadges\Activator', 'activate']);
 
-// Add error logging function
-function tx_badges_log_error($message, $context = []) {
-    error_log(sprintf(
-        '[TX Badges Error] %s | Context: %s',
-        $message,
-        json_encode($context)
-    ));
+
+if(!function_exists('cwp_trust_badges_log_error')) {
+    function cwp_trust_badges_log_error($message, $context = []) {
+        error_log(sprintf(
+            '[TX Badges Error] %s | Context: %s',
+            $message,
+            json_encode($context)
+        ));
+    }
 }
+// Add error logging function

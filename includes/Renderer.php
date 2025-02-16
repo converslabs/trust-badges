@@ -5,13 +5,13 @@ class Renderer {
 
     public static function renderBadgeById($group_id = '') {
         if($group_id == '') {
-            tx_badges_log_error('Group ID is empty', ['group_id' => $group_id]);
+            cwp_trust_badges_log_error('Group ID is empty', ['group_id' => $group_id]);
             return false;
         }
 
         $settings = Renderer::getBadgeByGroup($group_id);
         if(empty($settings)) {
-            tx_badges_log_error('Group settings not found.', ['group_id' => $group_id, 'settings' => $settings]);
+            cwp_trust_badges_log_error('Group settings not found.', ['group_id' => $group_id, 'settings' => $settings]);
             return false;
         }
 
@@ -19,7 +19,7 @@ class Renderer {
             // Render badges with settings
             $badgeHtml = Renderer::renderBadgeHtml($settings->group_id, $settings->settings);
         } else {
-            tx_badges_log_error('Badge is disabled.', ['settings' => $settings]);
+            cwp_trust_badges_log_error('Badge is disabled.', ['settings' => $settings]);
             return false;
         }
 

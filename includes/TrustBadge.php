@@ -212,7 +212,7 @@ class TrustBadge {
             );
 
         } catch (Exception $e) {
-            tx_badges_log_error('Script Enqueue Error: ' . $e->getMessage());
+            cwp_trust_badges_log_error('Script Enqueue Error: ' . $e->getMessage());
             add_action('admin_notices', function() use ($e) {
                 printf(
                     '<div class="notice notice-error"><p>%s</p></div>',
