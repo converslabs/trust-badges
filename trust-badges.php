@@ -9,6 +9,8 @@
  * Author URI: https://converswp.com
  * Text Domain: trust-badges
  * Requires PHP: 7.4
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 if (!defined('ABSPATH')) {
