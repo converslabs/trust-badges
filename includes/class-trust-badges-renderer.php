@@ -2,6 +2,38 @@
 
 class TX_Badges_Renderer {
 
+    public static function renderBadgeById($group_id = '') {
+        if($group_id == '') {
+            tx_badges_log_error('Group ID is empty', ['group_id' => $group_id]);
+            return false;
+        }
+
+        $settings = TX_Badges_Renderer::getBadgeByGroup($group_id);
+        if(empty($settings)) {
+            tx_badges_log_error('Group settings not found.', ['group_id' => $group_id, 'settings' => $settings]);
+            return false;
+        }
+
+        if($settings->is_active){
+            // Render badges with settings
+            $badgeHtml = TX_Badges_Renderer::renderBadgeHtml($settings->settings);
+        } else {
+            tx_badges_log_error('Badge is disabled.', ['settings' => $settings]);
+            return false;
+        }
+
+        // Create container with position class
+        $html =  '<div id="convers-trust-badges-'.$group_id.'">';
+        $html .= $badgeHtml;
+        $html .= '</div>';
+
+        // Add footer-specific styles with position. Get position from settings (left, center, right)
+        $position = $settings->settings['position'] ?? 'center';
+        self::add_footer_styles($position);
+
+        return $html;
+    }
+
     public static function getGroupIdByPosition($position): string
     {
         if ($position === 'showAfterAddToCart' || $position === 'eddPurchaseLinkEnd') {
@@ -14,6 +46,7 @@ class TX_Badges_Renderer {
 
         return $group_id;
     }
+
     public static function getBadgeByGroup($group_id) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
@@ -39,7 +72,8 @@ class TX_Badges_Renderer {
     /**
      * Render badges with settings
      */
-    public static function render_badges($settings) {
+    public static function renderBadgeHtml($settings): string
+    {
 
         // Get exact alignment class from settings
         $alignment_class = 'align-' . ($settings['badgeAlignment'] ?? 'center');
@@ -399,4 +433,48 @@ class TX_Badges_Renderer {
         // now return the image name from imagePath
         return basename($imagePath);
     }
+
+    public static function add_footer_styles($position) {
+        // Sanitize the position value
+        $position = sanitize_key($position); // Ensures it's a safe CSS value
+
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+        // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
+        echo '<style>
+            .convers-trust-badges-footer {
+                width: 100%;
+                padding: 20px;
+            }
+            
+            .convers-trust-badges-footer .trust-badges-wrapper {
+                justify-content: ' . esc_attr(self::get_position_style($position)) . ';
+            }
+            
+            @media screen and (max-width: 768px) {
+                .convers-trust-badges-footer {
+                    padding: 15px;
+                }
+            }
+        </style>';
+        // phpcs:enable
+    }
+
+    /**
+     * Helper method to sanitize and return position styles.
+     *
+     * @param string $position The alignment position.
+     * @return string Sanitized CSS value for justify-content.
+     */
+    public static function get_position_style($position) {
+        // Define allowed positions and their corresponding CSS values
+        $allowed_positions = array(
+            'left'   => 'flex-start',
+            'center' => 'center',
+            'right'  => 'flex-end',
+        );
+
+        // Return sanitized value or default to 'center' if invalid
+        return isset($allowed_positions[$position]) ? $allowed_positions[$position] : 'center';
+    }
+
 }

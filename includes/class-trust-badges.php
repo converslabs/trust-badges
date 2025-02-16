@@ -74,7 +74,7 @@ class TX_Badges {
         $id = intval($attributes['id']);
 
         // now get the badge from ids
-        $output = $this->getBadgesById($id);
+        $output = TX_Badges_Renderer::renderBadgeById($id);
 
         // Return the output with the dynamic ID
         return $output;
@@ -127,6 +127,25 @@ class TX_Badges {
             $this->plugin_name,
             array($this, 'display_plugin_setup_page')
         );
+    }
+
+    /**
+     * Render the settings page for this plugin.
+     */
+    public function display_plugin_setup_page() {
+        echo '<div id="trust-badges-app"></div>';
+    }
+
+
+    /**
+     * Helper function to display badges based on position and plugin
+     */
+    private function display_badges_by_position($position, $group_id) {// wp_footer. footer
+        if(!$group_id){
+            $group_id = TX_Badges_Renderer::getGroupIdByPosition($position);
+        }
+
+        return TX_Badges_Renderer::renderBadgeById($group_id);
     }
 
     public static function admin_enqueue_scripts($hook)
@@ -208,112 +227,5 @@ class TX_Badges {
                 );
             });
         }
-    }
-
-
-
-
-    /**
-     * Render the settings page for this plugin.
-     */
-    public function display_plugin_setup_page() {
-        echo '<div id="trust-badges-app"></div>';
-    }
-
-
-    /**
-     * Helper function to display badges based on position and plugin
-     */
-    private function display_badges_by_position($position, $group_id) {// wp_footer. footer
-        if(!$group_id){
-            $group_id = TX_Badges_Renderer::getGroupIdByPosition($position);
-        }
-
-        return $this->getBadgesById($group_id);
-    }
-
-
-
-    public function getBadgesById($group_id = '') {
-        if($group_id == '') {
-            tx_badges_log_error('Group ID is empty', ['group_id' => $group_id]);
-            return false;
-        }
-
-        $settings = TX_Badges_Renderer::getBadgeByGroup($group_id);
-        if(empty($settings)) {
-            tx_badges_log_error('Group settings not found.', ['group_id' => $group_id, 'settings' => $settings]);
-            return false;
-        }
-
-        // @todo: add translation for the header text
-        if($settings->is_active){
-            // Render badges with settings
-            $badgeHtml = TX_Badges_Renderer::render_badges($settings->settings);
-        } else {
-            tx_badges_log_error('Badge is disabled.', ['settings' => $settings]);
-            return false;
-        }
-
-        // Create container with position class
-        $html =  '<div id="convers-trust-badges-'.$group_id.'">';
-        $html .= $badgeHtml;
-        $html .= '</div>';
-
-        // Add footer-specific styles with position. Get position from settings (left, center, right)
-        $position = $settings->settings['position'] ?? 'center';
-        $this->add_footer_styles($position);
-
-        return $html;
-    }
-
-    /**
-     * Display badges in footer
-     */
-    public function display_footer_badges() {
-        echo $this->getBadgesById('footer'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-    }
-
-    private function add_footer_styles($position) {
-        // Sanitize the position value
-        $position = sanitize_key($position); // Ensures it's a safe CSS value
-    
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
-        // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
-        echo '<style>
-            .convers-trust-badges-footer {
-                width: 100%;
-                padding: 20px;
-            }
-            
-            .convers-trust-badges-footer .trust-badges-wrapper {
-                justify-content: ' . esc_attr($this->get_position_style($position)) . ';
-            }
-            
-            @media screen and (max-width: 768px) {
-                .convers-trust-badges-footer {
-                    padding: 15px;
-                }
-            }
-        </style>';
-        // phpcs:enable
-    }
-    
-    /**
-     * Helper method to sanitize and return position styles.
-     *
-     * @param string $position The alignment position.
-     * @return string Sanitized CSS value for justify-content.
-     */
-    private function get_position_style($position) {
-        // Define allowed positions and their corresponding CSS values
-        $allowed_positions = array(
-            'left'   => 'flex-start',
-            'center' => 'center',
-            'right'  => 'flex-end',
-        );
-    
-        // Return sanitized value or default to 'center' if invalid
-        return isset($allowed_positions[$position]) ? $allowed_positions[$position] : 'center';
     }
 }
