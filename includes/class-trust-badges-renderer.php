@@ -16,7 +16,7 @@ class TX_Badges_Renderer {
 
         if($settings->is_active){
             // Render badges with settings
-            $badgeHtml = TX_Badges_Renderer::renderBadgeHtml($settings->settings);
+            $badgeHtml = TX_Badges_Renderer::renderBadgeHtml($settings->group_id, $settings->settings);
         } else {
             tx_badges_log_error('Badge is disabled.', ['settings' => $settings]);
             return false;
@@ -26,10 +26,6 @@ class TX_Badges_Renderer {
         $html =  '<div id="convers-trust-badges-'.$group_id.'">';
         $html .= $badgeHtml;
         $html .= '</div>';
-
-        // Add footer-specific styles with position. Get position from settings (left, center, right)
-        $position = $settings->settings['position'] ?? 'center';
-        self::add_footer_styles($position);
 
         return $html;
     }
@@ -72,7 +68,7 @@ class TX_Badges_Renderer {
     /**
      * Render badges with settings
      */
-    public static function renderBadgeHtml($settings): string
+    public static function renderBadgeHtml($group_id, $settings): string
     {
 
         // Get exact alignment class from settings
@@ -150,7 +146,7 @@ class TX_Badges_Renderer {
         $html .=  '</div>'; // Close badge container
 
         // Add responsive styles with exact sizes
-        self::add_responsive_styles($settings);
+        self::add_responsive_styles($group_id, $settings);
 
         return $html;
     }
@@ -158,7 +154,7 @@ class TX_Badges_Renderer {
     /**
      * Add responsive styles for badge sizes
      */
-    public static function add_responsive_styles($settings) {
+    public static function add_responsive_styles($group_id, $settings) {
         $desktop_size = self::get_size_values($settings['badgeSizeDesktop']);
         $mobile_size = self::get_size_values($settings['badgeSizeMobile']);
         $animation = isset($settings['animation']) ? $settings['animation'] : '';
@@ -176,7 +172,7 @@ class TX_Badges_Renderer {
 
         // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
         // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
-        echo '<style>
+        echo '<style type="text/css" id="convers-trust-badges-styles-'.$group_id.'">
         .convers-trust-badges {
             margin: ' . (int) $container_margin . 'px 0;
             width: 100%;
@@ -432,31 +428,6 @@ class TX_Badges_Renderer {
 
         // now return the image name from imagePath
         return basename($imagePath);
-    }
-
-    public static function add_footer_styles($position) {
-        // Sanitize the position value
-        $position = sanitize_key($position); // Ensures it's a safe CSS value
-
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
-        // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
-        echo '<style>
-            .convers-trust-badges-footer {
-                width: 100%;
-                padding: 20px;
-            }
-            
-            .convers-trust-badges-footer .trust-badges-wrapper {
-                justify-content: ' . esc_attr(self::get_position_style($position)) . ';
-            }
-            
-            @media screen and (max-width: 768px) {
-                .convers-trust-badges-footer {
-                    padding: 15px;
-                }
-            }
-        </style>';
-        // phpcs:enable
     }
 
     /**
