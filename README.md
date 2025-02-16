@@ -77,7 +77,7 @@ A: The settings for Trust Badges are located under **Settings -> Trust Badges** 
 
 ## Support
 
-For support, please visit the [plugin support page](https://converswp.com/trust-badges/) or open an issue on the [GitHub repository](https://github.com/your-repo/trust-badges).
+For support, please visit the [plugin support page](https://converswp.com/trust-badges/)
 
 ## Changelog
 
