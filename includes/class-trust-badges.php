@@ -47,7 +47,6 @@ class TX_Badges {
         });
 
         add_shortcode('trust_badges', array($this, 'render_shortcode'));// [trust_badges id="2"]
-
     }
 
     public function handle_badge_display($hook, $group_id) {
@@ -66,8 +65,7 @@ class TX_Badges {
     }
 
     // Function to render the trust badges shortcode
-    public static function render_shortcode($attributes) {
-//        dd($attributes);
+    public function render_shortcode($attributes) {
         // Extract the 'id' attribute, defaulting to 1 if not provided
         $attributes = shortcode_atts(array(
             'id' => '1'
@@ -77,8 +75,7 @@ class TX_Badges {
         $id = intval($attributes['id']);
 
         // now get the badge from ids
-        $response = new TX_Badges();
-        $output = $response->getBadgesById($id);
+        $output = $this->getBadgesById($id);
 
         // Return the output with the dynamic ID
         return $output;
