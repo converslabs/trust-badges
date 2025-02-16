@@ -12,7 +12,6 @@ class TX_Badges {
         $this->load_dependencies();
         $this->set_locale();
         $this->define_admin_hooks();
-        // $this->define_public_hooks();
         $this->define_rest_api();
 
         add_filter( 'woocommerce_should_load_cart_block', '__return_false' );
@@ -97,6 +96,7 @@ class TX_Badges {
     private function define_admin_hooks() {
         // Add menu
         $this->loader->add_action('admin_menu', $this, 'add_plugin_admin_menu');
+        $this->loader->add_action('admin_enqueue_scripts', $this, 'admin_enqueue_scripts');
     }
 
     private function define_rest_api() {
@@ -128,6 +128,90 @@ class TX_Badges {
             array($this, 'display_plugin_setup_page')
         );
     }
+
+    public static function admin_enqueue_scripts($hook)
+    {
+        // Only load on plugin admin page
+        if ('settings_page_trust-badges' !== $hook) {
+            return;
+        }
+
+        try {
+            // WordPress core scripts
+            wp_enqueue_media();
+            wp_enqueue_script('jquery');
+            wp_enqueue_script('wp-i18n');
+            wp_enqueue_script('wp-api-fetch');
+
+            // Check if main CSS file exists
+            $css_file = TX_BADGES_PLUGIN_DIR . 'dist/main.css';
+            if (!file_exists($css_file)) {
+                throw new Exception('Required CSS file not found: ' . $css_file);
+            }
+
+            // Enqueue main CSS
+            wp_enqueue_style(
+                'trust-badges-admin',
+                TX_BADGES_PLUGIN_URL . 'dist/main.css',
+                [],
+                TX_BADGES_VERSION
+            );
+
+            // Check if main JS file exists
+            $js_file = TX_BADGES_PLUGIN_DIR . 'dist/main.js';
+            if (!file_exists($js_file)) {
+                throw new Exception('Required JS file not found: ' . $js_file);
+            }
+
+            // Create nonce specifically for REST API
+            $rest_nonce = wp_create_nonce('wp_rest');
+
+            // Configure REST API settings
+            wp_localize_script('wp-api-fetch', 'wpApiSettings', [
+                'root' => esc_url_raw(rest_url()),
+                'nonce' => $rest_nonce
+            ]);
+
+            // Plugin settings object with proper nonce
+            $settings = [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'restUrl' => rest_url('trust-badges/v1/'),
+                'pluginUrl' => TX_BADGES_PLUGIN_URL,
+                'mediaTitle' => __('Select or Upload Badge Image', 'trust-badges'),
+                'mediaButton' => __('Use this image', 'trust-badges'),
+                'debug' => WP_DEBUG,
+                'restNonce' => $rest_nonce // Use the same REST nonce
+            ];
+
+            // Add settings to window object before any scripts
+            wp_add_inline_script(
+                'wp-api-fetch',
+                'window.txBadgesSettings = ' . wp_json_encode($settings) . ';',
+                'before'
+            );
+
+            // Enqueue main JS with proper dependencies
+            wp_enqueue_script(
+                'trust-badges-admin',
+                TX_BADGES_PLUGIN_URL . 'dist/main.js',
+                ['wp-api-fetch', 'wp-i18n'],
+                TX_BADGES_VERSION,
+                true
+            );
+
+        } catch (Exception $e) {
+            tx_badges_log_error('Script Enqueue Error: ' . $e->getMessage());
+            add_action('admin_notices', function() use ($e) {
+                printf(
+                    '<div class="notice notice-error"><p>%s</p></div>',
+                    esc_html__('Failed to load TX Badges plugin resources. Please check error logs for details.', 'trust-badges')
+                );
+            });
+        }
+    }
+
+
+
 
     /**
      * Render the settings page for this plugin.
@@ -231,52 +315,5 @@ class TX_Badges {
     
         // Return sanitized value or default to 'center' if invalid
         return isset($allowed_positions[$position]) ? $allowed_positions[$position] : 'center';
-    }
-
-    /**
-     * Handle the product page shortcode
-     */
-    public function product_shortcode($atts) {
-        // Start output buffering to capture the rendered badges
-        ob_start();
-
-        // Get the current page ID
-        $current_page_id = get_the_ID();
-
-        // Check if we're on a WooCommerce product page
-        $is_woo_product = function_exists('is_product') && is_product();
-        
-        // Check if we're on an EDD download page
-        $is_edd_download = function_exists('is_singular') && is_singular('download');
-
-        // Only proceed if we're on a product/download page
-        if ($is_woo_product || $is_edd_download) {
-            $this->display_badges_by_position('showAfterAddToCart', $is_woo_product ? 'woocommerce' : 'edd');
-        }
-
-        // Return the captured output
-        return ob_get_clean();
-    }
-
-    /**
-     * Handle the checkout shortcode
-     */
-    public function checkout_shortcode($atts) {
-        // Start output buffering to capture the rendered badges
-        ob_start();
-
-        // Check if we're on a WooCommerce checkout page
-        $is_woo_checkout = function_exists('is_checkout') && is_checkout();
-        
-        // Check if we're on an EDD checkout page
-        $is_edd_checkout = function_exists('edd_is_checkout') && edd_is_checkout();
-
-        // Only proceed if we're on a checkout page
-        if ($is_woo_checkout || $is_edd_checkout) {
-            $this->display_badges_by_position('checkoutBeforeOrderReview', $is_woo_checkout ? 'woocommerce' : 'edd');
-        }
-
-        // Return the captured output
-        return ob_get_clean();
     }
 }

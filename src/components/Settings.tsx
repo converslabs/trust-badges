@@ -765,12 +765,7 @@ export function Settings() {
   useEffect(() => {
     const fetchPluginStatus = async () => {
       try {
-        const response = await fetch('/wp-json/trust-badges/v1/installed-plugins', {
-          headers: {
-            'X-WP-Nonce': window.txBadgesSettings.restNonce
-          }
-        });
-        const data = await response.json();
+        const data = await fetchApi("installed-plugins");
         setInstalledPlugins(data);
 
         // Update badge groups based on plugin status
