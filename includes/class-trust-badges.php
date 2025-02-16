@@ -177,28 +177,28 @@ class TX_Badges {
      * Display badges on WooCommerce product page
      */
     public function display_badges_product_page_woo() {
-        echo $this->display_badges_by_position('showAfterAddToCart', 'woocommerce');
+        echo $this->display_badges_by_position('showAfterAddToCart', 'woocommerce'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     /**
      * Display badges on WooCommerce checkout
      */
     public function display_badges_checkout_woo() {
-        echo $this->display_badges_by_position('checkoutBeforeOrderReview', 'woocommerce');
+        echo $this->display_badges_by_position('checkoutBeforeOrderReview', 'woocommerce'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     /**
      * Display badges on EDD product page
      */
     public function display_badges_product_page_edd() {
-        echo $this->display_badges_by_position('edd_purchase_link_end', 'edd');
+        echo $this->display_badges_by_position('edd_purchase_link_end', 'edd'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     /**
      * Display badges on EDD checkout
      */
     public function display_badges_checkout_edd() {
-        echo $this->display_badges_by_position('edd_checkout_before_purchase_form', 'edd');
+        echo $this->display_badges_by_position('edd_checkout_before_purchase_form', 'edd'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     /**
@@ -518,87 +518,89 @@ class TX_Badges {
         $hover_transform = isset($settings['hoverTransform']) ? $settings['hoverTransform'] : 'translateY(-2px)';
         $transition = isset($settings['transition']) ? $settings['transition'] : 'all 0.3s ease';
 
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+        // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
         echo '<style>
-            .convers-trust-badges {
-                margin: ' . $container_margin . 'px 0;
-                width: 100%;
-            }
-            .trust-badges-wrapper {
-                display: flex;
-                flex-wrap: wrap;
-                gap: ' . $badge_gap . 'px;
-                align-items: center;
-                width: 100%;
-            }
-            .badge-container {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                padding: ' . $badge_padding . 'px;
-                transition: ' . esc_attr($transition) . ';
-            }
-            
-            /* Mobile styles (default) */
+        .convers-trust-badges {
+            margin: ' . (int) $container_margin . 'px 0;
+            width: 100%;
+        }
+        .trust-badges-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: ' . (int) $badge_gap . 'px;
+            align-items: center;
+            width: 100%;
+        }
+        .badge-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: ' . (int) $badge_padding . 'px;
+            transition: ' . esc_attr($transition) . ';
+        }
+
+        /* Mobile styles */
+        .badge-image {
+            width: ' . (int) $mobile_size . 'px !important;
+            height: auto !important;
+            max-height: ' . (int) $mobile_size . 'px !important;
+            transition: ' . esc_attr($transition) . ';
+            object-fit: contain;
+        }
+
+        .style-mono .badge-image,
+        .style-mono-card .badge-image {
+            width: ' . (int) $mobile_size . 'px !important;
+            height: ' . (int) $mobile_size . 'px !important;
+            -webkit-mask-size: contain;
+            mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            mask-position: center;
+            background-color: ' . esc_attr($settings['badgeColor']) . ';
+        }
+
+        /* Desktop styles */
+        @media screen and (min-width: 768px) {
             .badge-image {
-                width: ' . esc_attr($mobile_size) . 'px !important;
-                height: auto !important;
-                max-height: ' . esc_attr($mobile_size) . 'px !important;
-                transition: ' . esc_attr($transition) . ';
-                object-fit: contain;
+                width: ' . (int) $desktop_size . 'px !important;
+                max-height: ' . (int) $desktop_size . 'px !important;
             }
             
             .style-mono .badge-image,
             .style-mono-card .badge-image {
-                width: ' . esc_attr($mobile_size) . 'px !important;
-                height: ' . esc_attr($mobile_size) . 'px !important;
-                -webkit-mask-size: contain;
-                mask-size: contain;
-                -webkit-mask-repeat: no-repeat;
-                mask-repeat: no-repeat;
-                -webkit-mask-position: center;
-                mask-position: center;
-                background-color: ' . esc_attr($settings['badgeColor']) . ';
+                width: ' . (int) $desktop_size . 'px !important;
+                height: ' . (int) $desktop_size . 'px !important;
             }
-            
-            /* Desktop styles */
-            @media screen and (min-width: 768px) {
-                .badge-image {
-                    width: ' . esc_attr($desktop_size) . 'px !important;
-                    height: auto !important;
-                    max-height: ' . esc_attr($desktop_size) . 'px !important;
-                }
-                
-                .style-mono .badge-image,
-                .style-mono-card .badge-image {
-                    width: ' . esc_attr($desktop_size) . 'px !important;
-                    height: ' . esc_attr($desktop_size) . 'px !important;
-                }
-            }
-            
-            /* Hover effects */
-            .badge-container:hover {
-                transform: ' . esc_attr($hover_transform) . ';
-            }
-            .badge-container:hover .badge-image {
-                transform: scale(1.05);
-            }
-            
-            /* Card styles */
-            .style-card .badge-container,
-            .style-mono-card .badge-container {
-                background-color: #e5e7eb;
-                padding: ' . ($badge_padding + 3) . 'px ' . ($badge_padding + 7) . 'px;
-                border-radius: ' . esc_attr($border_radius) . 'px;
-            }
-            
-            /* Alignment */
-            .align-left .trust-badges-wrapper { justify-content: flex-start; }
-            .align-center .trust-badges-wrapper { justify-content: center; }
-            .align-right .trust-badges-wrapper { justify-content: flex-end; }
+        }
 
-            /* Animation styles */
-            ' . $animation_styles . '
+        /* Hover effects */
+        .badge-container:hover {
+            transform: ' . esc_attr($hover_transform) . ';
+        }
+        .badge-container:hover .badge-image {
+            transform: scale(1.05);
+        }
+
+        /* Card styles */
+        .style-card .badge-container,
+        .style-mono-card .badge-container {
+            background-color: #e5e7eb;
+            padding: ' . ((int) $badge_padding + 3) . 'px ' . ((int) $badge_padding + 7) . 'px;
+            border-radius: ' . (int) $border_radius . 'px;
+        }
+
+        /* Alignment */
+        .align-left .trust-badges-wrapper { justify-content: flex-start; }
+        .align-center .trust-badges-wrapper { justify-content: center; }
+        .align-right .trust-badges-wrapper { justify-content: flex-end; }
+
+        /* Animation styles */
+        ' . wp_strip_all_tags($animation_styles) . '
         </style>';
+        // phpcs:enable
     }
 
     /**
@@ -707,13 +709,15 @@ class TX_Badges {
         // Add footer-specific styles with position
         $this->add_footer_styles($position);
         
-        echo $html;
+        echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
-    /**
-     * Add footer-specific styles
-     */
     private function add_footer_styles($position) {
+        // Sanitize the position value
+        $position = sanitize_key($position); // Ensures it's a safe CSS value
+    
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+        // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
         echo '<style>
             .convers-trust-badges-footer {
                 width: 100%;
@@ -721,7 +725,7 @@ class TX_Badges {
             }
             
             .convers-trust-badges-footer .trust-badges-wrapper {
-                justify-content: ' . $this->get_position_style($position) . ';
+                justify-content: ' . esc_attr($this->get_position_style($position)) . ';
             }
             
             @media screen and (max-width: 768px) {
@@ -730,18 +734,25 @@ class TX_Badges {
                 }
             }
         </style>';
+        // phpcs:enable
     }
-
+    
     /**
-     * Get position style value
+     * Helper method to sanitize and return position styles.
+     *
+     * @param string $position The alignment position.
+     * @return string Sanitized CSS value for justify-content.
      */
     private function get_position_style($position) {
-        $styles = [
-            'left' => 'flex-start',
+        // Define allowed positions and their corresponding CSS values
+        $allowed_positions = array(
+            'left'   => 'flex-start',
             'center' => 'center',
-            'right' => 'flex-end'
-        ];
-        return $styles[$position] ?? 'center';
+            'right'  => 'flex-end',
+        );
+    
+        // Return sanitized value or default to 'center' if invalid
+        return isset($allowed_positions[$position]) ? $allowed_positions[$position] : 'center';
     }
 
     /**
