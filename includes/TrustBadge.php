@@ -1,6 +1,7 @@
 <?php
+namespace TrustBadges;
 
-class TX_Badges {
+class TrustBadge {
     protected $loader;
     protected $plugin_name;
     protected $version;
@@ -27,7 +28,7 @@ class TX_Badges {
             add_action('woocommerce_pay_order_after_submit', function() {
                 $this->handle_badge_display('woocommerce_pay_order_after_submit', 'checkout');
             });
-            
+
         }
 
         // Add EDD hooks if EDD is active
@@ -74,22 +75,16 @@ class TX_Badges {
         $id = intval($attributes['id']);
 
         // now get the badge from ids
-        $output = TX_Badges_Renderer::renderBadgeById($id);
-
         // Return the output with the dynamic ID
-        return $output;
+        return Renderer::renderBadgeById($id);
     }
 
     private function load_dependencies() {
-        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-loader.php';
-        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-i18n.php';
-        require_once TX_BADGES_PLUGIN_DIR . 'includes/class-trust-badges-rest-api.php';
-
-        $this->loader = new TX_Badges_Loader();
+        $this->loader = new Loader();
     }
 
     private function set_locale() {
-        $plugin_i18n = new TX_Badges_i18n();
+        $plugin_i18n = new I18n();
         $this->loader->add_action('plugins_loaded', $plugin_i18n, 'load_plugin_textdomain');
     }
 
@@ -100,7 +95,7 @@ class TX_Badges {
     }
 
     private function define_rest_api() {
-        $plugin_rest = new TX_Badges_REST_API();
+        $plugin_rest = new RESTAPI();
         $this->loader->add_action('rest_api_init', $plugin_rest, 'register_routes');
     }
 
@@ -142,10 +137,10 @@ class TX_Badges {
      */
     private function display_badges_by_position($position, $group_id) {// wp_footer. footer
         if(!$group_id){
-            $group_id = TX_Badges_Renderer::getGroupIdByPosition($position);
+            $group_id = Renderer::getGroupIdByPosition($position);
         }
 
-        return TX_Badges_Renderer::renderBadgeById($group_id);
+        return Renderer::renderBadgeById($group_id);
     }
 
     public static function admin_enqueue_scripts($hook)
@@ -157,7 +152,6 @@ class TX_Badges {
 
         try {
             // WordPress core scripts
-            wp_enqueue_media();
             wp_enqueue_script('jquery');
             wp_enqueue_script('wp-i18n');
             wp_enqueue_script('wp-api-fetch');
@@ -185,7 +179,7 @@ class TX_Badges {
             wp_enqueue_script(
                 'trust-badges-admin',
                 TX_BADGES_PLUGIN_URL . 'assets/js/main.js',
-                ['wp-api-fetch', 'wp-i18n'],
+                ['jquery', 'wp-i18n', 'wp-api-fetch'],
                 TX_BADGES_VERSION,
                 true
             );

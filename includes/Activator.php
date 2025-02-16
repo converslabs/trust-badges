@@ -1,6 +1,7 @@
 <?php
+namespace TrustBadges;
 
-class TX_Badges_Activator {
+class Activator {
 
     public static function activate()
     {

@@ -1,6 +1,7 @@
 <?php
+namespace TrustBadges;
 
-class TX_Badges_Renderer {
+class Renderer {
 
     public static function renderBadgeById($group_id = '') {
         if($group_id == '') {
@@ -8,7 +9,7 @@ class TX_Badges_Renderer {
             return false;
         }
 
-        $settings = TX_Badges_Renderer::getBadgeByGroup($group_id);
+        $settings = Renderer::getBadgeByGroup($group_id);
         if(empty($settings)) {
             tx_badges_log_error('Group settings not found.', ['group_id' => $group_id, 'settings' => $settings]);
             return false;
@@ -16,7 +17,7 @@ class TX_Badges_Renderer {
 
         if($settings->is_active){
             // Render badges with settings
-            $badgeHtml = TX_Badges_Renderer::renderBadgeHtml($settings->group_id, $settings->settings);
+            $badgeHtml = Renderer::renderBadgeHtml($settings->group_id, $settings->settings);
         } else {
             tx_badges_log_error('Badge is disabled.', ['settings' => $settings]);
             return false;

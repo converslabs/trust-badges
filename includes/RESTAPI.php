@@ -1,6 +1,11 @@
 <?php
+namespace TrustBadges;
 
-class TX_Badges_REST_API {
+use WP_Error;
+use WP_REST_Request;
+use WP_REST_Response;
+
+class RESTAPI {
     private $namespace = 'trust-badges/v1';
     private $cache_expiry = 3600; // 1 hour cache
 

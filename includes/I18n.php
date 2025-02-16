@@ -1,9 +1,9 @@
 <?php
-
+namespace TrustBadges;
 /**
  * Define the internationalization functionality
  */
-class TX_Badges_i18n {
+class I18n {
 
     /**
      * Load the plugin text domain for translation.
