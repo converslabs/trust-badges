@@ -3,7 +3,8 @@
 
 # Build
 /dist
-
+/assets/css
+/assets/js
 # IDE
 .idea
 .vscode

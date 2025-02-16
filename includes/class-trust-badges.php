@@ -163,7 +163,7 @@ class TX_Badges {
             wp_enqueue_script('wp-api-fetch');
 
             // Check if main CSS file exists
-            $css_file = TX_BADGES_PLUGIN_DIR . 'dist/main.css';
+            $css_file = TX_BADGES_PLUGIN_DIR . 'assets/css/main.css';
             if (!file_exists($css_file)) {
                 throw new Exception('Required CSS file not found: ' . $css_file);
             }
@@ -171,16 +171,24 @@ class TX_Badges {
             // Enqueue main CSS
             wp_enqueue_style(
                 'trust-badges-admin',
-                TX_BADGES_PLUGIN_URL . 'dist/main.css',
+                TX_BADGES_PLUGIN_URL . 'assets/css/main.css',
                 [],
                 TX_BADGES_VERSION
             );
 
             // Check if main JS file exists
-            $js_file = TX_BADGES_PLUGIN_DIR . 'dist/main.js';
+            $js_file = TX_BADGES_PLUGIN_DIR . 'assets/js/main.js';
             if (!file_exists($js_file)) {
                 throw new Exception('Required JS file not found: ' . $js_file);
             }
+            // Enqueue main JS with proper dependencies
+            wp_enqueue_script(
+                'trust-badges-admin',
+                TX_BADGES_PLUGIN_URL . 'assets/js/main.js',
+                ['wp-api-fetch', 'wp-i18n'],
+                TX_BADGES_VERSION,
+                true
+            );
 
             // Create nonce specifically for REST API
             $rest_nonce = wp_create_nonce('wp_rest');
@@ -207,15 +215,6 @@ class TX_Badges {
                 'wp-api-fetch',
                 'window.txBadgesSettings = ' . wp_json_encode($settings) . ';',
                 'before'
-            );
-
-            // Enqueue main JS with proper dependencies
-            wp_enqueue_script(
-                'trust-badges-admin',
-                TX_BADGES_PLUGIN_URL . 'dist/main.js',
-                ['wp-api-fetch', 'wp-i18n'],
-                TX_BADGES_VERSION,
-                true
             );
 
         } catch (Exception $e) {
