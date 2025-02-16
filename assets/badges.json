@@ -2183,5 +2183,115 @@
         "id": "zip-pay",
         "name": "Zip Pay",
         "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/zippay_color.svg"
+    },
+    {
+        "id": "bKash",
+        "name": "bKash",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/bKash.svg"
+    },
+    {
+        "id": "bracBank",
+        "name": "Brac Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/bracBank.svg"
+    },
+    {
+        "id": "cityBank",
+        "name": "City Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/cityBank.svg"
+    },
+    {
+        "id": "dhakaBank",
+        "name": "Dhaka Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/dhakaBank.svg"
+    },
+    {
+        "id": "dutchBanglaBank",
+        "name": "Dutch Bangla Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/dutchBanglaBank.svg"
+    },
+
+    {
+        "id": "standardChartered",
+        "name": "Standard Chartered",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/standardChartered.svg"
+    },{
+        "id": "easternBankBD",
+        "name": "Eastern Bank - BD",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/easternBankBD.svg"
+    },
+    {
+        "id": "jamunaBank",
+        "name": "Jamuna Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/jamunaBank.svg"
+    },
+    {
+        "id": "bankAsia",
+        "name": "Bank Asia",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/bankAsia.svg"
+    },
+    {
+        "id": "lankaBanglaFinance",
+        "name": "Lanka Bangla Finance",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/lankaBanglaFinance.svg"
+    },
+    {
+        "id": "mCash",
+        "name": "mCash",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/mCash.svg"
+    },
+    {
+        "id": "meghnaBank",
+        "name": "Meghna Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/meghnaBank.svg"
+    },
+    {
+        "id": "midlandank",
+        "name": "Mid Land Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/midlandank.svg"
+    },
+    {
+        "id": "nagad",
+        "name": "Nagad",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/nagad.svg"
+    },
+    {
+        "id": "nrbBank",
+        "name": "NRB Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/nrbBank.svg"
+    },
+    {
+        "id": "nrbcBank",
+        "name": "NRBC Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/nrbcBank.svg"
+    },
+    {
+        "id": "sbacBank",
+        "name": "SBAC Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/sbacBank.svg"
+    },
+    {
+        "id": "southeastBank",
+        "name": "Southeast Bank",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/southeastBank.svg"
+    },
+    {
+        "id": "dbblRocket",
+        "name": "DDBL Rocket",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/dbblRocket.svg"
+    },
+    {
+        "id": "upayUCB",
+        "name": "Upay - UCB",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/upayUCB.svg"
+    },
+    {
+        "id": "g2Crowd",
+        "name": "G2",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/g2Crowd.svg"
+    },
+    {
+        "id": "trustpilot",
+        "name": "Trust Pilot",
+        "image": "http://wordpress.test/wp-content/plugins/trust-badges/assets/images/badges/trustpilot.svg"
     }
 ]
