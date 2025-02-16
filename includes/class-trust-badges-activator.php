@@ -1,7 +1,30 @@
 <?php
 
 class TX_Badges_Activator {
-    public static function activate() {
+
+    public static function activate()
+    {
+        // Start output buffering to catch any unexpected output
+        ob_start();
+
+        try {
+            TX_Badges_Activator::activate();
+
+            // Ensure database tables are created
+            self::updateDB();
+
+            flush_rewrite_rules();
+            // Clean the buffer and discard any output
+            ob_end_clean();
+        } catch (Exception $e) {
+            // Clean the buffer and log the error
+            ob_end_clean();
+            tx_badges_log_error('Plugin Activation Error: ' . $e->getMessage());
+            wp_die('Failed to activate TX Badges plugin. Please check error logs for details.');
+        }
+    }
+
+    public static function updateDB() {
         global $wpdb;
         
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
