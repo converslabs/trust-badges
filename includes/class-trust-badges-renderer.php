@@ -159,9 +159,6 @@ class TX_Badges_Renderer {
         $mobile_size = self::get_size_values($settings['badgeSizeMobile']);
         $animation = isset($settings['animation']) ? $settings['animation'] : '';
 
-        // Get animation styles based on settings
-        $animation_styles = self::get_animation_styles($animation);
-
         // Get design settings from database
         $badge_padding = isset($settings['badgePadding']) ? intval($settings['badgePadding']) : 5;
         $badge_gap = isset($settings['badgeGap']) ? intval($settings['badgeGap']) : 10;
@@ -170,21 +167,26 @@ class TX_Badges_Renderer {
         $hover_transform = isset($settings['hoverTransform']) ? $settings['hoverTransform'] : 'translateY(-2px)';
         $transition = isset($settings['transition']) ? $settings['transition'] : 'all 0.3s ease';
 
+        $html_id = '#convers-trust-badges-' . $group_id;
+
+        // Get animation styles based on settings
+        $animation_styles = self::get_animation_styles($html_id, $animation);
+
         // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
         // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
         echo '<style type="text/css" id="convers-trust-badges-styles-'.$group_id.'">
-        .convers-trust-badges {
+        ' . $html_id . ' .convers-trust-badges {
             margin: ' . (int) $container_margin . 'px 0;
             width: 100%;
         }
-        .trust-badges-wrapper {
+        ' . $html_id . ' .trust-badges-wrapper {
             display: flex;
             flex-wrap: wrap;
             gap: ' . (int) $badge_gap . 'px;
             align-items: center;
             width: 100%;
         }
-        .badge-container {
+        ' . $html_id . ' .badge-container {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -193,7 +195,7 @@ class TX_Badges_Renderer {
         }
 
         /* Mobile styles */
-        .badge-image {
+        ' . $html_id . ' .badge-image {
             width: ' . (int) $mobile_size . 'px !important;
             height: auto !important;
             max-height: ' . (int) $mobile_size . 'px !important;
@@ -201,8 +203,8 @@ class TX_Badges_Renderer {
             object-fit: contain;
         }
 
-        .style-mono .badge-image,
-        .style-mono-card .badge-image {
+        ' . $html_id . ' .style-mono .badge-image,
+        ' . $html_id . ' .style-mono-card .badge-image {
             width: ' . (int) $mobile_size . 'px !important;
             height: ' . (int) $mobile_size . 'px !important;
             -webkit-mask-size: contain;
@@ -216,38 +218,38 @@ class TX_Badges_Renderer {
 
         /* Desktop styles */
         @media screen and (min-width: 768px) {
-            .badge-image {
+            ' . $html_id . ' .badge-image {
                 width: ' . (int) $desktop_size . 'px !important;
                 max-height: ' . (int) $desktop_size . 'px !important;
             }
             
-            .style-mono .badge-image,
-            .style-mono-card .badge-image {
+            ' . $html_id . ' .style-mono .badge-image,
+            ' . $html_id . ' .style-mono-card .badge-image {
                 width: ' . (int) $desktop_size . 'px !important;
                 height: ' . (int) $desktop_size . 'px !important;
             }
         }
 
         /* Hover effects */
-        .badge-container:hover {
+        ' . $html_id . ' .badge-container:hover {
             transform: ' . esc_attr($hover_transform) . ';
         }
-        .badge-container:hover .badge-image {
+        ' . $html_id . ' .badge-container:hover .badge-image {
             transform: scale(1.05);
         }
 
         /* Card styles */
-        .style-card .badge-container,
-        .style-mono-card .badge-container {
+        ' . $html_id . ' .style-card .badge-container,
+        ' . $html_id . ' .style-mono-card .badge-container {
             background-color: #e5e7eb;
             padding: ' . ((int) $badge_padding + 3) . 'px ' . ((int) $badge_padding + 7) . 'px;
             border-radius: ' . (int) $border_radius . 'px;
         }
 
         /* Alignment */
-        .align-left .trust-badges-wrapper { justify-content: flex-start; }
-        .align-center .trust-badges-wrapper { justify-content: center; }
-        .align-right .trust-badges-wrapper { justify-content: flex-end; }
+        ' . $html_id . ' .align-left .trust-badges-wrapper { justify-content: flex-start; }
+        ' . $html_id . ' .align-center .trust-badges-wrapper { justify-content: center; }
+        ' . $html_id . ' .align-right .trust-badges-wrapper { justify-content: flex-end; }
 
         /* Animation styles */
         ' . wp_strip_all_tags($animation_styles) . '
@@ -315,7 +317,7 @@ class TX_Badges_Renderer {
     /**
      * Get animation styles based on settings
      */
-    public static function get_animation_styles($animation) {
+    public static function get_animation_styles($html_id, $animation) {
         if (empty($animation)) {
             return '';
         }
@@ -323,13 +325,13 @@ class TX_Badges_Renderer {
         $styles = '';
 
         // Base opacity for all animations
-        $styles .= '.convers-trust-badges { opacity: 1; }';
-        $styles .= '.badge-container { opacity: 0; }';
+        $styles .= $html_id . ' .convers-trust-badges { opacity: 1; }';
+        $styles .= $html_id . ' .badge-container { opacity: 0; }';
 
         // Animation definition based on type
         switch ($animation) {
             case 'fade':
-                $styles .= '
+                $styles .= $html_id . '
                     .badge-fade .badge-container {
                         animation: badgeFadeIn 0.5s ease forwards;
                         animation-delay: calc(var(--badge-index, 0) * 0.1s);
@@ -342,7 +344,7 @@ class TX_Badges_Renderer {
                 break;
 
             case 'slide':
-                $styles .= '
+                $styles .= $html_id . '
                     .badge-slide .badge-container {
                         transform: translateY(20px);
                         animation: badgeSlideIn 0.5s ease forwards;
@@ -362,7 +364,7 @@ class TX_Badges_Renderer {
                 break;
 
             case 'scale':
-                $styles .= '
+                $styles .= $html_id . '
                     .badge-scale .badge-container {
                         transform: scale(0.8);
                         animation: badgeScaleIn 0.5s ease forwards;
@@ -382,7 +384,7 @@ class TX_Badges_Renderer {
                 break;
 
             case 'bounce':
-                $styles .= '
+                $styles .= $html_id . '
                     .badge-bounce .badge-container {
                         animation: badgeBounceIn 0.6s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
                         animation-delay: calc(var(--badge-index, 0) * 0.1s);
@@ -445,7 +447,7 @@ class TX_Badges_Renderer {
         );
 
         // Return sanitized value or default to 'center' if invalid
-        return isset($allowed_positions[$position]) ? $allowed_positions[$position] : 'center';
+        return $allowed_positions[$position] ?? 'center';
     }
 
 }
