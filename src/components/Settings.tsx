@@ -399,8 +399,8 @@ export function Settings() {
   const [badgeSelectorOpen, setBadgeSelectorOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
+  const [, setHasUnsavedChanges] = useState(false);
+  const [, setGroupToDelete] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [originalName, setOriginalName] = useState<string>("");
   const [unsavedGroups, setUnsavedGroups] = useState<Record<string, boolean>>(
@@ -529,28 +529,6 @@ export function Settings() {
   }, []); // Empty dependency array so it only runs once on mount
 
   // Handle position change for Footer
-  const handlePositionChange = (
-    badgeGroupId: string,
-    position: "left" | "center" | "right"
-  ) => {
-    setBadgeGroups((prev) =>
-      prev.map((group) => {
-        if (group.id === badgeGroupId) {
-          return {
-            ...group,
-            settings: { ...group.settings, position },
-          };
-        }
-        return group;
-      })
-    );
-    // Mark the group as having unsaved changes
-    setUnsavedGroups((prev) => ({
-      ...prev,
-      [badgeGroupId]: true,
-    }));
-  };
-
   const handleSaveBadges = (badgeGroupId: string, selectedBadges: string[]) => {
     handleChange(badgeGroupId, "selectedBadges", selectedBadges);
     setBadgeSelectorOpen(false);
@@ -675,7 +653,7 @@ export function Settings() {
       }
 
       // Save to database
-      const result = await badgeGroupsApi.saveGroup(updatedGroup);
+      await badgeGroupsApi.saveGroup(updatedGroup);
 
       toast({
         title: "Success",
