@@ -1,8 +1,8 @@
 # Trust Badges
 
-**Contributors:** converswp  
+**Contributors:** converswp, parvezvai, shamsbd71  
 **Donate link:** https://converswp.com/trust-badges/  
-**Tags:** WooCommerce, EDD, badges, marketing, payment icons  
+**Tags:** WooCommerce, EDD, badges, marketing, payment icons
 **Requires at least:** 4.7  
 **Tested up to:** 6.7  
 **Stable tag:** 1.0.0  
@@ -77,7 +77,7 @@ A: The settings for Trust Badges are located under **Settings -> Trust Badges** 
 
 ## Support
 
-For support, please visit the [plugin support page](https://converswp.com/trust-badges/) or open an issue on the [GitHub repository](https://github.com/your-repo/trust-badges).
+For support, please visit the [plugin support page](https://converswp.com/trust-badges/)
 
 ## Changelog
 

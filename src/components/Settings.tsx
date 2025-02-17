@@ -67,6 +67,7 @@ const ccourierDelivey = `${window.txBadgesSettings.pluginUrl}assets/images/neede
 const trust = `${window.txBadgesSettings.pluginUrl}assets/images/needed/trust.png`;
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import Info from "@/components/Info.tsx";
 
 // Utility function for merging class names
 function cn(...inputs: ClassValue[]) {
@@ -399,17 +400,13 @@ export function Settings() {
   const [badgeSelectorOpen, setBadgeSelectorOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
+  const [, setHasUnsavedChanges] = useState(false);
+  const [, setGroupToDelete] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [originalName, setOriginalName] = useState<string>("");
-  const [unsavedGroups, setUnsavedGroups] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
-  const [loadingGroups, setLoadingGroups] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [unsavedGroups, setUnsavedGroups] = useState<Record<string, boolean>>({});
+
+  const [loadingGroups, setLoadingGroups] = useState<Record<string, boolean>>({});
 
   const { toast } = useToast();
 
@@ -524,33 +521,10 @@ export function Settings() {
   useEffect(() => {
     // Only set active accordion if explicitly toggled on
     if (badgeGroups.length > 0) {
-      setActiveAccordion(null);
     }
   }, []); // Empty dependency array so it only runs once on mount
 
   // Handle position change for Footer
-  const handlePositionChange = (
-    badgeGroupId: string,
-    position: "left" | "center" | "right"
-  ) => {
-    setBadgeGroups((prev) =>
-      prev.map((group) => {
-        if (group.id === badgeGroupId) {
-          return {
-            ...group,
-            settings: { ...group.settings, position },
-          };
-        }
-        return group;
-      })
-    );
-    // Mark the group as having unsaved changes
-    setUnsavedGroups((prev) => ({
-      ...prev,
-      [badgeGroupId]: true,
-    }));
-  };
-
   const handleSaveBadges = (badgeGroupId: string, selectedBadges: string[]) => {
     handleChange(badgeGroupId, "selectedBadges", selectedBadges);
     setBadgeSelectorOpen(false);
@@ -669,13 +643,8 @@ export function Settings() {
         })
       );
 
-      // If deactivating, close the accordion
-      if (!updatedGroup.isActive && activeAccordion === groupId) {
-        setActiveAccordion(null);
-      }
-
       // Save to database
-      const result = await badgeGroupsApi.saveGroup(updatedGroup);
+      await badgeGroupsApi.saveGroup(updatedGroup);
 
       toast({
         title: "Success",
@@ -765,12 +734,7 @@ export function Settings() {
   useEffect(() => {
     const fetchPluginStatus = async () => {
       try {
-        const response = await fetch('/wp-json/trust-badges/v1/installed-plugins', {
-          headers: {
-            'X-WP-Nonce': window.txBadgesSettings.restNonce
-          }
-        });
-        const data = await response.json();
+        const data = await fetchApi("installed-plugins");
         setInstalledPlugins(data);
 
         // Update badge groups based on plugin status
@@ -893,11 +857,6 @@ export function Settings() {
         type="single"
         collapsible
         className="space-y-4"
-        value={activeAccordion || undefined}
-        onValueChange={(value) => {
-          setActiveAccordion(value);
-        }}
-        defaultValue={undefined}
       >
         {badgeGroups.map((group) => (
           <AccordionItem
@@ -991,7 +950,7 @@ export function Settings() {
                 )}
               </div>
 
-              <div className="flex items-center gap-8">
+              <div className="flex items-center gap-4">
                 {!group.isDefault && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -1051,9 +1010,9 @@ export function Settings() {
               <Separator className="my-4 bg-muted" />
               <div className="p-6 pt-4">
                 {/* Main Settings */}
-                <div className="flex gap-12">
+                <div className="flex gap-6">
                   {/* Left Section - Settings */}
-                  <div className="flex-1">
+                  <div className="w-[40%]">
                     {/* Header */}
                     <>
                       <div className="flex items-center justify-between border-b">
@@ -1099,7 +1058,7 @@ export function Settings() {
                           </div>
 
                           {/* Style Controls - Inline */}
-                          <div className="flex items-center gap-8">
+                          <div className="flex items-center gap-4">
                             {/* Font Size */}
                             <div className="space-y-2">
                               <Label
@@ -1119,7 +1078,7 @@ export function Settings() {
                                     e.target.value
                                   )
                                 }
-                                className={`w-[150px] ${
+                                className={`w-[100px] ${
                                   !group.settings.showHeader
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
@@ -1229,7 +1188,7 @@ export function Settings() {
                     </>
 
                     {/* Badge Placement */}
-                    {group.id !== "footer" && (
+                    {/* {(group.id === "checkout" || group.id === "product_page") && ( */}
                       <div className="mt-8">
                         <h2 className="text-lg font-semibold border-b pb-2 mb-4">
                           Badge Placement
@@ -1237,7 +1196,8 @@ export function Settings() {
                         <div className="space-y-6">
                           <div className="space-y-4">
                             {/* WooCommerce Option */}
-                            {group.isDefault && (
+                            {/*{group.isDefault && (*/}
+                            {(group.id === "checkout" || group.id === "product_page") && (
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <Checkbox
@@ -1273,9 +1233,11 @@ export function Settings() {
                                 )}
                               </div>
                             )}
+                             {/*)}*/}
 
                             {/* EDD Option */}
-                            {group.isDefault && (
+                            {/*{group.isDefault && (*/}
+                            {(group.id === "checkout" || group.id === "product_page") && (
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <Checkbox
@@ -1311,6 +1273,7 @@ export function Settings() {
                                 )}
                               </div>
                             )}
+                            {/*)}*/}
 
                             {/* Shortcode section for custom accordions */}
                             <div className="space-y-2 mt-6">
@@ -1319,7 +1282,7 @@ export function Settings() {
                               </p>
                               <div className="relative">
                                 <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
-                                  {`[trust_badges_${group.id}]`}
+                                  {`[trust_badges id="${group.id}"]`}
                                 </div>
                                 <div className="absolute right-2 top-1.5 flex gap-1">
                                   <Button
@@ -1327,7 +1290,7 @@ export function Settings() {
                                     size="icon"
                                     className="h-7 w-7"
                                     onClick={() =>
-                                      copyToClipboard(`[trust_badges_${group.id}]`)
+                                      copyToClipboard(`[trust_badges id="${group.id}"]`)
                                     }
                                   >
                                     {showCopied ? (
@@ -1357,7 +1320,7 @@ export function Settings() {
                           </div>
                         </div>
                       </div>
-                    )}
+                    {/* )} */}
                   </div>
 
                   <Separator
@@ -1376,7 +1339,7 @@ export function Settings() {
                         <div className="flex flex-col gap-4">
                           {/* Badge Style */}
                           <div className="space-y-2">
-                            <div className="grid grid-cols-4 gap-8">
+                            <div className="grid grid-cols-4 gap-4">
                               {[
                                 { id: "original", label: "Original" },
                                 { id: "card", label: "Card" },
@@ -1424,7 +1387,7 @@ export function Settings() {
                           </div>
 
                           {/* Alignment, Size, Color */}
-                          <div className="space-y-2 flex items-start gap-8">
+                          <div className="space-y-2 flex items-start gap-4">
                             {/* Badge Alignment */}
                             <div className="space-y-2">
                               <Label className="font-medium block">
@@ -1523,7 +1486,7 @@ export function Settings() {
                                       )
                                     }
                                   >
-                                    <SelectTrigger className="w-[180px] flex items-center gap-2">
+                                    <SelectTrigger className="w-auto flex items-center gap-2">
                                       <Monitor className="h-4 w-4" />
                                       <SelectValue placeholder="Desktop size" />
                                     </SelectTrigger>
@@ -1578,7 +1541,7 @@ export function Settings() {
                                       )
                                     }
                                   >
-                                    <SelectTrigger className="w-[180px] flex items-center gap-2">
+                                    <SelectTrigger className="w-auto flex items-center gap-2">
                                       <Smartphone className="h-4 w-4" />
                                       <SelectValue placeholder="Mobile size" />
                                     </SelectTrigger>
@@ -1954,7 +1917,9 @@ export function Settings() {
           </AccordionItem>
         ))}
       </Accordion>
-      
+
+      <Info />
+
       <div className="pt-8 space-y-2">
         <div className="space-y-2">
             <h1 className="text-lg font-bold">Example Screenshots</h1>

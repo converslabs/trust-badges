@@ -5,16 +5,16 @@ import path from "path";
 export default defineConfig({
 	plugins: [react()],
 	build: {
-		outDir: "dist",
-		emptyOutDir: true,
+		outDir: "assets",
+		emptyOutDir: false,
 		manifest: false,
 		rollupOptions: {
 			input: "src/main.tsx",
 			output: {
-				entryFileNames: "main.js",
+				entryFileNames: "js/main.js",
 				chunkFileNames: "[name].js",
 				assetFileNames: (assetInfo) => {
-					if (assetInfo.name === "main.css") return "main.css";
+					if (assetInfo.name === "main.css") return "css/main.css";
 					return "[name][extname]";
 				},
 			},

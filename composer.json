@@ -1,0 +1,13 @@
+{
+  "name": "converswp/trust-badges",
+  "description": "Trust Badges Plugin for WordPress",
+  "type": "wordpress-plugin",
+  "autoload": {
+    "psr-4": {
+      "TrustBadges\\": "includes/"
+    }
+  },
+  "require": {
+    "php": ">=7.2"
+  }
+}

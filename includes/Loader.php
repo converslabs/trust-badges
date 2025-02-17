@@ -1,9 +1,10 @@
 <?php
+namespace TrustBadges;
 
 /**
  * Register all actions and filters for the plugin
  */
-class TX_Badges_Loader {
+class Loader {
 
     /**
      * The array of actions registered with WordPress.

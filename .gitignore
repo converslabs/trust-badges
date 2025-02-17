@@ -3,11 +3,13 @@
 
 # Build
 /dist
-
+/assets/css
+/assets/js
 # IDE
 .idea
 .vscode
 .DS_Store
+release
 assets/.DS_Store
 assets/images/.DS_Store
 .idea/.gitignore
@@ -15,7 +17,7 @@ src/.DS_Store
 assets/.DS_Store
 assets/images/.DS_Store
 assets/images/badges/.DS_Store
-
+vendor
 # OS
 .DS_Store
 Thumbs.db

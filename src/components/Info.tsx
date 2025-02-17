@@ -2,20 +2,20 @@ export function Info() {
   const payment = `${window.txBadgesSettings.pluginUrl}assets/images/needed/payment.png`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-12">
       <div className="mb-6 space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold">How It Works</h1>
+          <h1 className="text-xl font-bold">How It Works</h1>
 
-          <div className="space-y-2 items-center grid grid-cols-1 gap-4">
-            <img
-              src={payment}
-              alt="American Express"
-              className="w-full h-full rounded"
-            />
+          {/*<div className="space-y-2 items-center grid grid-cols-1 gap-4">*/}
+            {/*<img*/}
+            {/*  src={payment}*/}
+            {/*  alt="American Express"*/}
+            {/*  className="w-full h-full rounded"*/}
+            {/*/>*/}
     
-        </div>
-          <div className="pt-8 space-y-4">
+        {/*</div>*/}
+          <div className="pt-4 space-y-4">
             <p className="text-base font-normal">
               Below are some information about how this plugin works and a little explanation.
             </p>
