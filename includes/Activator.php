@@ -9,8 +9,6 @@ class Activator {
         ob_start();
 
         try {
-            TX_Badges_Activator::activate();
-
             // Ensure database tables are created
             self::updateDB();
 

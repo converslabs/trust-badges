@@ -9,6 +9,7 @@
 .idea
 .vscode
 .DS_Store
+release
 assets/.DS_Store
 assets/images/.DS_Store
 .idea/.gitignore
