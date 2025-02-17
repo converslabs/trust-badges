@@ -67,6 +67,7 @@ const ccourierDelivey = `${window.txBadgesSettings.pluginUrl}assets/images/neede
 const trust = `${window.txBadgesSettings.pluginUrl}assets/images/needed/trust.png`;
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import Info from "@/components/Info.tsx";
 
 // Utility function for merging class names
 function cn(...inputs: ClassValue[]) {
@@ -949,7 +950,7 @@ export function Settings() {
                 )}
               </div>
 
-              <div className="flex items-center gap-8">
+              <div className="flex items-center gap-4">
                 {!group.isDefault && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -1009,7 +1010,7 @@ export function Settings() {
               <Separator className="my-4 bg-muted" />
               <div className="p-6 pt-4">
                 {/* Main Settings */}
-                <div className="flex gap-12">
+                <div className="flex gap-6">
                   {/* Left Section - Settings */}
                   <div className="w-[40%]">
                     {/* Header */}
@@ -1057,7 +1058,7 @@ export function Settings() {
                           </div>
 
                           {/* Style Controls - Inline */}
-                          <div className="flex items-center gap-8">
+                          <div className="flex items-center gap-4">
                             {/* Font Size */}
                             <div className="space-y-2">
                               <Label
@@ -1077,7 +1078,7 @@ export function Settings() {
                                     e.target.value
                                   )
                                 }
-                                className={`w-[150px] ${
+                                className={`w-[100px] ${
                                   !group.settings.showHeader
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
@@ -1338,7 +1339,7 @@ export function Settings() {
                         <div className="flex flex-col gap-4">
                           {/* Badge Style */}
                           <div className="space-y-2">
-                            <div className="grid grid-cols-4 gap-8">
+                            <div className="grid grid-cols-4 gap-4">
                               {[
                                 { id: "original", label: "Original" },
                                 { id: "card", label: "Card" },
@@ -1386,7 +1387,7 @@ export function Settings() {
                           </div>
 
                           {/* Alignment, Size, Color */}
-                          <div className="space-y-2 flex items-start gap-8">
+                          <div className="space-y-2 flex items-start gap-4">
                             {/* Badge Alignment */}
                             <div className="space-y-2">
                               <Label className="font-medium block">
@@ -1485,7 +1486,7 @@ export function Settings() {
                                       )
                                     }
                                   >
-                                    <SelectTrigger className="w-[180px] flex items-center gap-2">
+                                    <SelectTrigger className="w-auto flex items-center gap-2">
                                       <Monitor className="h-4 w-4" />
                                       <SelectValue placeholder="Desktop size" />
                                     </SelectTrigger>
@@ -1540,7 +1541,7 @@ export function Settings() {
                                       )
                                     }
                                   >
-                                    <SelectTrigger className="w-[180px] flex items-center gap-2">
+                                    <SelectTrigger className="w-auto flex items-center gap-2">
                                       <Smartphone className="h-4 w-4" />
                                       <SelectValue placeholder="Mobile size" />
                                     </SelectTrigger>
@@ -1916,7 +1917,9 @@ export function Settings() {
           </AccordionItem>
         ))}
       </Accordion>
-      
+
+      <Info />
+
       <div className="pt-8 space-y-2">
         <div className="space-y-2">
             <h1 className="text-lg font-bold">Example Screenshots</h1>

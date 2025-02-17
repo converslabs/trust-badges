@@ -7,13 +7,13 @@ function App() {
 	return (
 		<>
 			<Card className="mt-6 mr-6">
-				<div className="bg-background flex flex-row gap-6">
-					<div className="basis-3/4 py-12 px-4">
+				<div className="gap-6">
+					<div className="basis-3/4 py-12 px-4 max-w-full overflow-auto">
 						<Settings />
 					</div>
-					<div className="basis-1/4 py-12 pl-4 pr-8">
-						<Info />
-					</div>
+					{/*<div className="basis-1/4 py-12 pl-4 pr-8">*/}
+					{/*	<Info />*/}
+					{/*</div>*/}
 				</div>
 			</Card>
 			<Toaster />
