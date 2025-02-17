@@ -403,13 +403,9 @@ export function Settings() {
   const [, setGroupToDelete] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [originalName, setOriginalName] = useState<string>("");
-  const [unsavedGroups, setUnsavedGroups] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
-  const [loadingGroups, setLoadingGroups] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [unsavedGroups, setUnsavedGroups] = useState<Record<string, boolean>>({});
+
+  const [loadingGroups, setLoadingGroups] = useState<Record<string, boolean>>({});
 
   const { toast } = useToast();
 
@@ -524,7 +520,6 @@ export function Settings() {
   useEffect(() => {
     // Only set active accordion if explicitly toggled on
     if (badgeGroups.length > 0) {
-      setActiveAccordion(null);
     }
   }, []); // Empty dependency array so it only runs once on mount
 
@@ -646,11 +641,6 @@ export function Settings() {
           return group;
         })
       );
-
-      // If deactivating, close the accordion
-      if (!updatedGroup.isActive && activeAccordion === groupId) {
-        setActiveAccordion(null);
-      }
 
       // Save to database
       await badgeGroupsApi.saveGroup(updatedGroup);
@@ -866,11 +856,6 @@ export function Settings() {
         type="single"
         collapsible
         className="space-y-4"
-        value={activeAccordion || undefined}
-        onValueChange={(value) => {
-          setActiveAccordion(value);
-        }}
-        defaultValue={undefined}
       >
         {badgeGroups.map((group) => (
           <AccordionItem
@@ -1202,7 +1187,7 @@ export function Settings() {
                     </>
 
                     {/* Badge Placement */}
-                    {group.id !== "footer" && (
+                    {(group.id === "checkout" || group.id === "product_page") && (
                       <div className="mt-8">
                         <h2 className="text-lg font-semibold border-b pb-2 mb-4">
                           Badge Placement
@@ -1210,7 +1195,7 @@ export function Settings() {
                         <div className="space-y-6">
                           <div className="space-y-4">
                             {/* WooCommerce Option */}
-                            {group.isDefault && (
+                            {/*{group.isDefault && (*/}
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <Checkbox
@@ -1245,10 +1230,10 @@ export function Settings() {
                                   </TooltipProvider>
                                 )}
                               </div>
-                            )}
+                             {/*)}*/}
 
                             {/* EDD Option */}
-                            {group.isDefault && (
+                            {/*{group.isDefault && (*/}
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <Checkbox
@@ -1283,7 +1268,7 @@ export function Settings() {
                                   </TooltipProvider>
                                 )}
                               </div>
-                            )}
+                            {/*)}*/}
 
                             {/* Shortcode section for custom accordions */}
                             <div className="space-y-2 mt-6">

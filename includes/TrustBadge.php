@@ -19,7 +19,7 @@ class TrustBadge {
         add_filter( 'woocommerce_should_load_checkout_block', '__return_false' );
 
         // Add WooCommerce hooks if WooCommerce is active
-        if (is_plugin_active('woocommerce/woocommerce.php')) {
+        if (\is_plugin_active('woocommerce/woocommerce.php')) {
             // on woocommerce_after_add_to_cart_form call handle_badge_display and pass the hook and plugin name
             add_action('woocommerce_after_add_to_cart_form', function() {
                 $this->handle_badge_display('woocommerce_after_add_to_cart_form', 'product_page');
@@ -32,7 +32,7 @@ class TrustBadge {
         }
 
         // Add EDD hooks if EDD is active
-        if (is_plugin_active('easy-digital-downloads/easy-digital-downloads.php')) {
+        if (\is_plugin_active('easy-digital-downloads/easy-digital-downloads.php')) {
             add_action('edd_purchase_link_end', function() {
                 $this->handle_badge_display('edd_purchase_link_end', 'product_page');
             });
