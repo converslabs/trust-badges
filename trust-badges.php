@@ -20,6 +20,8 @@ if (!defined('ABSPATH')) {
 if (file_exists(dirname(__FILE__) . '/vendor/autoload.php')) {
     require_once dirname(__FILE__) . '/vendor/autoload.php';
 }
+// Add this near the top after plugin constants
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 // Now you can use your classes with their namespaces
 use TrustBadges\TrustBadge;
