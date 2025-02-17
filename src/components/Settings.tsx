@@ -1281,7 +1281,7 @@ export function Settings() {
                               </p>
                               <div className="relative">
                                 <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
-                                  {`[trust_badges_${group.id}]`}
+                                  {`[trust_badges id="${group.id}"]`}
                                 </div>
                                 <div className="absolute right-2 top-1.5 flex gap-1">
                                   <Button
