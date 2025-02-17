@@ -1011,7 +1011,7 @@ export function Settings() {
                 {/* Main Settings */}
                 <div className="flex gap-12">
                   {/* Left Section - Settings */}
-                  <div className="flex-1">
+                  <div className="w-[40%]">
                     {/* Header */}
                     <>
                       <div className="flex items-center justify-between border-b">
@@ -1187,7 +1187,7 @@ export function Settings() {
                     </>
 
                     {/* Badge Placement */}
-                    {(group.id === "checkout" || group.id === "product_page") && (
+                    {/* {(group.id === "checkout" || group.id === "product_page") && ( */}
                       <div className="mt-8">
                         <h2 className="text-lg font-semibold border-b pb-2 mb-4">
                           Badge Placement
@@ -1196,6 +1196,7 @@ export function Settings() {
                           <div className="space-y-4">
                             {/* WooCommerce Option */}
                             {/*{group.isDefault && (*/}
+                            {(group.id === "checkout" || group.id === "product_page") && (
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <Checkbox
@@ -1230,10 +1231,12 @@ export function Settings() {
                                   </TooltipProvider>
                                 )}
                               </div>
+                            )}
                              {/*)}*/}
 
                             {/* EDD Option */}
                             {/*{group.isDefault && (*/}
+                            {(group.id === "checkout" || group.id === "product_page") && (
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <Checkbox
@@ -1268,6 +1271,7 @@ export function Settings() {
                                   </TooltipProvider>
                                 )}
                               </div>
+                            )}
                             {/*)}*/}
 
                             {/* Shortcode section for custom accordions */}
@@ -1285,7 +1289,7 @@ export function Settings() {
                                     size="icon"
                                     className="h-7 w-7"
                                     onClick={() =>
-                                      copyToClipboard(`[trust_badges_${group.id}]`)
+                                      copyToClipboard(`[trust_badges id="${group.id}"]`)
                                     }
                                   >
                                     {showCopied ? (
@@ -1315,7 +1319,7 @@ export function Settings() {
                           </div>
                         </div>
                       </div>
-                    )}
+                    {/* )} */}
                   </div>
 
                   <Separator
