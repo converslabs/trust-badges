@@ -66,6 +66,11 @@ class TrustBadge {
 
     // Function to render the trust badges shortcode
     public function render_shortcode($attributes) {
+        //if doing ajax or rest api, we need to include the renderer
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            return;
+        }
+
         // Extract the 'id' attribute, defaulting to 1 if not provided
         $attributes = shortcode_atts(array(
             'id' => '1'
