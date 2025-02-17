@@ -4,7 +4,6 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
-import { Checkbox } from "./ui/checkbox";
 import { BadgeSelector } from "./BadgeSelector";
 import {
   Select,
@@ -62,12 +61,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
-const free = `${window.txBadgesSettings.pluginUrl}assets/images/needed/free.png`;
-const ccourierDelivey = `${window.txBadgesSettings.pluginUrl}assets/images/needed/courierDelivey.png`;
-const trust = `${window.txBadgesSettings.pluginUrl}assets/images/needed/trust.png`;
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import Info from "@/components/Info.tsx";
+import Info from "@/components/pages/builder/Info";
+import ExampleScreenshot from "./pages/builder/ExampleScreenshot";
+import { LeftSettings } from "./pages/builder/LeftSettings";
+// import { RightSettings } from "./pages/builder/RightSettings";
 
 // Utility function for merging class names
 function cn(...inputs: ClassValue[]) {
@@ -822,7 +821,7 @@ export function Settings() {
     }
   };
 
-  // Add animation options
+  // Animation options moved here since it's used by RightSettings
   const animationOptions = [
     { value: "fade", label: "Fade" },
     { value: "slide", label: "Slide" },
@@ -832,6 +831,8 @@ export function Settings() {
 
   return (
     <div className="space-y-4">
+
+      {/* Header Section */}
       <div className="mb-6 space-y-8">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">Trust Badges</h1>
@@ -853,6 +854,7 @@ export function Settings() {
         </div>
       </div>
 
+      {/* Accordions */}
       <Accordion
         type="single"
         collapsible
@@ -1008,320 +1010,21 @@ export function Settings() {
               )}
             >
               <Separator className="my-4 bg-muted" />
+
               <div className="p-6 pt-4">
-                {/* Main Settings */}
                 <div className="flex gap-6">
-                  {/* Left Section - Settings */}
-                  <div className="w-[40%]">
-                    {/* Header */}
-                    <>
-                      <div className="flex items-center justify-between border-b">
-                        <h2 className="text-base font-semibold pb-2">
-                          Header Settings
-                        </h2>
-                        <Switch
-                          checked={group.settings.showHeader}
-                          onCheckedChange={(checked) =>
-                            handleChange(group.id, "showHeader", checked)
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex flex-col gap-4">
-                          {/* Header text and font size */}
-                          <div className="space-y-4 mt-4">
-                            <div className="space-y-2">
-                              <Label
-                                className={`font-medium block ${
-                                  !group.settings.showHeader ? "opacity-50" : ""
-                                }`}
-                              >
-                                Header text
-                              </Label>
-                              <Input
-                                value={group.settings.headerText}
-                                onChange={(e) =>
-                                  handleChange(
-                                    group.id,
-                                    "headerText",
-                                    e.target.value
-                                  )
-                                }
-                                disabled={!group.settings.showHeader}
-                                className={
-                                  !group.settings.showHeader
-                                    ? "opacity-50 cursor-not-allowed"
-                                    : ""
-                                }
-                              />
-                            </div>
-                          </div>
-
-                          {/* Style Controls - Inline */}
-                          <div className="flex items-center gap-4">
-                            {/* Font Size */}
-                            <div className="space-y-2">
-                              <Label
-                                className={`font-medium block ${
-                                  !group.settings.showHeader ? "opacity-50" : ""
-                                }`}
-                              >
-                                Font Size (px)
-                              </Label>
-                              <Input
-                                type="number"
-                                value={group.settings.fontSize}
-                                onChange={(e) =>
-                                  handleChange(
-                                    group.id,
-                                    "fontSize",
-                                    e.target.value
-                                  )
-                                }
-                                className={`w-[100px] ${
-                                  !group.settings.showHeader
-                                    ? "opacity-50 cursor-not-allowed"
-                                    : ""
-                                }`}
-                                disabled={!group.settings.showHeader}
-                              />
-                            </div>
-
-                            {/* Alignment */}
-                            <div className="space-y-2">
-                              <Label
-                                className={`font-medium block ${
-                                  !group.settings.showHeader ? "opacity-50" : ""
-                                }`}
-                              >
-                                Alignment
-                              </Label>
-                              <div
-                                className={`flex gap-2 border rounded-md p-1 w-[150px] ${
-                                  !group.settings.showHeader ? "opacity-50" : ""
-                                }`}
-                              >
-                                <Button
-                                  variant={
-                                    group.settings.alignment === "left"
-                                      ? "secondary"
-                                      : "ghost"
-                                  }
-                                  size="sm"
-                                  onClick={() =>
-                                    handleChange(group.id, "alignment", "left")
-                                  }
-                                  className="h-8 w-10"
-                                  disabled={!group.settings.showHeader}
-                                >
-                                  <AlignLeft />
-                                </Button>
-                                <Button
-                                  variant={
-                                    group.settings.alignment === "center"
-                                      ? "secondary"
-                                      : "ghost"
-                                  }
-                                  size="sm"
-                                  onClick={() =>
-                                    handleChange(
-                                      group.id,
-                                      "alignment",
-                                      "center"
-                                    )
-                                  }
-                                  className="h-8 w-10"
-                                  disabled={!group.settings.showHeader}
-                                >
-                                  <AlignCenter />
-                                </Button>
-                                <Button
-                                  variant={
-                                    group.settings.alignment === "right"
-                                      ? "secondary"
-                                      : "ghost"
-                                  }
-                                  size="sm"
-                                  onClick={() =>
-                                    handleChange(group.id, "alignment", "right")
-                                  }
-                                  className="h-8 w-10"
-                                  disabled={!group.settings.showHeader}
-                                >
-                                  <AlignRight />
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Text Color */}
-                            <div className="space-y-2">
-                              <Label
-                                className={`font-medium block ${
-                                  !group.settings.showHeader ? "opacity-50" : ""
-                                }`}
-                              >
-                                Color
-                              </Label>
-                              <div
-                                className={`flex items-center p-2 border w-[50px] h-[42px] rounded-md bg-white ${
-                                  !group.settings.showHeader ? "opacity-50" : ""
-                                }`}
-                              >
-                                <Input
-                                  type="color"
-                                  value={group.settings.textColor}
-                                  onChange={(e) =>
-                                    handleChange(
-                                      group.id,
-                                      "textColor",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-11 h-8 p-0 border-0"
-                                  disabled={!group.settings.showHeader}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-
-                    {/* Badge Placement */}
-                    <div className="mt-8">
-                      <h2 className="text-lg font-semibold border-b pb-2 mb-4">
-                        Badge Placement
-                      </h2>
-                      <div className="space-y-6">
-                        <div className="space-y-4">
-                          {/* WooCommerce Option */}
-                          {(group.id === "checkout" || group.id === "product_page") && (
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Checkbox
-                                  id={`show-woo-${group.id}`}
-                                  checked={
-                                    group.id === "checkout"
-                                      ? group.settings.checkoutBeforeOrderReview
-                                      : group.settings.showAfterAddToCart
-                                  }
-                                  onCheckedChange={(checked) => {
-                                    handleChange(group.id, "woocommerce", checked);
-                                  }}
-                                  disabled={!installedPlugins.woocommerce}
-                                />
-                                <Label htmlFor={`show-woo-${group.id}`} className="text-sm">
-                                  WooCommerce
-                                </Label>
-                              </div>
-                              {!installedPlugins.woocommerce && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <div className="flex items-center text-amber-500">
-                                        <AlertCircle className="h-4 mr-1" />
-                                        <span className="text-xs">Required Plugin</span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>WooCommerce plugin is required</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Easy Digital Downloads Option */}
-                          {(group.id === "checkout" || group.id === "product_page") && (
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Checkbox
-                                  id={`show-edd-${group.id}`}
-                                  checked={
-                                    group.id === "checkout"
-                                      ? group.settings.eddCheckoutBeforePurchaseForm
-                                      : group.settings.eddPurchaseLinkEnd
-                                  }
-                                  onCheckedChange={(checked) => {
-                                    handleChange(group.id, "edd", checked);
-                                  }}
-                                  disabled={!installedPlugins.edd}
-                                />
-                                <Label htmlFor={`show-edd-${group.id}`} className="text-sm">
-                                  Easy Digital Downloads
-                                </Label>
-                              </div>
-                              {!installedPlugins.edd && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <div className="flex items-center text-amber-500">
-                                        <AlertCircle className="h-4 mr-1" />
-                                        <span className="text-xs">Required Plugin</span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Easy Digital Downloads plugin is required</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Shortcode section for custom accordions */}
-                          <div className="space-y-2 mt-6">
-                            <p className="text-sm">
-                              Use this shortcode to display the badges anywhere in the website:
-                            </p>
-                            <div className="relative">
-                              <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
-                                {`[trust_badges id="${group.id}"]`}
-                              </div>
-                              <div className="absolute right-2 top-1.5 flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() =>
-                                    copyToClipboard(`[trust_badges id="${group.id}"]`)
-                                  }
-                                >
-                                  {showCopied ? (
-                                    <CheckCircle className="h-4 mr-1 text-green-500" />
-                                  ) : (
-                                    <Copy className="h-4 w-4 text-primary hover:text-primary/80" />
-                                  )}
-                                </Button>
-                              </div>
-                              <AnimatePresence>
-                                {showCopied && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: 5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0 }}
-                                    className="absolute left-0 right-0 top-full mt-2 text-center z-10"
-                                  >
-                                    <span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-4 py-3 text-sm text-white">
-                                      <CheckCircle className="h-4 mr-1 text-green-500" />{" "}
-                                      Shortcode copied to clipboard
-                                    </span>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator
-                    orientation="vertical"
-                    className="bg-muted h-auto"
+                  {/* LeftSettings - Component */}
+                  <LeftSettings 
+                    group={group}
+                    installedPlugins={installedPlugins}
+                    handleChange={handleChange}
+                    copyToClipboard={copyToClipboard}
+                    showCopied={showCopied}
                   />
-
+                  
+                  <Separator orientation="vertical" className="bg-muted h-auto" />
+                  
+                  {/* RightSettings - Component */}
                   {/* Right Section - Bar Preview */}
                   <div className="w-[60%] top-6 self-start space-y-12">
                     {/* Badges */}
@@ -1854,7 +1557,7 @@ export function Settings() {
                     </Card>
                   </div>
                 </div>
-
+                
                 {/* Badge Selector Modal */}
                 <BadgeSelector
                   open={badgeSelectorOpen}
@@ -1906,38 +1609,20 @@ export function Settings() {
                     )}
                   </Button>
                 </div>
+                
               </div>
             </AccordionContent>
+
           </AccordionItem>
         ))}
       </Accordion>
 
+      {/* Info Component */}
       <Info />
 
-      <div className="pt-8 space-y-2">
-        <div className="space-y-2">
-            <h1 className="text-lg font-bold">Example Screenshots</h1>
+      {/* Example Screenshot Component */}
+      <ExampleScreenshot />
 
-            <div className="grid grid-cols-3 gap-4">
-              <img
-                src={ccourierDelivey}
-                alt="American Express"
-                className="w-full h-full rounded"
-              />
-              <img
-                src={trust}
-                alt="American Express"
-                className="w-full h-full rounded"
-              />
-              <img
-                src={free}
-                alt="American Express"
-                className="w-full h-full rounded"
-              />
-      
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
