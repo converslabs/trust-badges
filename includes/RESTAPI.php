@@ -12,7 +12,7 @@ class RESTAPI {
     // Utility method for handling database errors
     private function handle_db_error($wpdb, $context = '') {
         if ($wpdb->last_error) {
-            error_log("TX Badges DB Error ({$context}): " . $wpdb->last_error);
+            error_log("Trust Badges DB Error ({$context}): " . $wpdb->last_error);
             return new WP_Error(
                 'database_error',
                 'A database error occurred: ' . $wpdb->last_error,
@@ -164,7 +164,7 @@ class RESTAPI {
                 ],
             ]);
         } catch (Exception $e) {
-            error_log('TX Badges REST API Error: ' . $e->getMessage());
+            error_log('Trust Badges REST API Error: ' . $e->getMessage());
         }
     }
 
@@ -209,7 +209,7 @@ class RESTAPI {
 
             return true;
         } catch (Exception $e) {
-            error_log('TX Badges Permission Check Error: ' . $e->getMessage());
+            error_log('Trust Badges Permission Check Error: ' . $e->getMessage());
             return new WP_Error(
                 'rest_error',
                 __('An unexpected error occurred.', 'trust-badges'),
@@ -305,7 +305,7 @@ class RESTAPI {
                 throw $e;
             }
         } catch (Exception $e) {
-            error_log('TX Badges Save Group Error: ' . $e->getMessage());
+            error_log('Trust Badges Save Group Error: ' . $e->getMessage());
             return new WP_Error(
                 'save_error',
                 $e->getMessage(),

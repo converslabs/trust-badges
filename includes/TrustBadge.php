@@ -221,7 +221,7 @@ class TrustBadge {
             add_action('admin_notices', function() use ($e) {
                 printf(
                     '<div class="notice notice-error"><p>%s</p></div>',
-                    esc_html__('Failed to load TX Badges plugin resources. Please check error logs for details.', 'trust-badges')
+                    esc_html__('Failed to load Trust Badges plugin resources. Please check error logs for details.', 'trust-badges')
                 );
             });
         }
