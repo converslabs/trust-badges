@@ -14,7 +14,7 @@ interface HeaderBuilderProps {
 export function HeaderBuilder({ group, handleChange }: HeaderBuilderProps) {
   return (
     <>
-      <div className="flex items-center justify-between border-b">
+      <div className="flex justify-between border-b">
         <h2 className="text-base font-semibold pb-2">Header Settings</h2>
         <Switch
           checked={group.settings.showHeader}

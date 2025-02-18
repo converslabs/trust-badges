@@ -8,7 +8,7 @@ export function ExampleScreenshot() {
     <div className="pt-8 space-y-2">
       <div className="space-y-2">
           <h1 className="text-lg font-bold">Example Screenshots</h1>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 pt-2">
           <img
             src={ccourierDelivey}
             alt="American Express"

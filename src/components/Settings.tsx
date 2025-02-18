@@ -830,7 +830,7 @@ export function Settings() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div>
 
       {/* Header Section */}
       <div className="mb-6 space-y-8">
@@ -1009,9 +1009,9 @@ export function Settings() {
                 !group.isActive && "opacity-50 select-none"
               )}
             >
-              <Separator className="my-4 bg-muted" />
+              <Separator className="bg-muted" />
 
-              <div className="p-6 pt-4">
+              <div className="p-4 pb-0">
                 <div className="flex gap-6">
                   {/* LeftSettings - Component */}
                   <LeftSettings 
@@ -1617,11 +1617,11 @@ export function Settings() {
         ))}
       </Accordion>
 
-      {/* Info Component */}
-      <Info />
-
       {/* Example Screenshot Component */}
       <ExampleScreenshot />
+
+      {/* Info Component */}
+      <Info />
 
     </div>
   );
