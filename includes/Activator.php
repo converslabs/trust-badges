@@ -18,8 +18,8 @@ class Activator {
         } catch (Exception $e) {
             // Clean the buffer and log the error
             ob_end_clean();
-            cwp_trust_badges_log_error('Plugin Activation Error: ' . $e->getMessage());
-            wp_die('Failed to activate TX Badges plugin. Please check error logs for details.');
+            trust_badges_log_error('Plugin Activation Error: ' . $e->getMessage());
+            wp_die('Failed to activate Trust Badges plugin. Please check error logs for details.');
         }
     }
 
