@@ -1,29 +1,29 @@
 export function ExampleScreenshot() {
   
-  const free = `${window.txBadgesSettings.pluginUrl}assets/images/needed/free.png`;
-  const ccourierDelivey = `${window.txBadgesSettings.pluginUrl}assets/images/needed/courierDelivey.png`;
-  const trust = `${window.txBadgesSettings.pluginUrl}assets/images/needed/trust.png`;
+  const paymentBadges = `${window.txBadgesSettings.pluginUrl}assets/images/needed/paymentBadges.png`;
+  const banks = `${window.txBadgesSettings.pluginUrl}assets/images/needed/banks.png`;
+  const courierDelivery = `${window.txBadgesSettings.pluginUrl}assets/images/needed/courierDelivery.png`;
 
   return (
     <div className="pt-8 space-y-2">
       <div className="space-y-2">
           <h1 className="text-lg font-bold">Example Screenshots</h1>
         <div className="grid grid-cols-3 gap-4 pt-2">
-          <img
-            src={ccourierDelivey}
-            alt="American Express"
+        <img
+            src={paymentBadges}
+            alt="Payment Methods Badges"
             className="w-full h-full rounded"
           />
           <img
-            src={trust}
-            alt="American Express"
+            src={banks}
+            alt="Banks Badges"
             className="w-full h-full rounded"
           />
           <img
-            src={free}
-            alt="American Express"
-            className="w-full h-full rounded"
-          />
+          src={courierDelivery}
+          alt="Currier Delivery Badges"
+          className="w-full h-full rounded"
+        />
         </div>
       </div>
     </div>
