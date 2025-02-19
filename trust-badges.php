@@ -27,9 +27,9 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
 use TrustBadges\TrustBadge;
 
 // Define plugin constants
-define('TX_BADGES_VERSION', '1.0.0');
-define('TX_BADGES_PLUGIN_DIR', plugin_dir_path(__FILE__));
-define('TX_BADGES_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('TRUST_BADGES_VERSION', '1.0.0');
+define('TRUST_BADGES_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('TRUST_BADGES_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 // Start the plugin
 add_action( 'plugins_loaded', function () {
@@ -41,10 +41,10 @@ add_action( 'plugins_loaded', function () {
 register_activation_hook(__FILE__, ['TrustBadges\Activator', 'activate']);
 
 
-if(!function_exists('cwp_trust_badges_log_error')) {
-    function cwp_trust_badges_log_error($message, $context = []) {
+if(!function_exists('trust_badges_log_error')) {
+    function trust_badges_log_error($message, $context = []) {
         error_log(sprintf(
-            '[TX Badges Error] %s | Context: %s',
+            '[Trust Badges Error] %s | Context: %s',
             $message,
             json_encode($context)
         ));
