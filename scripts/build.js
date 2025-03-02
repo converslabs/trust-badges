@@ -2,6 +2,8 @@ const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const archiver = require('archiver');
+const { build } = require('vite');
+const viteConfig = require('../vite.config.ts');
 
 // Clean the release folder
 const cleanReleaseFolder = () => {
@@ -39,7 +41,7 @@ const installDeps = () => {
 };
 
 // Build the project
-const build = () => {
+const buildProject = () => {
     return new Promise((resolve, reject) => {
         exec('npm run build', {
             cwd: path.resolve(__dirname, '..')
@@ -67,12 +69,28 @@ const zipPlugin = (version) => {
         archive.directory(path.resolve(__dirname, '../assets'), 'assets');
         archive.directory(path.resolve(__dirname, '../includes'), 'includes');
         archive.directory(path.resolve(__dirname, '../vendor'), 'vendor');
+        archive.directory(path.resolve(__dirname, '../assets/uncompressed'), 'assets/uncompressed');
         archive.file(path.resolve(__dirname, '../README.md'), { name: 'readme.md' });
         archive.file(path.resolve(__dirname, '../trust-badges.php'), { name: 'trust-badges.php' });
         archive.file(path.resolve(__dirname, '../composer.json'), { name: 'composer.json' });
 
         archive.finalize();
     });
+};
+
+const buildUncompressed = async () => {
+  const uncompressedConfig = {
+    ...viteConfig.default,
+    build: {
+      minify: false,
+      outDir: 'assets/uncompressed',
+      sourcemap: false,
+      rollupOptions: {
+        ...viteConfig.default.build.rollupOptions
+      }
+    }
+  };
+  await build(uncompressedConfig);
 };
 
 const main = async () => {
@@ -82,7 +100,8 @@ const main = async () => {
         console.log('Installing dependencies...');
         await installDeps();
         console.log('Building project...');
-        await build();
+        await buildProject();
+        await buildUncompressed();
 
         // wait 2 seconds
         await new Promise((resolve) => setTimeout(resolve, 2000));
