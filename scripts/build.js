@@ -56,20 +56,11 @@ const build = () => {
 // Zip the plugin folder
 const zipPlugin = (version) => {
     return new Promise((resolve, reject) => {
-        const output = fs.createWriteStream(path.resolve(__dirname, `../release/trust-badges_v${version}.zip`));
-        const archive = archiver('zip', {
-            zlib: { level: 9 }
-        });
+        const output = fs.createWriteStream(path.resolve(__dirname, `../release/trust-badges-v${version}.zip`));
+        const archive = archiver('zip', { zlib: { level: 9 } });
 
-        output.on('close', () => {
-            console.log(`trust-badges_v${version}.zip has been created`);
-            resolve();
-        });
-
-        archive.on('error', (err) => {
-            reject(err);
-        });
-
+        output.on('close', resolve);
+        archive.on('error', reject);
         archive.pipe(output);
 
         // Add specific directories and files
@@ -78,6 +69,7 @@ const zipPlugin = (version) => {
         archive.directory(path.resolve(__dirname, '../vendor'), 'vendor');
         archive.file(path.resolve(__dirname, '../README.md'), { name: 'readme.md' });
         archive.file(path.resolve(__dirname, '../trust-badges.php'), { name: 'trust-badges.php' });
+        archive.file(path.resolve(__dirname, '../composer.json'), { name: 'composer.json' });
 
         archive.finalize();
     });
