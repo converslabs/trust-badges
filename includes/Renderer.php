@@ -5,13 +5,13 @@ class Renderer {
 
     public static function renderBadgeById($group_id = '') {
         if($group_id == '') {
-            cwp_trust_badges_log_error('Group ID is empty', ['group_id' => $group_id]);
+            trust_badges_log_error('Group ID is empty', ['group_id' => $group_id]);
             return false;
         }
 
         $settings = Renderer::getBadgeByGroup($group_id);
         if(empty($settings)) {
-            cwp_trust_badges_log_error('Group settings not found.', ['group_id' => $group_id, 'settings' => $settings]);
+            trust_badges_log_error('Group settings not found.', ['group_id' => $group_id, 'settings' => $settings]);
             return false;
         }
 
@@ -19,7 +19,7 @@ class Renderer {
             // Render badges with settings
             $badgeHtml = Renderer::renderBadgeHtml($settings->group_id, $settings->settings);
         } else {
-            cwp_trust_badges_log_error('Badge is disabled.', ['settings' => $settings]);
+            trust_badges_log_error('Badge is disabled.', ['settings' => $settings]);
             return false;
         }
 
@@ -416,7 +416,7 @@ class Renderer {
     }
 
     public static function get_badge_filename($badge_id) {
-        $badgeJsonPath = TX_BADGES_PLUGIN_DIR . 'assets/badges.json';
+        $badgeJsonPath = TRUST_BADGES_PLUGIN_DIR . 'assets/badges.json';
 
         // now load file content as json
         $badges = json_decode(file_get_contents($badgeJsonPath), true);

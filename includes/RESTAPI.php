@@ -25,7 +25,7 @@ class RESTAPI {
     // Rate limiting check
     private function check_rate_limit() {
         $ip = $_SERVER['REMOTE_ADDR'];
-        $cache_key = 'tx_badges_rate_limit_' . $ip;
+        $cache_key = 'trust_badges_rate_limit_' . $ip;
         $requests = get_transient($cache_key);
         
         if ($requests > 100) { // 100 requests per hour
@@ -282,7 +282,7 @@ class RESTAPI {
                 $wpdb->query('COMMIT');
 
                 // Clear cache
-                wp_cache_delete('tx_badges_settings');
+                wp_cache_delete('trust_badges_settings');
 
                 // Return success response with updated group data
                 $updated_group = array(
@@ -321,17 +321,17 @@ class RESTAPI {
 
     public function create_badge_permissions_check($request) {
         return current_user_can('manage_options') && 
-               check_ajax_referer('tx_badges_nonce', 'nonce', false);
+               check_ajax_referer('trust_badges_nonce', 'nonce', false);
     }
 
     public function update_badge_permissions_check($request) {
         return current_user_can('manage_options') && 
-               check_ajax_referer('tx_badges_nonce', 'nonce', false);
+               check_ajax_referer('trust_badges_nonce', 'nonce', false);
     }
 
     public function delete_badge_permissions_check($request) {
         return current_user_can('manage_options') && 
-               check_ajax_referer('tx_badges_nonce', 'nonce', false);
+               check_ajax_referer('trust_badges_nonce', 'nonce', false);
     }
 
     public function get_settings_permissions_check($request) {
@@ -340,7 +340,7 @@ class RESTAPI {
 
     public function update_settings_permissions_check($request) {
         return current_user_can('manage_options') && 
-               check_ajax_referer('tx_badges_nonce', 'nonce', false);
+               check_ajax_referer('trust_badges_nonce', 'nonce', false);
     }
 
     // Badge management methods
@@ -355,7 +355,7 @@ class RESTAPI {
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
         
         // Try to get from cache first
-        $cache_key = 'tx_badges_all';
+        $cache_key = 'trust_badges_all';
         $badges = wp_cache_get($cache_key);
         
         if (false === $badges) {
@@ -409,7 +409,7 @@ class RESTAPI {
         }
 
         // Clear cache
-        wp_cache_delete('tx_badges_all');
+        wp_cache_delete('trust_badges_all');
         
         return new WP_REST_Response([
             'id' => $wpdb->insert_id,
@@ -477,7 +477,7 @@ class RESTAPI {
             $wpdb->query('COMMIT');
             
             // Clear cache
-            wp_cache_delete('tx_badges_settings');
+            wp_cache_delete('trust_badges_settings');
             
             return new WP_REST_Response([
                 'message' => 'Settings updated successfully'
@@ -562,7 +562,7 @@ class RESTAPI {
         }
 
         // Clear cache
-        wp_cache_delete('tx_badges_settings');
+        wp_cache_delete('trust_badges_settings');
         
         return new WP_REST_Response([
             'message' => 'Group deleted successfully'

@@ -7,7 +7,7 @@ class TrustBadge {
     protected $version;
 
     public function __construct() {
-        $this->version = TX_BADGES_VERSION;
+        $this->version = TRUST_BADGES_VERSION;
         $this->plugin_name = 'trust-badges';
 
         $this->load_dependencies();
@@ -162,7 +162,7 @@ class TrustBadge {
             wp_enqueue_script('wp-api-fetch');
 
             // Check if main CSS file exists
-            $css_file = TX_BADGES_PLUGIN_DIR . 'assets/css/main.css';
+            $css_file = TRUST_BADGES_PLUGIN_DIR . 'assets/css/main.css';
             if (!file_exists($css_file)) {
                 throw new Exception('Required CSS file not found: ' . $css_file);
             }
@@ -170,22 +170,22 @@ class TrustBadge {
             // Enqueue main CSS
             wp_enqueue_style(
                 'trust-badges-admin',
-                TX_BADGES_PLUGIN_URL . 'assets/css/main.css',
+                TRUST_BADGES_PLUGIN_URL . 'assets/css/main.css',
                 [],
-                TX_BADGES_VERSION
+                TRUST_BADGES_VERSION
             );
 
             // Check if main JS file exists
-            $js_file = TX_BADGES_PLUGIN_DIR . 'assets/js/main.js';
+            $js_file = TRUST_BADGES_PLUGIN_DIR . 'assets/js/main.js';
             if (!file_exists($js_file)) {
                 throw new Exception('Required JS file not found: ' . $js_file);
             }
             // Enqueue main JS with proper dependencies
             wp_enqueue_script(
                 'trust-badges-admin',
-                TX_BADGES_PLUGIN_URL . 'assets/js/main.js',
+                TRUST_BADGES_PLUGIN_URL . 'assets/js/main.js',
                 ['jquery', 'wp-i18n', 'wp-api-fetch'],
-                TX_BADGES_VERSION,
+                TRUST_BADGES_VERSION,
                 true
             );
 
@@ -202,7 +202,7 @@ class TrustBadge {
             $settings = [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'restUrl' => rest_url('trust-badges/v1/'),
-                'pluginUrl' => TX_BADGES_PLUGIN_URL,
+                'pluginUrl' => TRUST_BADGES_PLUGIN_URL,
                 'mediaTitle' => __('Select or Upload Badge Image', 'trust-badges'),
                 'mediaButton' => __('Use this image', 'trust-badges'),
                 'debug' => WP_DEBUG,
@@ -217,7 +217,7 @@ class TrustBadge {
             );
 
         } catch (Exception $e) {
-            cwp_trust_badges_log_error('Script Enqueue Error: ' . $e->getMessage());
+            trust_badges_log_error('Script Enqueue Error: ' . $e->getMessage());
             add_action('admin_notices', function() use ($e) {
                 printf(
                     '<div class="notice notice-error"><p>%s</p></div>',
