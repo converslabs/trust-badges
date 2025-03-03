@@ -46,6 +46,27 @@ class Activator {
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
 
+        // Check if default groups are already cached
+        $cache_key = 'trust_badges_default_groups';
+        $default_groups_exist = wp_cache_get($cache_key);
+
+        if (false === $default_groups_exist) {
+            // Check if any default groups exist in database
+            $existing_groups = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM `" . $wpdb->prefix . "converswp_trust_badges` WHERE is_default = %d",
+                    1
+                )
+            );
+
+            if ($existing_groups > 0) {
+                wp_cache_set($cache_key, true, '', HOUR_IN_SECONDS);
+                return;
+            }
+        } else {
+            return;
+        }
+
         // Check if required plugins are active
         $woocommerce_active = is_plugin_active('woocommerce/woocommerce.php');
         $edd_active = is_plugin_active('easy-digital-downloads/easy-digital-downloads.php');
@@ -160,11 +181,14 @@ class Activator {
         ];
 
         foreach ($default_groups as $group) {
-            $wpdb->replace(
+            $wpdb->replace(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 $table_name,
-                $group,
+                array_map('sanitize_text_field', $group),
                 ['%s', '%s', '%d', '%d', '%s', '%s']
             );
         }
+
+        // Cache that default groups have been inserted
+        wp_cache_set($cache_key, true, '', HOUR_IN_SECONDS);
     }
 }

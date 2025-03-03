@@ -240,7 +240,7 @@ class RESTAPI {
             }
 
             // Start transaction
-            $wpdb->query('START TRANSACTION');
+            $wpdb->query('START TRANSACTION');  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
             try {
                 // Prepare data for database
@@ -253,7 +253,7 @@ class RESTAPI {
                 $where = array('group_id' => sanitize_text_field($group['id']));
                 
                 // Check if group exists
-                $existing = $wpdb->get_var(
+                $existing = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                     $wpdb->prepare(
                         "SELECT COUNT(*) FROM `" . esc_sql($table_name) . "` WHERE group_id = %s",
                         $group['id']
@@ -262,12 +262,12 @@ class RESTAPI {
 
                 if ($existing) {
                     // Update existing group
-                    $result = $wpdb->update($table_name, $data, $where);
+                    $result = $wpdb->update($table_name, $data, $where);  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 } else {
                     // Insert new group
                     $data['group_id'] = sanitize_text_field($group['id']);
                     $data['is_default'] = isset($group['isDefault']) ? (bool)$group['isDefault'] : false;
-                    $result = $wpdb->insert($table_name, $data);
+                    $result = $wpdb->insert($table_name, $data);  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 }
 
                 // Check for database errors
@@ -280,7 +280,7 @@ class RESTAPI {
                 }
 
                 // Commit transaction
-                $wpdb->query('COMMIT');
+                $wpdb->query('COMMIT');  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
                 // Clear cache
                 wp_cache_delete('trust_badges_settings');
@@ -302,7 +302,7 @@ class RESTAPI {
                 ));
 
             } catch (Exception $e) {
-                $wpdb->query('ROLLBACK');
+                $wpdb->query('ROLLBACK');  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 throw $e;
             }
         } catch (Exception $e) {
@@ -359,7 +359,7 @@ class RESTAPI {
         $badges = wp_cache_get($cache_key);
         
         if (false === $badges) {
-            $results = $wpdb->get_results(
+            $results = $wpdb->get_results(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 $wpdb->prepare(
                     "SELECT * FROM `" . esc_sql($table_name) . "` WHERE is_active = %d",
                     1
@@ -407,7 +407,7 @@ class RESTAPI {
             'created_at' => current_time('mysql')
         ];
 
-        $result = $wpdb->insert($table_name, $data);
+        $result = $wpdb->insert($table_name, $data);  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         
         if ($error = $this->handle_db_error($wpdb, 'create_badge')) {
             return $error;
@@ -428,7 +428,7 @@ class RESTAPI {
         global $wpdb;
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
         
-        $groups = $wpdb->get_results(
+        $groups = $wpdb->get_results(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->prepare(
                 "SELECT * FROM `" . esc_sql($table_name) . "` ORDER BY id ASC"
             )
@@ -462,7 +462,7 @@ class RESTAPI {
             return new WP_Error('invalid_data', 'Invalid groups data', ['status' => 400]);
         }
 
-        $wpdb->query('START TRANSACTION');
+        $wpdb->query('START TRANSACTION');  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
         try {
             foreach ($groups as $group) {
@@ -474,14 +474,14 @@ class RESTAPI {
 
                 $where = ['group_id' => sanitize_text_field($group['id'])];
                 
-                $result = $wpdb->update($table_name, $data, $where);
+                $result = $wpdb->update($table_name, $data, $where);  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 
                 if ($error = $this->handle_db_error($wpdb, 'save_settings')) {
                     throw new Exception($error->get_error_message());
                 }
             }
 
-            $wpdb->query('COMMIT');
+            $wpdb->query('COMMIT');  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             
             // Clear cache
             wp_cache_delete('trust_badges_settings');
@@ -490,7 +490,7 @@ class RESTAPI {
                 'message' => 'Settings updated successfully'
             ], 200);
         } catch (Exception $e) {
-            $wpdb->query('ROLLBACK');
+            $wpdb->query('ROLLBACK');  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             return new WP_Error('update_failed', $e->getMessage(), ['status' => 500]);
         }
     }
@@ -500,7 +500,7 @@ class RESTAPI {
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
         $group_id = sanitize_text_field($request['id']);
         
-        $result = $wpdb->get_row(
+        $result = $wpdb->get_row(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->prepare(
                 "SELECT * FROM `" . esc_sql($table_name) . "` WHERE group_id = %s",
                 $group_id
@@ -535,7 +535,7 @@ class RESTAPI {
         $group_id = sanitize_text_field($request['id']);
 
         // Don't allow deletion of default groups
-        $is_default = $wpdb->get_var(
+        $is_default = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->prepare(
                 "SELECT is_default FROM `" . esc_sql($table_name) . "` WHERE group_id = %s",
                 $group_id
@@ -550,7 +550,7 @@ class RESTAPI {
             );
         }
 
-        $result = $wpdb->delete(
+        $result = $wpdb->delete(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $table_name,
             ['group_id' => $group_id],
             ['%s']

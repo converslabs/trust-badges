@@ -62,38 +62,24 @@ class Renderer {
         $group = wp_cache_get($cache_key, 'trust_badges');
         
         if (false === $group) {
-            // Use WP_Query to fetch the group
-            $args = array(
-                'post_type' => 'trust_badge',  // Assuming the badges are stored as custom posts
-                'posts_per_page' => 1,
-                'post_status' => 'publish',
-                'meta_query' => array(
-                    array(
-                        'key' => 'group_id',
-                        'value' => $group_id,
-                        'compare' => '='
-                    ),
-                    array(
-                        'key' => 'is_active',
-                        'value' => 1,
-                        'compare' => '='
-                    ),
-                ),
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'converswp_trust_badges';
+        
+            $group = $wpdb->get_row(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                $wpdb->prepare(
+                    "SELECT * FROM `" . esc_sql($table_name) . "` WHERE is_active = 1 AND group_id = %s",
+                    $group_id
+                )
             );
-    
-            $query = new WP_Query($args);
-    
-            if ($query->have_posts()) {
-                $group = $query->posts[0]; // Assuming only one group will be returned
-    
-                // Optional: You can decode any settings or other data here
-                $group->settings = json_decode($group->settings, true);
-    
-                // Cache the result for 1 hour
-                wp_cache_set($cache_key, $group, 'trust_badges', HOUR_IN_SECONDS);
-            } else {
+        
+            if (!$group) {
                 return false;
             }
+        
+            $group->settings = json_decode($group->settings, true);
+            
+            // Cache the result for 1 hour
+            wp_cache_set($cache_key, $group, 'trust_badges', HOUR_IN_SECONDS);
         }
             
         return $group;
