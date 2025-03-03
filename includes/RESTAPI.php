@@ -534,13 +534,22 @@ class RESTAPI {
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
         $group_id = sanitize_text_field($request['id']);
 
-        // Don't allow deletion of default groups
-        $is_default = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-            $wpdb->prepare(
-                "SELECT is_default FROM `" . esc_sql($table_name) . "` WHERE group_id = %s",
-                $group_id
-            )
-        );
+        // Check cache first
+        $cache_key = 'trust_badges_group_' . $group_id;
+        $is_default = wp_cache_get($cache_key);
+        
+        if (false === $is_default) {
+            // Cache miss - query database
+            $is_default = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                $wpdb->prepare(
+                    "SELECT is_default FROM `" . esc_sql($table_name) . "` WHERE group_id = %s",
+                    $group_id
+                )
+            );
+            
+            // Cache the result for 1 hour
+            wp_cache_set($cache_key, $is_default, '', HOUR_IN_SECONDS);
+        }
 
         if ($is_default) {
             return new WP_Error(
@@ -550,6 +559,7 @@ class RESTAPI {
             );
         }
 
+        // Delete the group and clear caches
         $result = $wpdb->delete(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $table_name,
             ['group_id' => $group_id],
@@ -568,7 +578,8 @@ class RESTAPI {
             );
         }
 
-        // Clear cache
+        // Clear all related caches
+        wp_cache_delete($cache_key);
         wp_cache_delete('trust_badges_settings');
         
         return new WP_REST_Response([
