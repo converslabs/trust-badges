@@ -8,7 +8,6 @@
  * Author: ConversWP
  * Author URI: https://converswp.com
  * Text Domain: trust-badges
- * Domain Path: /languages
  * Requires PHP: 7.4
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -44,13 +43,16 @@ add_action('plugins_loaded', function () {
 register_activation_hook(__FILE__, ['TrustBadges\Activator', 'activate']);
 
 
-if(!function_exists('trust_badges_log_error')) {
+if (!function_exists('trust_badges_log_error')) {
     function trust_badges_log_error($message, $context = []) {
-        error_log(sprintf(
-            '[Trust Badges Error] %s | Context: %s',
-            $message,
-            json_encode($context)
-        ));
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            $log_message = sprintf(
+                '[Trust Badges Error] %s | Context: %s',
+                $message,
+                json_encode($context)
+            );
+
+            do_action('trust_badges_log_error', $log_message, $context);
+        }
     }
 }
-// Add error logging function
