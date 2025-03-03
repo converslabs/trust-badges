@@ -173,9 +173,7 @@ class Renderer {
         // Get animation styles based on settings
         $animation_styles = self::get_animation_styles($html_id, $animation);
 
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
-        // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
-        echo '<style type="text/css" id="convers-trust-badges-styles-'.$group_id.'">
+        $custom_css = '
         ' . $html_id . ' .convers-trust-badges {
             margin: ' . (int) $container_margin . 'px 0;
             width: 100%;
@@ -254,8 +252,22 @@ class Renderer {
 
         /* Animation styles */
         ' . wp_strip_all_tags($animation_styles) . '
-        </style>';
-        // phpcs:enable
+        ';
+
+        // Register and enqueue main styles
+        wp_register_style(
+            'trust-badges-main',
+            plugins_url('assets/css/main.css', dirname(__FILE__)),
+            [],
+            TRUST_BADGES_VERSION
+        );
+        wp_enqueue_style('trust-badges-main');
+
+        // Add inline styles for this specific badge group
+        wp_add_inline_style(
+            'trust-badges-main',
+            $custom_css
+        );
     }
 
     /**
