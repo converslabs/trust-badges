@@ -12,7 +12,6 @@ class RESTAPI {
     // Utility method for handling database errors
     private function handle_db_error($wpdb, $context = '') {
         if ($wpdb->last_error) {
-            error_log("Trust Badges DB Error ({$context}): " . $wpdb->last_error);
             return new WP_Error(
                 'database_error',
                 'A database error occurred: ' . $wpdb->last_error,
@@ -164,7 +163,10 @@ class RESTAPI {
                 ],
             ]);
         } catch (Exception $e) {
-            error_log('Trust Badges REST API Error: ' . $e->getMessage());
+            trust_badges_log_error('REST API Registration Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 
@@ -195,7 +197,7 @@ class RESTAPI {
             // Get nonce from headers
             $nonce = null;
             if (isset($_SERVER['HTTP_X_WP_NONCE'])) {
-                $nonce = Utilities::sanitize_nonce($_SERVER['HTTP_X_WP_NONCE']);
+                $nonce = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_WP_NONCE']));
             }
 
             // Verify nonce
@@ -209,7 +211,6 @@ class RESTAPI {
 
             return true;
         } catch (Exception $e) {
-            error_log('Trust Badges Permission Check Error: ' . $e->getMessage());
             return new WP_Error(
                 'rest_error',
                 __('An unexpected error occurred.', 'trust-badges'),
@@ -254,7 +255,7 @@ class RESTAPI {
                 // Check if group exists
                 $existing = $wpdb->get_var(
                     $wpdb->prepare(
-                        "SELECT COUNT(*) FROM $table_name WHERE group_id = %s",
+                        "SELECT COUNT(*) FROM `" . esc_sql($table_name) . "` WHERE group_id = %s",
                         $group['id']
                     )
                 );
@@ -305,7 +306,6 @@ class RESTAPI {
                 throw $e;
             }
         } catch (Exception $e) {
-            error_log('Trust Badges Save Group Error: ' . $e->getMessage());
             return new WP_Error(
                 'save_error',
                 $e->getMessage(),
@@ -359,7 +359,12 @@ class RESTAPI {
         $badges = wp_cache_get($cache_key);
         
         if (false === $badges) {
-            $results = $wpdb->get_results("SELECT * FROM $table_name WHERE is_active = 1");
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM `" . esc_sql($table_name) . "` WHERE is_active = %d",
+                    1
+                )
+            );
             
             if ($error = $this->handle_db_error($wpdb, 'get_badges')) {
                 return $error;
@@ -424,7 +429,9 @@ class RESTAPI {
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
         
         $groups = $wpdb->get_results(
-            "SELECT * FROM $table_name ORDER BY id ASC"
+            $wpdb->prepare(
+                "SELECT * FROM `" . esc_sql($table_name) . "` ORDER BY id ASC"
+            )
         );
         
         if (!$groups) {
@@ -495,7 +502,7 @@ class RESTAPI {
         
         $result = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM $table_name WHERE group_id = %s",
+                "SELECT * FROM `" . esc_sql($table_name) . "` WHERE group_id = %s",
                 $group_id
             )
         );
@@ -530,7 +537,7 @@ class RESTAPI {
         // Don't allow deletion of default groups
         $is_default = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT is_default FROM $table_name WHERE group_id = %s",
+                "SELECT is_default FROM `" . esc_sql($table_name) . "` WHERE group_id = %s",
                 $group_id
             )
         );
