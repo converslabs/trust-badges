@@ -24,8 +24,8 @@ class RESTAPI {
 
     // Rate limiting check
     private function check_rate_limit() {
-        $ip = $_SERVER['REMOTE_ADDR'];
-        $cache_key = 'trust_badges_rate_limit_' . $ip;
+        $ip = Utilities::get_client_ip();
+        $cache_key = 'trust_badges_rate_limit_' . md5($ip);
         $requests = get_transient($cache_key);
         
         if ($requests > 100) { // 100 requests per hour
@@ -195,7 +195,7 @@ class RESTAPI {
             // Get nonce from headers
             $nonce = null;
             if (isset($_SERVER['HTTP_X_WP_NONCE'])) {
-                $nonce = $_SERVER['HTTP_X_WP_NONCE'];
+                $nonce = Utilities::sanitize_nonce($_SERVER['HTTP_X_WP_NONCE']);
             }
 
             // Verify nonce
