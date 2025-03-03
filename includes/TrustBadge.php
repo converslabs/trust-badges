@@ -11,7 +11,6 @@ class TrustBadge {
         $this->plugin_name = 'trust-badges';
 
         $this->load_dependencies();
-        $this->set_locale();
         $this->define_admin_hooks();
         $this->define_rest_api();
 
@@ -86,11 +85,6 @@ class TrustBadge {
 
     private function load_dependencies() {
         $this->loader = new Loader();
-    }
-
-    private function set_locale() {
-        $plugin_i18n = new I18n();
-        $this->loader->add_action('plugins_loaded', $plugin_i18n, 'load_plugin_textdomain');
     }
 
     private function define_admin_hooks() {
