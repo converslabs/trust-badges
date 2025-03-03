@@ -47,22 +47,20 @@ class Renderer {
     public static function getBadgeByGroup($group_id) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'converswp_trust_badges';
-
+    
         $group = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM $table_name 
-                WHERE is_active = 1 
-                AND group_id = %s",
+                "SELECT * FROM `" . esc_sql($table_name) . "` WHERE is_active = 1 AND group_id = %s",
                 $group_id
             )
         );
-
+    
         if (!$group) {
             return false;
         }
-
+    
         $group->settings = json_decode($group->settings, true);
-
+            
         return $group;
     }
 
