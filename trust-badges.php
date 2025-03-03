@@ -27,7 +27,9 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
 use TrustBadges\TrustBadge;
 
 // Define plugin constants
-define('TRUST_BADGES_VERSION', '1.0.0');
+if (!defined('TRUST_BADGES_VERSION')) {
+    define('TRUST_BADGES_VERSION', '1.0.0');
+}
 define('TRUST_BADGES_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('TRUST_BADGES_PLUGIN_URL', plugin_dir_url(__FILE__));
 
