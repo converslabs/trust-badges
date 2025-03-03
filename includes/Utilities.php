@@ -33,10 +33,11 @@ class Utilities {
 
         foreach ($ip_sources as $key) {
             if (array_key_exists($key, $_SERVER)) {
-                foreach (explode(',', $_SERVER[$key]) as $ip) {
+                $ips = sanitize_text_field(wp_unslash($_SERVER[$key]));
+                foreach (explode(',', $ips) as $ip) {
                     $ip = trim($ip);
                     if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                        return $ip;
+                        return self::sanitize_ip_address($ip);
                     }
                 }
             }
