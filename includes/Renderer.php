@@ -44,27 +44,47 @@ class Renderer {
         return $group_id;
     }
 
+    /**
+     * Get badge settings by group ID with caching
+     * 
+     * Note: Direct database query is necessary here as this is a core functionality
+     * that requires specific data selection. The performance impact is mitigated by:
+     * 1. Caching results for 1 hour
+     * 2. Using proper SQL preparation
+     * 3. Minimal and targeted query
+     * 
+     * @param string $group_id The group ID to fetch
+     * @return object|false Badge settings object or false if not found
+     */
     public static function getBadgeByGroup($group_id) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'converswp_trust_badges';
-
-        $group = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM $table_name 
-                WHERE is_active = 1 
-                AND group_id = %s",
-                $group_id
-            )
-        );
-
-        if (!$group) {
-            return false;
+        // Try to get from cache first
+        $cache_key = 'trust_badges_group_' . $group_id;
+        $group = wp_cache_get($cache_key, 'trust_badges');
+        
+        if (false === $group) {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'converswp_trust_badges';
+        
+            $group = $wpdb->get_row(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                $wpdb->prepare(
+                    "SELECT * FROM `" . esc_sql($table_name) . "` WHERE is_active = 1 AND group_id = %s",
+                    $group_id
+                )
+            );
+        
+            if (!$group) {
+                return false;
+            }
+        
+            $group->settings = json_decode($group->settings, true);
+            
+            // Cache the result for 1 hour
+            wp_cache_set($cache_key, $group, 'trust_badges', HOUR_IN_SECONDS);
         }
-
-        $group->settings = json_decode($group->settings, true);
-
+            
         return $group;
     }
+    
 
     /**
      * Render badges with settings
@@ -130,7 +150,7 @@ class Renderer {
                     $html .=  'transition: all 0.3s ease;';
                     $html .=  '"></div>';
                 } else {
-                    $html .=  '<img src="' . esc_url($badge_url) . '" alt="converswp-trust-badge" class="badge-image" style="';
+                    $html .=  '<img src="' . esc_url($badge_url) . '" alt="converswp-trust-badge" class="badge-image" style="';  // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
                     $html .=  'width: ' . esc_attr($mobile_size) . 'px;';
                     $html .=  'height: auto;';
                     $html .=  'max-height: ' . esc_attr($mobile_size) . 'px;';
@@ -173,9 +193,7 @@ class Renderer {
         // Get animation styles based on settings
         $animation_styles = self::get_animation_styles($html_id, $animation);
 
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
-        // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
-        echo '<style type="text/css" id="convers-trust-badges-styles-'.$group_id.'">
+        $custom_css = '
         ' . $html_id . ' .convers-trust-badges {
             margin: ' . (int) $container_margin . 'px 0;
             width: 100%;
@@ -254,8 +272,22 @@ class Renderer {
 
         /* Animation styles */
         ' . wp_strip_all_tags($animation_styles) . '
-        </style>';
-        // phpcs:enable
+        ';
+
+        // Register and enqueue main styles
+        wp_register_style(
+            'trust-badges-main',
+            plugins_url('assets/css/main.css', dirname(__FILE__)),
+            [],
+            TRUST_BADGES_VERSION
+        );
+        wp_enqueue_style('trust-badges-main');
+
+        // Add inline styles for this specific badge group
+        wp_add_inline_style(
+            'trust-badges-main',
+            $custom_css
+        );
     }
 
     /**

@@ -11,7 +11,6 @@ class TrustBadge {
         $this->plugin_name = 'trust-badges';
 
         $this->load_dependencies();
-        $this->set_locale();
         $this->define_admin_hooks();
         $this->define_rest_api();
 
@@ -52,15 +51,15 @@ class TrustBadge {
     public function handle_badge_display($hook, $group_id) {
         // plugin can be woocommerce or edd
         if ($hook === 'woocommerce_after_add_to_cart_form') {
-            echo $this->display_badges_by_position('showAfterAddToCart', $group_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo wp_kses_post($this->display_badges_by_position('showAfterAddToCart', $group_id));
         } elseif ($hook === 'woocommerce_pay_order_after_submit') {
-            echo $this->display_badges_by_position('checkoutBeforeOrderReview', $group_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo wp_kses_post($this->display_badges_by_position('checkoutBeforeOrderReview', $group_id));
         } elseif ($hook === 'edd_purchase_link_end') {
-            echo $this->display_badges_by_position('edd_purchase_link_end', $group_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo wp_kses_post($this->display_badges_by_position('edd_purchase_link_end', $group_id));
         } elseif ($hook === 'edd_checkout_before_purchase_form') {
-            echo $this->display_badges_by_position('edd_checkout_before_purchase_form', $group_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo wp_kses_post($this->display_badges_by_position('edd_checkout_before_purchase_form', $group_id));
         } else {
-            echo $this->display_badges_by_position($hook, $group_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo wp_kses_post($this->display_badges_by_position($hook, $group_id));
         }
     }
 
@@ -86,11 +85,6 @@ class TrustBadge {
 
     private function load_dependencies() {
         $this->loader = new Loader();
-    }
-
-    private function set_locale() {
-        $plugin_i18n = new I18n();
-        $this->loader->add_action('plugins_loaded', $plugin_i18n, 'load_plugin_textdomain');
     }
 
     private function define_admin_hooks() {

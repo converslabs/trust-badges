@@ -5,6 +5,7 @@
 /dist
 /assets/css
 /assets/js
+
 # IDE
 .idea
 .vscode
@@ -18,8 +19,10 @@ assets/.DS_Store
 assets/images/.DS_Store
 assets/images/badges/.DS_Store
 vendor
+
 # OS
 .DS_Store
+**/.DS_Store
 Thumbs.db
 
 # Logs
