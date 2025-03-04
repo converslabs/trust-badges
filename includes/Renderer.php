@@ -150,7 +150,7 @@ class Renderer {
                     $html .=  'transition: all 0.3s ease;';
                     $html .=  '"></div>';
                 } else {
-                    $html .=  '<img src="' . esc_url($badge_url) . '" alt="converswp-trust-badge" class="badge-image" style="';
+                    $html .=  '<img src="' . esc_url($badge_url) . '" alt="converswp-trust-badge" class="badge-image" style="';  // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
                     $html .=  'width: ' . esc_attr($mobile_size) . 'px;';
                     $html .=  'height: auto;';
                     $html .=  'max-height: ' . esc_attr($mobile_size) . 'px;';
