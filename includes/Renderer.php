@@ -3,197 +3,201 @@ namespace TrustBadges;
 
 class Renderer {
 
-    public static function renderBadgeById($group_id = '') {
-        if($group_id == '') {
-            trust_badges_log_error('Group ID is empty', ['group_id' => $group_id]);
-            return false;
-        }
+	public static function renderBadgeById( $group_id = '' ) {
+		if ( $group_id == '' ) {
+			trust_badges_log_error( 'Group ID is empty', array( 'group_id' => $group_id ) );
+			return false;
+		}
 
-        $settings = Renderer::getBadgeByGroup($group_id);
-        if(empty($settings)) {
-            trust_badges_log_error('Group settings not found.', ['group_id' => $group_id, 'settings' => $settings]);
-            return false;
-        }
+		$settings = self::getBadgeByGroup( $group_id );
+		if ( empty( $settings ) ) {
+			trust_badges_log_error(
+				'Group settings not found.',
+				array(
+					'group_id' => $group_id,
+					'settings' => $settings,
+				)
+			);
+			return false;
+		}
 
-        if($settings->is_active){
-            // Render badges with settings
-            $badgeHtml = Renderer::renderBadgeHtml($settings->group_id, $settings->settings);
-        } else {
-            trust_badges_log_error('Badge is disabled.', ['settings' => $settings]);
-            return false;
-        }
+		if ( $settings->is_active ) {
+			// Render badges with settings
+			$badgeHtml = self::renderBadgeHtml( $settings->group_id, $settings->settings );
+		} else {
+			trust_badges_log_error( 'Badge is disabled.', array( 'settings' => $settings ) );
+			return false;
+		}
 
-        // Create container with position class
-        $html =  '<div id="convers-trust-badges-'.$group_id.'">';
-        $html .= $badgeHtml;
-        $html .= '</div>';
+		// Create container with position class
+		$html  = '<div id="convers-trust-badges-' . $group_id . '">';
+		$html .= $badgeHtml;
+		$html .= '</div>';
 
-        return $html;
-    }
+		return $html;
+	}
 
-    public static function getGroupIdByPosition($position): string
-    {
-        if ($position === 'showAfterAddToCart' || $position === 'eddPurchaseLinkEnd') {
-            $group_id = 'product_page';
-        } elseif ($position === 'checkoutBeforeOrderReview' || $position === 'eddCheckoutBeforePurchaseForm') {
-            $group_id = 'checkout';
-        } else {
-            $group_id = 'footer';
-        }
+	public static function getGroupIdByPosition( $position ): string {
+		if ( $position === 'showAfterAddToCart' || $position === 'eddPurchaseLinkEnd' ) {
+			$group_id = 'product_page';
+		} elseif ( $position === 'checkoutBeforeOrderReview' || $position === 'eddCheckoutBeforePurchaseForm' ) {
+			$group_id = 'checkout';
+		} else {
+			$group_id = 'footer';
+		}
 
-        return $group_id;
-    }
+		return $group_id;
+	}
 
-    /**
-     * Get badge settings by group ID with caching
-     * 
-     * Note: Direct database query is necessary here as this is a core functionality
-     * that requires specific data selection. The performance impact is mitigated by:
-     * 1. Caching results for 1 hour
-     * 2. Using proper SQL preparation
-     * 3. Minimal and targeted query
-     * 
-     * @param string $group_id The group ID to fetch
-     * @return object|false Badge settings object or false if not found
-     */
-    public static function getBadgeByGroup($group_id) {
-        // Try to get from cache first
-        $cache_key = 'trust_badges_group_' . $group_id;
-        $group = wp_cache_get($cache_key, 'trust_badges');
-        
-        if (false === $group) {
-            global $wpdb;
-            $table_name = $wpdb->prefix . 'converswp_trust_badges';
-        
-            $group = $wpdb->get_row(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-                $wpdb->prepare(
-                    "SELECT * FROM `" . esc_sql($table_name) . "` WHERE is_active = 1 AND group_id = %s",
-                    $group_id
-                )
-            );
-        
-            if (!$group) {
-                return false;
-            }
-        
-            $group->settings = json_decode($group->settings, true);
-            
-            // Cache the result for 1 hour
-            wp_cache_set($cache_key, $group, 'trust_badges', HOUR_IN_SECONDS);
-        }
-            
-        return $group;
-    }
-    
+	/**
+	 * Get badge settings by group ID with caching
+	 *
+	 * Note: Direct database query is necessary here as this is a core functionality
+	 * that requires specific data selection. The performance impact is mitigated by:
+	 * 1. Caching results for 1 hour
+	 * 2. Using proper SQL preparation
+	 * 3. Minimal and targeted query
+	 *
+	 * @param string $group_id The group ID to fetch
+	 * @return object|false Badge settings object or false if not found
+	 */
+	public static function getBadgeByGroup( $group_id ) {
+		// Try to get from cache first
+		$cache_key = 'trust_badges_group_' . $group_id;
+		$group     = wp_cache_get( $cache_key, 'trust_badges' );
 
-    /**
-     * Render badges with settings
-     */
-    public static function renderBadgeHtml($group_id, $settings): string
-    {
+		if ( false === $group ) {
+			global $wpdb;
+			$table_name = $wpdb->prefix . 'converswp_trust_badges';
 
-        // Get exact alignment class from settings
-        $alignment_class = 'align-' . ($settings['badgeAlignment'] ?? 'center');
-        $style_class = 'style-' . ($settings['badgeStyle'] ?? 'original');
-        $animation_class = $settings['animation'] ? self::get_animation_class($settings['animation']) : '';
+			$group = $wpdb->get_row(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				$wpdb->prepare(
+					'SELECT * FROM `' . esc_sql( $table_name ) . '` WHERE is_active = 1 AND group_id = %s',
+					$group_id
+				)
+			);
 
-        // Get margin style if custom margin is enabled
-        $margin_style = self::get_margin_style($settings);
+			if ( ! $group ) {
+				return false;
+			}
 
-        // Get exact sizes
-        $desktop_size = self::get_size_values($settings['badgeSizeDesktop']);
-        $mobile_size = self::get_size_values($settings['badgeSizeMobile']);
+			$group->settings = json_decode( $group->settings, true );
 
-        // Start badge container without margin style
-        $html = '';
-        $html .=  '<div class="convers-trust-badges ' . esc_attr($alignment_class) . ' ' . esc_attr($animation_class) . '">';
+			// Cache the result for 1 hour
+			wp_cache_set( $cache_key, $group, 'trust_badges', HOUR_IN_SECONDS );
+		}
 
-        // Show header if enabled with exact settings
-        if (!empty($settings['showHeader'])) {
-            $html .=  '<div class="trust-badges-header" style="';
-            $html .=  'font-size: ' . esc_attr($settings['fontSize']) . 'px;';
-            $html .=  'color: ' . esc_attr($settings['textColor']) . ';';
-            $html .=  'text-align: ' . esc_attr($settings['alignment']) . ';';
-            if (!empty($settings['customStyles'])) {
-                $html .=  esc_attr($settings['customStyles']);
-            }
-            $html .=  '">';
-            $html .=  esc_html($settings['headerText']);
-            $html .=  '</div>';
-        }
+		return $group;
+	}
 
-        // Start badges wrapper
-        $html .=  '<div class="trust-badges-wrapper ' . esc_attr($style_class) . '" style="';
-        $html .=  'display: flex;';
-        $html .=  'flex-wrap: wrap;';
-        $html .=  'gap: 10px;';
-        $html .=  'justify-content: ' . self::get_alignment_style($settings['badgeAlignment'] ?? 'center') . ';';
-        $html .=  'align-items: stretch;';
-        $html .=  '">';
 
-        // Display selected badges with exact settings
-        if (!empty($settings['selectedBadges'])) {
-            foreach ($settings['selectedBadges'] as $index => $badge_id) {
-                $filename = self::get_badge_filename($badge_id);
-                $badge_url = plugins_url('assets/images/badges/' . $filename, dirname(__FILE__));
+	/**
+	 * Render badges with settings
+	 */
+	public static function renderBadgeHtml( $group_id, $settings ): string {
 
-                // Add badge index and margin style to each badge container
-                $html .=  '<div class="badge-container" style="--badge-index: ' . esc_attr($index) . ';' . $margin_style . '">';
+		// Get exact alignment class from settings
+		$alignment_class = 'align-' . ( $settings['badgeAlignment'] ?? 'center' );
+		$style_class     = 'style-' . ( $settings['badgeStyle'] ?? 'original' );
+		$animation_class = $settings['animation'] ? self::get_animation_class( $settings['animation'] ) : '';
 
-                if (in_array($settings['badgeStyle'], ['mono', 'mono-card'])) {
-                    $html .=  '<div class="badge-image" style="';
-                    $html .=  '-webkit-mask: url(' . esc_url($badge_url) . ') center/contain no-repeat;';
-                    $html .=  'mask: url(' . esc_url($badge_url) . ') center/contain no-repeat;';
-                    $html .=  'background-color: ' . esc_attr($settings['badgeColor']) . ';';
-                    $html .=  'width: ' . esc_attr($mobile_size) . 'px;';
-                    $html .=  'height: ' . esc_attr($mobile_size) . 'px;';
-                    $html .=  'transition: all 0.3s ease;';
-                    $html .=  '"></div>';
-                } else {
-                    $html .=  '<img src="' . esc_url($badge_url) . '" alt="converswp-trust-badge" class="badge-image" style="';  // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
-                    $html .=  'width: ' . esc_attr($mobile_size) . 'px;';
-                    $html .=  'height: auto;';
-                    $html .=  'max-height: ' . esc_attr($mobile_size) . 'px;';
-                    $html .=  'transition: all 0.3s ease;';
-                    $html .=  'object-fit: contain;';
-                    $html .=  '" />';
-                }
+		// Get margin style if custom margin is enabled
+		$margin_style = self::get_margin_style( $settings );
 
-                $html .=  '</div>';
-            }
-        }
+		// Get exact sizes
+		$desktop_size = self::get_size_values( $settings['badgeSizeDesktop'] );
+		$mobile_size  = self::get_size_values( $settings['badgeSizeMobile'] );
 
-        $html .=  '</div>'; // Close badges wrapper
-        $html .=  '</div>'; // Close badge container
+		// Start badge container without margin style
+		$html  = '';
+		$html .= '<div class="convers-trust-badges ' . esc_attr( $alignment_class ) . ' ' . esc_attr( $animation_class ) . '">';
 
-        // Add responsive styles with exact sizes
-        self::add_responsive_styles($group_id, $settings);
+		// Show header if enabled with exact settings
+		if ( ! empty( $settings['showHeader'] ) ) {
+			$html .= '<div class="trust-badges-header" style="';
+			$html .= 'font-size: ' . esc_attr( $settings['fontSize'] ) . 'px;';
+			$html .= 'color: ' . esc_attr( $settings['textColor'] ) . ';';
+			$html .= 'text-align: ' . esc_attr( $settings['alignment'] ) . ';';
+			if ( ! empty( $settings['customStyles'] ) ) {
+				$html .= esc_attr( $settings['customStyles'] );
+			}
+			$html .= '">';
+			$html .= esc_html( $settings['headerText'] );
+			$html .= '</div>';
+		}
 
-        return $html;
-    }
+		// Start badges wrapper
+		$html .= '<div class="trust-badges-wrapper ' . esc_attr( $style_class ) . '" style="';
+		$html .= 'display: flex;';
+		$html .= 'flex-wrap: wrap;';
+		$html .= 'gap: 10px;';
+		$html .= 'justify-content: ' . self::get_alignment_style( $settings['badgeAlignment'] ?? 'center' ) . ';';
+		$html .= 'align-items: stretch;';
+		$html .= '">';
 
-    /**
-     * Add responsive styles for badge sizes
-     */
-    public static function add_responsive_styles($group_id, $settings) {
-        $desktop_size = self::get_size_values($settings['badgeSizeDesktop']);
-        $mobile_size = self::get_size_values($settings['badgeSizeMobile']);
-        $animation = isset($settings['animation']) ? $settings['animation'] : '';
+		// Display selected badges with exact settings
+		if ( ! empty( $settings['selectedBadges'] ) ) {
+			foreach ( $settings['selectedBadges'] as $index => $badge_id ) {
+				$filename  = self::get_badge_filename( $badge_id );
+				$badge_url = plugins_url( 'assets/images/badges/' . $filename, __DIR__ );
 
-        // Get design settings from database
-        $badge_padding = isset($settings['badgePadding']) ? intval($settings['badgePadding']) : 5;
-        $badge_gap = isset($settings['badgeGap']) ? intval($settings['badgeGap']) : 10;
-        $container_margin = isset($settings['containerMargin']) ? intval($settings['containerMargin']) : 15;
-        $border_radius = isset($settings['borderRadius']) ? intval($settings['borderRadius']) : 4;
-        $hover_transform = isset($settings['hoverTransform']) ? $settings['hoverTransform'] : 'translateY(-2px)';
-        $transition = isset($settings['transition']) ? $settings['transition'] : 'all 0.3s ease';
+				// Add badge index and margin style to each badge container
+				$html .= '<div class="badge-container" style="--badge-index: ' . esc_attr( $index ) . ';' . $margin_style . '">';
 
-        $html_id = '#convers-trust-badges-' . $group_id;
+				if ( in_array( $settings['badgeStyle'], array( 'mono', 'mono-card' ) ) ) {
+					$html .= '<div class="badge-image" style="';
+					$html .= '-webkit-mask: url(' . esc_url( $badge_url ) . ') center/contain no-repeat;';
+					$html .= 'mask: url(' . esc_url( $badge_url ) . ') center/contain no-repeat;';
+					$html .= 'background-color: ' . esc_attr( $settings['badgeColor'] ) . ';';
+					$html .= 'width: ' . esc_attr( $mobile_size ) . 'px;';
+					$html .= 'height: ' . esc_attr( $mobile_size ) . 'px;';
+					$html .= 'transition: all 0.3s ease;';
+					$html .= '"></div>';
+				} else {
+					$html .= '<img src="' . esc_url( $badge_url ) . '" alt="converswp-trust-badge" class="badge-image" style="';  // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
+					$html .= 'width: ' . esc_attr( $mobile_size ) . 'px;';
+					$html .= 'height: auto;';
+					$html .= 'max-height: ' . esc_attr( $mobile_size ) . 'px;';
+					$html .= 'transition: all 0.3s ease;';
+					$html .= 'object-fit: contain;';
+					$html .= '" />';
+				}
 
-        // Get animation styles based on settings
-        $animation_styles = self::get_animation_styles($html_id, $animation);
+				$html .= '</div>';
+			}
+		}
 
-        $custom_css = '
+		$html .= '</div>'; // Close badges wrapper
+		$html .= '</div>'; // Close badge container
+
+		// Add responsive styles with exact sizes
+		self::add_responsive_styles( $group_id, $settings );
+
+		return $html;
+	}
+
+	/**
+	 * Add responsive styles for badge sizes
+	 */
+	public static function add_responsive_styles( $group_id, $settings ) {
+		$desktop_size = self::get_size_values( $settings['badgeSizeDesktop'] );
+		$mobile_size  = self::get_size_values( $settings['badgeSizeMobile'] );
+		$animation    = isset( $settings['animation'] ) ? $settings['animation'] : '';
+
+		// Get design settings from database
+		$badge_padding    = isset( $settings['badgePadding'] ) ? intval( $settings['badgePadding'] ) : 5;
+		$badge_gap        = isset( $settings['badgeGap'] ) ? intval( $settings['badgeGap'] ) : 10;
+		$container_margin = isset( $settings['containerMargin'] ) ? intval( $settings['containerMargin'] ) : 15;
+		$border_radius    = isset( $settings['borderRadius'] ) ? intval( $settings['borderRadius'] ) : 4;
+		$hover_transform  = isset( $settings['hoverTransform'] ) ? $settings['hoverTransform'] : 'translateY(-2px)';
+		$transition       = isset( $settings['transition'] ) ? $settings['transition'] : 'all 0.3s ease';
+
+		$html_id = '#convers-trust-badges-' . $group_id;
+
+		// Get animation styles based on settings
+		$animation_styles = self::get_animation_styles( $html_id, $animation );
+
+		$custom_css = '
         ' . $html_id . ' .convers-trust-badges {
             margin: ' . (int) $container_margin . 'px 0;
             width: 100%;
@@ -210,7 +214,7 @@ class Renderer {
             align-items: center;
             justify-content: center;
             padding: ' . (int) $badge_padding . 'px;
-            transition: ' . esc_attr($transition) . ';
+            transition: ' . esc_attr( $transition ) . ';
         }
 
         /* Mobile styles */
@@ -218,7 +222,7 @@ class Renderer {
             width: ' . (int) $mobile_size . 'px !important;
             height: auto !important;
             max-height: ' . (int) $mobile_size . 'px !important;
-            transition: ' . esc_attr($transition) . ';
+            transition: ' . esc_attr( $transition ) . ';
             object-fit: contain;
         }
 
@@ -232,7 +236,7 @@ class Renderer {
             mask-repeat: no-repeat;
             -webkit-mask-position: center;
             mask-position: center;
-            background-color: ' . esc_attr($settings['badgeColor']) . ';
+            background-color: ' . esc_attr( $settings['badgeColor'] ) . ';
         }
 
         /* Desktop styles */
@@ -251,7 +255,7 @@ class Renderer {
 
         /* Hover effects */
         ' . $html_id . ' .badge-container:hover {
-            transform: ' . esc_attr($hover_transform) . ';
+            transform: ' . esc_attr( $hover_transform ) . ';
         }
         ' . $html_id . ' .badge-container:hover .badge-image {
             transform: scale(1.05);
@@ -261,7 +265,7 @@ class Renderer {
         ' . $html_id . ' .style-card .badge-container,
         ' . $html_id . ' .style-mono-card .badge-container {
             background-color: #e5e7eb;
-            padding: ' . ((int) $badge_padding + 3) . 'px ' . ((int) $badge_padding + 7) . 'px;
+            padding: ' . ( (int) $badge_padding + 3 ) . 'px ' . ( (int) $badge_padding + 7 ) . 'px;
             border-radius: ' . (int) $border_radius . 'px;
         }
 
@@ -271,100 +275,101 @@ class Renderer {
         ' . $html_id . ' .align-right .trust-badges-wrapper { justify-content: flex-end; }
 
         /* Animation styles */
-        ' . wp_strip_all_tags($animation_styles) . '
+        ' . wp_strip_all_tags( $animation_styles ) . '
         ';
 
-        // Register and enqueue main styles
-        wp_register_style(
-            'trust-badges-main',
-            plugins_url('assets/css/main.css', dirname(__FILE__)),
-            [],
-            TRUST_BADGES_VERSION
-        );
-        wp_enqueue_style('trust-badges-main');
+		// Register and enqueue main styles
+		wp_register_style(
+			'trust-badges-main',
+			plugins_url( 'assets/css/main.css', __DIR__ ),
+			array(),
+			TRUST_BADGES_VERSION
+		);
+		wp_enqueue_style( 'trust-badges-main' );
 
-        // Add inline styles for this specific badge group
-        wp_add_inline_style(
-            'trust-badges-main',
-            $custom_css
-        );
-    }
+		// Add inline styles for this specific badge group
+		wp_add_inline_style(
+			'trust-badges-main',
+			$custom_css
+		);
+	}
 
-    /**
-     * Convert size names to pixel values
-     */
-    public static function get_size_values($size) {
-        $sizes = [
-            'extra-small' => 32,
-            'small' => 48,
-            'medium' => 64,
-            'large' => 80
-        ];
+	/**
+	 * Convert size names to pixel values
+	 */
+	public static function get_size_values( $size ) {
+		$sizes = array(
+			'extra-small' => 32,
+			'small'       => 48,
+			'medium'      => 64,
+			'large'       => 80,
+		);
 
-        return $sizes[$size] ?? 48;
-    }
+		return $sizes[ $size ] ?? 48;
+	}
 
-    /**
-     * Get alignment style value
-     */
-    public static function get_alignment_style($alignment) {
-        $styles = [
-            'left' => 'flex-start',
-            'center' => 'center',
-            'right' => 'flex-end'
-        ];
-        return $styles[$alignment] ?? 'center';
-    }
+	/**
+	 * Get alignment style value
+	 */
+	public static function get_alignment_style( $alignment ) {
+		$styles = array(
+			'left'   => 'flex-start',
+			'center' => 'center',
+			'right'  => 'flex-end',
+		);
+		return $styles[ $alignment ] ?? 'center';
+	}
 
-    /**
-     * Get margin style string if custom margins are enabled
-     */
-    public static function get_margin_style($settings) {
-        if (empty($settings['customMargin'])) {
-            return '';
-        }
+	/**
+	 * Get margin style string if custom margins are enabled
+	 */
+	public static function get_margin_style( $settings ) {
+		if ( empty( $settings['customMargin'] ) ) {
+			return '';
+		}
 
-        $top = isset($settings['marginTop']) ? intval($settings['marginTop']) : 0;
-        $right = isset($settings['marginRight']) ? intval($settings['marginRight']) : 0;
-        $bottom = isset($settings['marginBottom']) ? intval($settings['marginBottom']) : 0;
-        $left = isset($settings['marginLeft']) ? intval($settings['marginLeft']) : 0;
+		$top    = isset( $settings['marginTop'] ) ? intval( $settings['marginTop'] ) : 0;
+		$right  = isset( $settings['marginRight'] ) ? intval( $settings['marginRight'] ) : 0;
+		$bottom = isset( $settings['marginBottom'] ) ? intval( $settings['marginBottom'] ) : 0;
+		$left   = isset( $settings['marginLeft'] ) ? intval( $settings['marginLeft'] ) : 0;
 
-        return sprintf('margin: %dpx %dpx %dpx %dpx;',
-            $top,
-            $right,
-            $bottom,
-            $left
-        );
-    }
+		return sprintf(
+			'margin: %dpx %dpx %dpx %dpx;',
+			$top,
+			$right,
+			$bottom,
+			$left
+		);
+	}
 
-    /**
-     * Get animation class based on settings
-     */
-    public static function get_animation_class($animation) {
-        if (empty($animation)) {
-            return '';
-        }
-        return 'badge-' . esc_attr($animation);
-    }
+	/**
+	 * Get animation class based on settings
+	 */
+	public static function get_animation_class( $animation ) {
+		if ( empty( $animation ) ) {
+			return '';
+		}
+		return 'badge-' . esc_attr( $animation );
+	}
 
-    /**
-     * Get animation styles based on settings
-     */
-    public static function get_animation_styles($html_id, $animation) {
-        if (empty($animation)) {
-            return '';
-        }
+	/**
+	 * Get animation styles based on settings
+	 */
+	public static function get_animation_styles( $html_id, $animation ) {
+		if ( empty( $animation ) ) {
+			return '';
+		}
 
-        $styles = '';
+		$styles = '';
 
-        // Base opacity for all animations
-        $styles .= $html_id . ' .convers-trust-badges { opacity: 1; }';
-        $styles .= $html_id . ' .badge-container { opacity: 0; }';
+		// Base opacity for all animations
+		$styles .= $html_id . ' .convers-trust-badges { opacity: 1; }';
+		$styles .= $html_id . ' .badge-container { opacity: 0; }';
 
-        // Animation definition based on type
-        switch ($animation) {
-            case 'fade':
-                $styles .= $html_id . '
+		// Animation definition based on type
+		switch ( $animation ) {
+			case 'fade':
+				$styles .= $html_id . '
                     .badge-fade .badge-container {
                         animation: badgeFadeIn 0.5s ease forwards;
                         animation-delay: calc(var(--badge-index, 0) * 0.1s);
@@ -374,10 +379,10 @@ class Renderer {
                         100% { opacity: 1; }
                     }
                 ';
-                break;
+				break;
 
-            case 'slide':
-                $styles .= $html_id . '
+			case 'slide':
+				$styles .= $html_id . '
                     .badge-slide .badge-container {
                         transform: translateY(20px);
                         animation: badgeSlideIn 0.5s ease forwards;
@@ -394,10 +399,10 @@ class Renderer {
                         }
                     }
                 ';
-                break;
+				break;
 
-            case 'scale':
-                $styles .= $html_id . '
+			case 'scale':
+				$styles .= $html_id . '
                     .badge-scale .badge-container {
                         transform: scale(0.8);
                         animation: badgeScaleIn 0.5s ease forwards;
@@ -414,10 +419,10 @@ class Renderer {
                         }
                     }
                 ';
-                break;
+				break;
 
-            case 'bounce':
-                $styles .= $html_id . '
+			case 'bounce':
+				$styles .= $html_id . '
                     .badge-bounce .badge-container {
                         animation: badgeBounceIn 0.6s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
                         animation-delay: calc(var(--badge-index, 0) * 0.1s);
@@ -441,46 +446,48 @@ class Renderer {
                         }
                     }
                 ';
-                break;
-        }
+				break;
+		}
 
-        return $styles;
-    }
+		return $styles;
+	}
 
-    public static function get_badge_filename($badge_id) {
-        $badgeJsonPath = TRUST_BADGES_PLUGIN_DIR . 'assets/badges.json';
+	public static function get_badge_filename( $badge_id ) {
+		$badgeJsonPath = TRUST_BADGES_PLUGIN_DIR . 'assets/badges.json';
 
-        // now load file content as json
-        $badges = json_decode(file_get_contents($badgeJsonPath), true);
+		// now load file content as json
+		$badges = json_decode( file_get_contents( $badgeJsonPath ), true );
 
-        // now find the badge by id
-        $badge = array_filter($badges, function($item) use ($badge_id) {
-            return $item['id'] == $badge_id;
-        });
+		// now find the badge by id
+		$badge = array_filter(
+			$badges,
+			function ( $item ) use ( $badge_id ) {
+				return $item['id'] == $badge_id;
+			}
+		);
 
-        // get image index of the badge
-        $imagePath = array_values($badge)[0]['image'];
+		// get image index of the badge
+		$imagePath = array_values( $badge )[0]['image'];
 
-        // now return the image name from imagePath
-        return basename($imagePath);
-    }
+		// now return the image name from imagePath
+		return basename( $imagePath );
+	}
 
-    /**
-     * Helper method to sanitize and return position styles.
-     *
-     * @param string $position The alignment position.
-     * @return string Sanitized CSS value for justify-content.
-     */
-    public static function get_position_style($position) {
-        // Define allowed positions and their corresponding CSS values
-        $allowed_positions = array(
-            'left'   => 'flex-start',
-            'center' => 'center',
-            'right'  => 'flex-end',
-        );
+	/**
+	 * Helper method to sanitize and return position styles.
+	 *
+	 * @param string $position The alignment position.
+	 * @return string Sanitized CSS value for justify-content.
+	 */
+	public static function get_position_style( $position ) {
+		// Define allowed positions and their corresponding CSS values
+		$allowed_positions = array(
+			'left'   => 'flex-start',
+			'center' => 'center',
+			'right'  => 'flex-end',
+		);
 
-        // Return sanitized value or default to 'center' if invalid
-        return $allowed_positions[$position] ?? 'center';
-    }
-
+		// Return sanitized value or default to 'center' if invalid
+		return $allowed_positions[ $position ] ?? 'center';
+	}
 }
