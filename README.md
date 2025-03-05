@@ -40,6 +40,47 @@ Alternatively, you can:
 - Install directly from the WordPress plugin repository.
 - Activate and start customizing your badges from the WordPress dashboard.
 
+## Development
+
+To set up the development environment for the Trust Badges plugin, follow these steps:
+
+1. **Clone the repository**:
+    ```bash
+    git clone https://github.com/converswp/trust-badges wp-content/plugins/trust-badges
+    ```
+
+2. **Navigate to the plugin directory**:
+    ```bash
+    cd wp-content/plugins/trust-badges
+    ```
+
+3. **Install dependencies using npm or yarn**:
+    ```bash
+    # Using npm
+    npm install
+
+    # Using yarn
+    yarn install
+    ```
+
+4. **Install PHP dependencies using Composer**:
+    ```bash
+    composer install
+    ```
+
+5. **Run the development server**:
+    ```bash
+    yarn dev
+    ```
+
+6. **To release an update**:
+    ```bash
+    yarn release
+    ```
+
+These commands will set up the development environment, allowing you to work on the plugin and release updates as needed.
+
+
 ## Screenshots
 
 1. **Admin Dashboard Overview** – Manage and customize your trust badges easily.
