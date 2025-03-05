@@ -135,4 +135,4 @@ For support, please visit the [plugin support page](https://converswp.com/trust-
 - Initial release. Install and configure your trust badges to increase customer confidence and conversion rates.
 
 ## Source Code
-The uncompressed JavaScript and CSS files are included in the /assets/uncompressed folder.
+Here: https://github.com/converswp/trust-badges (the rep is public)
