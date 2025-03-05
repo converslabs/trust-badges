@@ -2,8 +2,8 @@ const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const archiver = require('archiver');
-const { build } = require('vite');
-const viteConfig = require('../vite.config.ts');
+// const { build } = require('vite');
+// const viteConfig = require('../vite.config.ts');
 
 // Clean the release folder
 const cleanReleaseFolder = () => {
@@ -78,20 +78,20 @@ const zipPlugin = (version) => {
     });
 };
 
-const buildUncompressed = async () => {
-  const uncompressedConfig = {
-    ...viteConfig.default,
-    build: {
-      minify: false,
-      outDir: 'assets/uncompressed',
-      sourcemap: false,
-      rollupOptions: {
-        ...viteConfig.default.build.rollupOptions
-      }
-    }
-  };
-  await build(uncompressedConfig);
-};
+// const buildUncompressed = async () => {
+//   const uncompressedConfig = {
+//     ...viteConfig.default,
+//     build: {
+//       minify: false,
+//       outDir: 'assets/uncompressed',
+//       sourcemap: false,
+//       rollupOptions: {
+//         ...viteConfig.default.build.rollupOptions
+//       }
+//     }
+//   };
+//   await build(uncompressedConfig);
+// };
 
 const main = async () => {
     try {
@@ -101,7 +101,7 @@ const main = async () => {
         await installDeps();
         console.log('Building project...');
         await buildProject();
-        await buildUncompressed();
+        // await buildUncompressed();
 
         // wait 2 seconds
         await new Promise((resolve) => setTimeout(resolve, 2000));

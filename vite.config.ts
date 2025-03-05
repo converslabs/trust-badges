@@ -9,6 +9,8 @@ export default defineConfig({
 	plugins: [react()],
 	build: {
 		outDir: "assets",
+		minify: false,
+		sourcemap: true,
 		emptyOutDir: false,
 		manifest: false,
 		rollupOptions: {
