@@ -1,8 +1,8 @@
 export function ExampleScreenshot() {
   
-  const paymentBadges = `${window.txBadgesSettings.pluginUrl}assets/images/needed/paymentBadges.png`;
-  const banks = `${window.txBadgesSettings.pluginUrl}assets/images/needed/banks.png`;
-  const courierDelivery = `${window.txBadgesSettings.pluginUrl}assets/images/needed/courierDelivery.png`;
+  const paymentBadges = `${window.txBadgesSettings.pluginUrl}assets/images/example/paymentBadges.png`;
+  const banks = `${window.txBadgesSettings.pluginUrl}assets/images/example/banks.png`;
+  const courierDelivery = `${window.txBadgesSettings.pluginUrl}assets/images/example/courierDelivery.png`;
 
   return (
     <div className="pt-8 space-y-2">
