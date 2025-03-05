@@ -80,7 +80,7 @@ export function Info() {
 				</div>
 
 				{/* Video */}
-				<>
+				{/* <> */}
 					{/* <div className="space-y-2 items-center grid grid-cols-1 gap-4">
 						<img
 							src={payment}
@@ -89,7 +89,7 @@ export function Info() {
 						/>
 					</div> */}
 
-					<div className="items-center space-y-4">
+					{/* <div className="items-center space-y-4">
 						<h1 className="text-xl font-medium">How To Build Own Badges</h1>
 
 						<iframe
@@ -102,8 +102,8 @@ export function Info() {
 							allowFullScreen
 							className='rounded'
 						></iframe>
-					</div>
-				</>
+					</div> */}
+				{/* </> */}
 			</div>
 		</div>
 	);

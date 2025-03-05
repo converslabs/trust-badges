@@ -29,7 +29,7 @@ import {
 	Smartphone,
 	ListRestart,
 } from "lucide-react";
-import { LuTreePalm } from "react-icons/lu";
+// import { LuTreePalm } from "react-icons/lu";
 import { paymentBadges } from "./pages/assets/PaymentBadges";
 import {
 	Tooltip,
@@ -70,7 +70,7 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "./ui/tabs";
-import GrowYourBusiness from "./pages/builder/GrowYourBusiness";
+// import GrowYourBusiness from "./pages/builder/GrowYourBusiness";
 
 // Utility function for merging class names
 function cn(...inputs: ClassValue[]) {
@@ -850,7 +850,7 @@ export function Settings() {
 					>
 						Documentation
 					</TabsTrigger>
-					<TabsTrigger
+					{/* <TabsTrigger
 						value="grow-your-business"
 						className="data-[state=active]:bg-background data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6"
 					>
@@ -858,7 +858,7 @@ export function Settings() {
 							<LuTreePalm className="text-green-500" />
 							Grow Your Business
 						</span>
-					</TabsTrigger>
+					</TabsTrigger> */}
 				</TabsList>
 
 				<Card className="mr-6 px-6 pb-6 pt-4">
@@ -1654,10 +1654,10 @@ export function Settings() {
 						<Info />
 					</TabsContent>
 
-					{/* Documentation */}
-					<TabsContent value="grow-your-business">
+					{/* Grow your business */}
+					{/* <TabsContent value="grow-your-business">
 						<GrowYourBusiness />
-					</TabsContent>
+					</TabsContent> */}
 				</Card>
 			</Tabs>
 
