@@ -197,19 +197,22 @@ class Renderer {
 		// Get animation styles based on settings
 		$animation_styles = self::get_animation_styles( $html_id, $animation );
 
+		// Properly sanitize the CSS ID
+		$sanitized_id = esc_js($html_id);
+		
 		$custom_css = '
-        ' . $html_id . ' .convers-trust-badges {
+        ' . $sanitized_id . ' .convers-trust-badges {
             margin: ' . (int) $container_margin . 'px 0;
             width: 100%;
         }
-        ' . $html_id . ' .trust-badges-wrapper {
+        ' . $sanitized_id . ' .trust-badges-wrapper {
             display: flex;
             flex-wrap: wrap;
             gap: ' . (int) $badge_gap . 'px;
             align-items: stretch;
             width: 100%;
         }
-        ' . $html_id . ' .badge-container {
+        ' . $sanitized_id . ' .badge-container {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -218,7 +221,7 @@ class Renderer {
         }
 
         /* Mobile styles */
-        ' . $html_id . ' .badge-image {
+        ' . $sanitized_id . ' .badge-image {
             width: ' . (int) $mobile_size . 'px !important;
             height: auto !important;
             max-height: ' . (int) $mobile_size . 'px !important;
@@ -226,8 +229,8 @@ class Renderer {
             object-fit: contain;
         }
 
-        ' . $html_id . ' .style-mono .badge-image,
-        ' . $html_id . ' .style-mono-card .badge-image {
+        ' . $sanitized_id . ' .style-mono .badge-image,
+        ' . $sanitized_id . ' .style-mono-card .badge-image {
             width: ' . (int) $mobile_size . 'px !important;
             height: ' . (int) $mobile_size . 'px !important;
             -webkit-mask-size: contain;
@@ -241,38 +244,38 @@ class Renderer {
 
         /* Desktop styles */
         @media screen and (min-width: 768px) {
-            ' . $html_id . ' .badge-image {
+            ' . $sanitized_id . ' .badge-image {
                 width: ' . (int) $desktop_size . 'px !important;
                 max-height: ' . (int) $desktop_size . 'px !important;
             }
             
-            ' . $html_id . ' .style-mono .badge-image,
-            ' . $html_id . ' .style-mono-card .badge-image {
+            ' . $sanitized_id . ' .style-mono .badge-image,
+            ' . $sanitized_id . ' .style-mono-card .badge-image {
                 width: ' . (int) $desktop_size . 'px !important;
                 height: ' . (int) $desktop_size . 'px !important;
             }
         }
 
         /* Hover effects */
-        ' . $html_id . ' .badge-container:hover {
+        ' . $sanitized_id . ' .badge-container:hover {
             transform: ' . esc_attr( $hover_transform ) . ';
         }
-        ' . $html_id . ' .badge-container:hover .badge-image {
+        ' . $sanitized_id . ' .badge-container:hover .badge-image {
             transform: scale(1.05);
         }
 
         /* Card styles */
-        ' . $html_id . ' .style-card .badge-container,
-        ' . $html_id . ' .style-mono-card .badge-container {
+        ' . $sanitized_id . ' .style-card .badge-container,
+        ' . $sanitized_id . ' .style-mono-card .badge-container {
             background-color: #e5e7eb;
             padding: ' . ( (int) $badge_padding + 3 ) . 'px ' . ( (int) $badge_padding + 7 ) . 'px;
             border-radius: ' . (int) $border_radius . 'px;
         }
 
         /* Alignment */
-        ' . $html_id . ' .align-left .trust-badges-wrapper { justify-content: flex-start; }
-        ' . $html_id . ' .align-center .trust-badges-wrapper { justify-content: center; }
-        ' . $html_id . ' .align-right .trust-badges-wrapper { justify-content: flex-end; }
+        ' . $sanitized_id . ' .align-left .trust-badges-wrapper { justify-content: flex-start; }
+        ' . $sanitized_id . ' .align-center .trust-badges-wrapper { justify-content: center; }
+        ' . $sanitized_id . ' .align-right .trust-badges-wrapper { justify-content: flex-end; }
 
         /* Animation styles */
         ' . wp_strip_all_tags( $animation_styles ) . '
@@ -290,7 +293,7 @@ class Renderer {
 		// Add inline styles for this specific badge group
 		wp_add_inline_style(
 			'trust-badges-main',
-			$custom_css
+			wp_strip_all_tags($custom_css)
 		);
 	}
 
@@ -360,16 +363,19 @@ class Renderer {
 			return '';
 		}
 
+		// Properly sanitize the CSS ID
+		$sanitized_id = esc_js($html_id);
+
 		$styles = '';
 
 		// Base opacity for all animations
-		$styles .= $html_id . ' .convers-trust-badges { opacity: 1; }';
-		$styles .= $html_id . ' .badge-container { opacity: 0; }';
+		$styles .= $sanitized_id . ' .convers-trust-badges { opacity: 1; }';
+		$styles .= $sanitized_id . ' .badge-container { opacity: 0; }';
 
 		// Animation definition based on type
 		switch ( $animation ) {
 			case 'fade':
-				$styles .= $html_id . '
+				$styles .= $sanitized_id . '
                     .badge-fade .badge-container {
                         animation: badgeFadeIn 0.5s ease forwards;
                         animation-delay: calc(var(--badge-index, 0) * 0.1s);
@@ -382,7 +388,7 @@ class Renderer {
 				break;
 
 			case 'slide':
-				$styles .= $html_id . '
+				$styles .= $sanitized_id . '
                     .badge-slide .badge-container {
                         transform: translateY(20px);
                         animation: badgeSlideIn 0.5s ease forwards;
@@ -402,7 +408,7 @@ class Renderer {
 				break;
 
 			case 'scale':
-				$styles .= $html_id . '
+				$styles .= $sanitized_id . '
                     .badge-scale .badge-container {
                         transform: scale(0.8);
                         animation: badgeScaleIn 0.5s ease forwards;
@@ -422,7 +428,7 @@ class Renderer {
 				break;
 
 			case 'bounce':
-				$styles .= $html_id . '
+				$styles .= $sanitized_id . '
                     .badge-bounce .badge-container {
                         animation: badgeBounceIn 0.6s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
                         animation-delay: calc(var(--badge-index, 0) * 0.1s);
