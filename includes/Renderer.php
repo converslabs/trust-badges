@@ -363,16 +363,19 @@ class Renderer {
 			return '';
 		}
 
+		// Properly sanitize the CSS ID
+		$sanitized_id = esc_js($html_id);
+
 		$styles = '';
 
 		// Base opacity for all animations
-		$styles .= $html_id . ' .convers-trust-badges { opacity: 1; }';
-		$styles .= $html_id . ' .badge-container { opacity: 0; }';
+		$styles .= $sanitized_id . ' .convers-trust-badges { opacity: 1; }';
+		$styles .= $sanitized_id . ' .badge-container { opacity: 0; }';
 
 		// Animation definition based on type
 		switch ( $animation ) {
 			case 'fade':
-				$styles .= $html_id . '
+				$styles .= $sanitized_id . '
                     .badge-fade .badge-container {
                         animation: badgeFadeIn 0.5s ease forwards;
                         animation-delay: calc(var(--badge-index, 0) * 0.1s);
@@ -385,7 +388,7 @@ class Renderer {
 				break;
 
 			case 'slide':
-				$styles .= $html_id . '
+				$styles .= $sanitized_id . '
                     .badge-slide .badge-container {
                         transform: translateY(20px);
                         animation: badgeSlideIn 0.5s ease forwards;
@@ -405,7 +408,7 @@ class Renderer {
 				break;
 
 			case 'scale':
-				$styles .= $html_id . '
+				$styles .= $sanitized_id . '
                     .badge-scale .badge-container {
                         transform: scale(0.8);
                         animation: badgeScaleIn 0.5s ease forwards;
@@ -425,7 +428,7 @@ class Renderer {
 				break;
 
 			case 'bounce':
-				$styles .= $html_id . '
+				$styles .= $sanitized_id . '
                     .badge-bounce .badge-container {
                         animation: badgeBounceIn 0.6s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
                         animation-delay: calc(var(--badge-index, 0) * 0.1s);
