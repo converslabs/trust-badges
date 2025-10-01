@@ -176,7 +176,7 @@ class TrustBadge {
 			// Check if main CSS file exists
 			$css_file = TRUST_BADGES_PLUGIN_DIR . 'assets/css/main.css';
 			if ( ! file_exists( $css_file ) ) {
-				throw new Exception( 'Required CSS file not found: ' . $css_file );
+				throw new \Exception( 'Required CSS file not found: ' . $css_file );
 			}
 
 			// Enqueue main CSS
@@ -190,7 +190,7 @@ class TrustBadge {
 			// Check if main JS file exists
 			$js_file = TRUST_BADGES_PLUGIN_DIR . 'assets/js/main.js';
 			if ( ! file_exists( $js_file ) ) {
-				throw new Exception( 'Required JS file not found: ' . $js_file );
+				throw new \Exception( 'Required JS file not found: ' . $js_file );
 			}
 			// Enqueue main JS with proper dependencies
 			wp_enqueue_script(
@@ -232,7 +232,7 @@ class TrustBadge {
 				'before'
 			);
 
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			trust_badges_log_error( 'Script Enqueue Error: ' . $e->getMessage() );
 			add_action(
 				'admin_notices',

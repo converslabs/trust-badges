@@ -186,7 +186,7 @@ class RESTAPI {
 					),
 				)
 			);
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			trust_badges_log_error(
 				'REST API Registration Error',
 				array(
@@ -238,7 +238,7 @@ class RESTAPI {
 			}
 
 			return true;
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'rest_error',
 				__( 'An unexpected error occurred.', 'trust-badges' ),
@@ -301,11 +301,11 @@ class RESTAPI {
 
 				// Check for database errors
 				if ( $error = $this->handle_db_error( $wpdb, 'save_group_settings' ) ) {
-					throw new Exception( $error->get_error_message() );
+					throw new \Exception( $error->get_error_message() );
 				}
 
 				if ( $result === false ) {
-					throw new Exception( __( 'Failed to save group settings.', 'trust-badges' ) );
+					throw new \Exception( __( 'Failed to save group settings.', 'trust-badges' ) );
 				}
 
 				// Commit transaction
@@ -332,11 +332,11 @@ class RESTAPI {
 					)
 				);
 
-			} catch ( Exception $e ) {
+			} catch ( \Exception $e ) {
 				$wpdb->query( 'ROLLBACK' );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				throw $e;
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'save_error',
 				$e->getMessage(),
@@ -517,7 +517,7 @@ class RESTAPI {
 				$result = $wpdb->update( $table_name, $data, $where );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
 				if ( $error = $this->handle_db_error( $wpdb, 'save_settings' ) ) {
-					throw new Exception( $error->get_error_message() );
+					throw new \Exception( $error->get_error_message() );
 				}
 			}
 
@@ -532,7 +532,7 @@ class RESTAPI {
 				),
 				200
 			);
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			$wpdb->query( 'ROLLBACK' );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			return new WP_Error( 'update_failed', $e->getMessage(), array( 'status' => 500 ) );
 		}

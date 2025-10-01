@@ -14,7 +14,7 @@ class Activator {
 			flush_rewrite_rules();
 			// Clean the buffer and discard any output
 			ob_end_clean();
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			// Clean the buffer and log the error
 			ob_end_clean();
 			trust_badges_log_error( 'Plugin Activation Error: ' . $e->getMessage() );
