@@ -34,6 +34,30 @@ class TrustBadge {
 				}
 			);
 
+			// Add cart page hooks
+			add_action(
+				'woocommerce_cart_collaterals',
+				function () {
+					$this->handle_badge_display( 'woocommerce_cart_collaterals', 'cart' );
+				}
+			);
+
+			// Add cart page hook for empty cart
+			add_action(
+				'woocommerce_before_cart',
+				function () {
+					$this->handle_badge_display( 'woocommerce_before_cart', 'cart' );
+				}
+			);
+
+			// Add cart block hook for WooCommerce blocks
+			add_action(
+				'woocommerce_blocks_cart_block_after_content',
+				function () {
+					$this->handle_badge_display( 'woocommerce_blocks_cart_block_after_content', 'cart' );
+				}
+			);
+
 		}
 
 		// Add EDD hooks if EDD is active
@@ -56,7 +80,7 @@ class TrustBadge {
 		add_action(
 			'wp_footer',
 			function () {
-				$this->handle_badge_display( 'wp_footer', 'footer' );
+					$this->handle_badge_display( 'wp_footer', 'footer' );
 			}
 		);
 
@@ -69,6 +93,12 @@ class TrustBadge {
 			echo wp_kses_post( $this->display_badges_by_position( 'showAfterAddToCart', $group_id ) );
 		} elseif ( $hook === 'woocommerce_pay_order_after_submit' ) {
 			echo wp_kses_post( $this->display_badges_by_position( 'checkoutBeforeOrderReview', $group_id ) );
+		} elseif ( $hook === 'woocommerce_cart_collaterals' ) {
+			echo wp_kses_post( $this->display_badges_by_position( 'woocommerce_cart_collaterals', $group_id ) );
+		} elseif ( $hook === 'woocommerce_before_cart' ) {
+			echo wp_kses_post( $this->display_badges_by_position( 'woocommerce_before_cart', $group_id ) );
+		} elseif ( $hook === 'woocommerce_blocks_cart_block_after_content' ) {
+			echo wp_kses_post( $this->display_badges_by_position( 'woocommerce_blocks_cart_block_after_content', $group_id ) );
 		} elseif ( $hook === 'edd_purchase_link_end' ) {
 			echo wp_kses_post( $this->display_badges_by_position( 'edd_purchase_link_end', $group_id ) );
 		} elseif ( $hook === 'edd_checkout_before_purchase_form' ) {

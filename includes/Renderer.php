@@ -42,6 +42,8 @@ class Renderer {
 			$group_id = 'product_page';
 		} elseif ( $position === 'checkoutBeforeOrderReview' || $position === 'eddCheckoutBeforePurchaseForm' ) {
 			$group_id = 'checkout';
+		} elseif ( $position === 'woocommerce_cart_collaterals' || $position === 'woocommerce_before_cart' || $position === 'woocommerce_blocks_cart_block_after_content' ) {
+			$group_id = 'cart';
 		} else {
 			$group_id = 'footer';
 		}
