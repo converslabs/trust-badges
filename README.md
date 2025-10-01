@@ -4,12 +4,12 @@
 **Author Url:** https://converswp.com/trust-badges/
 **Tags:** WooCommerce, EDD, badges, marketing, payment icons
 **Requires at least:** 4.7  
-**Tested up to:** 6.7  
+**Tested up to:** 6.8
 **Stable tag:** 1.0.0  
 **Requires PHP:** 7.4  
 **License:** GPLv2 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html  
-**Public Repo:** https://github.com/converswp/trust-badges  
+**Public Repo:** https://github.com/converslabs/trust-badges  
 
 Trust Badges adds customizable trust icons and badges to WooCommerce and EDD, boosting customer confidence and sales.
 
