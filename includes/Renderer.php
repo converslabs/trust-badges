@@ -280,18 +280,34 @@ class Renderer {
         ' . wp_strip_all_tags( $animation_styles ) . '
         ';
 
-		// Register and enqueue main styles
+		// Register and enqueue main styles (only once)
+		static $main_styles_enqueued = false;
+		if ( ! $main_styles_enqueued ) {
+			wp_register_style(
+				'trust-badges-main',
+				plugins_url( 'assets/css/main.css', __DIR__ ),
+				array(),
+				TRUST_BADGES_VERSION
+			);
+			wp_enqueue_style( 'trust-badges-main' );
+			$main_styles_enqueued = true;
+		}
+
+		// Create unique style handle for each badge group
+		$unique_style_handle = 'trust-badges-group-' . esc_attr( $group_id );
+		
+		// Register and enqueue unique styles for this badge group
 		wp_register_style(
-			'trust-badges-main',
-			plugins_url( 'assets/css/main.css', __DIR__ ),
-			array(),
+			$unique_style_handle,
+			false,
+			array( 'trust-badges-main' ),
 			TRUST_BADGES_VERSION
 		);
-		wp_enqueue_style( 'trust-badges-main' );
+		wp_enqueue_style( $unique_style_handle );
 
 		// Add inline styles for this specific badge group
 		wp_add_inline_style(
-			'trust-badges-main',
+			$unique_style_handle,
 			wp_strip_all_tags($custom_css)
 		);
 	}
