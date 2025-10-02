@@ -27,12 +27,13 @@ class TrustBadge {
 				}
 			);
 
-			add_action(
-				'woocommerce_pay_order_after_submit',
-				function () {
-					$this->handle_badge_display( 'woocommerce_pay_order_after_submit', 'checkout' );
-				}
-			);
+			// Checkout hooks disabled
+			// add_action(
+			// 	'woocommerce_pay_order_after_submit',
+			// 	function () {
+			// 		$this->handle_badge_display( 'woocommerce_pay_order_after_submit', 'checkout' );
+			// 	}
+			// );
 
 			// Add cart page hooks
 			add_action(
@@ -68,12 +69,13 @@ class TrustBadge {
 					$this->handle_badge_display( 'edd_purchase_link_end', 'product_page' );
 				}
 			);
-			add_action(
-				'edd_checkout_before_purchase_form',
-				function () {
-					$this->handle_badge_display( 'edd_checkout_before_purchase_form', 'checkout' );
-				}
-			);
+			// EDD checkout hook disabled
+			// add_action(
+			// 	'edd_checkout_before_purchase_form',
+			// 	function () {
+			// 		$this->handle_badge_display( 'edd_checkout_before_purchase_form', 'checkout' );
+			// 	}
+			// );
 		}
 
 		// Add footer hook for displaying badges
@@ -85,14 +87,44 @@ class TrustBadge {
 		);
 
 		add_shortcode( 'trust_badges', array( $this, 'render_shortcode' ) );// [trust_badges id="2"]
+		
+		// Remove checkout badge group from database if it exists
+		$this->remove_checkout_badge_group();
+	}
+
+	/**
+	 * Remove the checkout badge group from database
+	 *
+	 * @since 1.0.0
+	 */
+	private function remove_checkout_badge_group() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'converswp_trust_badges';
+		
+		// Check if checkout group exists
+		$exists = $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM `" . esc_sql( $table_name ) . "` WHERE group_id = %s",
+			'checkout'
+		) );
+		
+		if ( $exists ) {
+			// Delete the checkout group
+			$wpdb->delete(
+				$table_name,
+				array( 'group_id' => 'checkout' ),
+				array( '%s' )
+			);
+			
+			// Clear cache
+			wp_cache_delete( 'trust_badges_group_checkout' );
+			wp_cache_delete( 'trust_badges_all' );
+		}
 	}
 
 	public function handle_badge_display( $hook, $group_id ) {
 		// plugin can be woocommerce or edd
 		if ( $hook === 'woocommerce_after_add_to_cart_form' ) {
 			echo wp_kses_post( $this->display_badges_by_position( 'showAfterAddToCart', $group_id ) );
-		} elseif ( $hook === 'woocommerce_pay_order_after_submit' ) {
-			echo wp_kses_post( $this->display_badges_by_position( 'checkoutBeforeOrderReview', $group_id ) );
 		} elseif ( $hook === 'woocommerce_cart_collaterals' ) {
 			echo wp_kses_post( $this->display_badges_by_position( 'woocommerce_cart_collaterals', $group_id ) );
 		} elseif ( $hook === 'woocommerce_before_cart' ) {
@@ -101,8 +133,6 @@ class TrustBadge {
 			echo wp_kses_post( $this->display_badges_by_position( 'woocommerce_blocks_cart_block_after_content', $group_id ) );
 		} elseif ( $hook === 'edd_purchase_link_end' ) {
 			echo wp_kses_post( $this->display_badges_by_position( 'edd_purchase_link_end', $group_id ) );
-		} elseif ( $hook === 'edd_checkout_before_purchase_form' ) {
-			echo wp_kses_post( $this->display_badges_by_position( 'edd_checkout_before_purchase_form', $group_id ) );
 		} else {
 			echo wp_kses_post( $this->display_badges_by_position( $hook, $group_id ) );
 		}

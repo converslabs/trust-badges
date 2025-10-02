@@ -40,17 +40,13 @@ export function BadgePlacement({
       </h2>
       <div className="space-y-6">
         <div className="space-y-4">
-          {/* WooCommerce Option */}
-          {(group.id === "checkout" || group.id === "product_page") && (
+          {/* WooCommerce Option - Checkout option disabled */}
+          {group.id === "product_page" && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id={`show-woo-${group.id}`}
-                  checked={
-                    group.id === "checkout"
-                      ? group.settings.checkoutBeforeOrderReview
-                      : group.settings.showAfterAddToCart
-                  }
+                  checked={group.settings.showAfterAddToCart}
                   onCheckedChange={(checked) => {
                     handleChange(group.id, "woocommerce", checked);
                   }}
@@ -78,17 +74,13 @@ export function BadgePlacement({
             </div>
           )}
 
-          {/* Easy Digital Downloads Option */}
-          {(group.id === "checkout" || group.id === "product_page") && (
+          {/* Easy Digital Downloads Option - Checkout option disabled */}
+          {group.id === "product_page" && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id={`show-edd-${group.id}`}
-                  checked={
-                    group.id === "checkout"
-                      ? group.settings.eddCheckoutBeforePurchaseForm
-                      : group.settings.eddPurchaseLinkEnd
-                  }
+                  checked={group.settings.eddPurchaseLinkEnd}
                   onCheckedChange={(checked) => {
                     handleChange(group.id, "edd", checked);
                   }}

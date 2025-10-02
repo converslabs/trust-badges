@@ -149,18 +149,19 @@ const baseDefaultSettings: Omit<TrustBadgesSettings, 'checkoutBeforeOrderReview'
 };
 
 const defaultBadgeGroups: BadgeGroup[] = [
-	{
-		id: "checkout",
-		name: "Checkout",
-		isDefault: true,
-		isActive: true,
-		settings: {
-			...baseDefaultSettings,
-			checkoutBeforeOrderReview: true,
-			eddCheckoutBeforePurchaseForm: true,
-		},
-		requiredPlugin: "woocommerce",
-	},
+	// Checkout option disabled and hidden
+	// {
+	// 	id: "checkout",
+	// 	name: "Checkout",
+	// 	isDefault: true,
+	// 	isActive: true,
+	// 	settings: {
+	// 		...baseDefaultSettings,
+	// 		checkoutBeforeOrderReview: true,
+	// 		eddCheckoutBeforePurchaseForm: true,
+	// 	},
+	// 	requiredPlugin: "woocommerce",
+	// },
 	{
 		id: "product_page",
 		name: "Product Page",
@@ -427,21 +428,17 @@ export function Settings() {
 				if (group.id === badgeGroupId) {
 					const newSettings = { ...group.settings } as TrustBadgesSettings;
 
-					// Handle plugin-specific settings
+					// Handle plugin-specific settings - Checkout option disabled
 					if (key === 'woocommerce') {
 						newSettings.woocommerce = value;
 						// Update the relevant feature flag for this accordion
-						if (group.id === 'checkout') {
-							newSettings.checkoutBeforeOrderReview = value;
-						} else if (group.id === 'product_page') {
+						if (group.id === 'product_page') {
 							newSettings.showAfterAddToCart = value;
 						}
 					} else if (key === 'edd') {
 						newSettings.edd = value;
 						// Update the relevant feature flag for this accordion
-						if (group.id === 'checkout') {
-							newSettings.eddCheckoutBeforePurchaseForm = value;
-						} else if (group.id === 'product_page') {
+						if (group.id === 'product_page') {
 							newSettings.eddPurchaseLinkEnd = value;
 						}
 					} else {
