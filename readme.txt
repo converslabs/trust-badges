@@ -4,7 +4,7 @@ Author URL: https://converswp.com/trust-badges/
 Tags: woocommerce, edd, badges, marketing, icons
 Requires at least: 4.7
 Tested up to: 6.8
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -136,6 +136,11 @@ The plugin is optimized for performance. Badges are loaded efficiently and won't
 For support, please visit the [plugin support page](https://converswp.com/trust-badges/) or create an issue on our [GitHub repository](https://github.com/converswp/trust-badges).
 
 == Changelog ==
+
+= 1.1.0 =
+* Page support: Product, Cart
+* Page footer support 
+* Custom short code support  
 
 = 1.0.0 =
 * Initial release of the Trust Badges plugin.

@@ -4,7 +4,7 @@
  * Plugin Name: Trust Badges
  * Plugin URI: https://converswp.com/trust-badges
  * Description: Trust Badges adds customizable trust icons and badges to WooCommerce and EDD, boosting customer confidence and sales.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: ConversWP
  * Author URI: https://converswp.com
  * Text Domain: trust-badges
@@ -28,7 +28,7 @@ use TrustBadges\TrustBadge;
 
 // Define plugin constants
 if (!defined('TRUST_BADGES_VERSION')) {
-    define('TRUST_BADGES_VERSION', '1.0.0');
+    define('TRUST_BADGES_VERSION', '1.1.0');
 }
 define('TRUST_BADGES_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('TRUST_BADGES_PLUGIN_URL', plugin_dir_url(__FILE__));
