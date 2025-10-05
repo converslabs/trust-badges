@@ -1,7 +1,7 @@
 === Trust Badges ===
 Contributors: converswp, parvezvai, shamsbd71
 Author URL: https://converswp.com/trust-badges/
-Tags: badges, marketing, icons, trust, security, payment
+Tags: badges, marketing, icons, trust, payment
 Requires at least: 4.7
 Tested up to: 6.8
 Stable tag: 1.1.0
