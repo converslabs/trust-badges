@@ -99,7 +99,7 @@ if [ "$CHANGE_TYPE" = "tag" ] || [ "$CHANGE_TYPE" = "2" ]; then
     svn add "$TAG_DIR"
 
     # List of files/folders to copy
-    FILES=(.wordpress-org assets includes vendor composer.json readme.txt trust-badges.php)
+    FILES=(assets includes vendor composer.json readme.txt trust-badges.php)
     echo -e "${BLUE}📋 Copying files to trunk and tag...${NC}"
     for ITEM in "${FILES[@]}"; do
         if [ -e "$RELEASE_DIR/$ITEM" ]; then
