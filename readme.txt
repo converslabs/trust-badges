@@ -1,7 +1,7 @@
 === Trust Badges ===
 Contributors: converswp, parvezvai, shamsbd71
 Author URL: https://converswp.com/trust-badges/
-Tags: woocommerce, edd, badges, marketing, icons, trust, security, payment
+Tags: badges, marketing, icons, trust, security, payment
 Requires at least: 4.7
 Tested up to: 6.8
 Stable tag: 1.1.0
@@ -69,14 +69,23 @@ After activation, go to the **Settings -> Trust Badges** section in the WordPres
 
 = Shortcode Usage =
 
-Display all active badges:
+The plugin uses badge groups to organize different sets of badges. Each group can have different settings, selected badges, and display options.
+
+Display badges by group ID:
+`[trust_badges id="1"]`
+
+Display badges from different groups:
+`[trust_badges id="2"]`
+
+Display badges without specifying ID (defaults to group 1):
 `[trust_badges]`
 
-Display specific badge categories:
-`[trust_badges category="payment"]`
+**Available Badge Groups:**
+* **Group 1 (Product Page)**: Badges for product pages with payment methods
+* **Group 2 (Footer)**: Badges for footer display with trust signals  
+* **Group 3 (Cart Page)**: Badges for cart pages with checkout assurance
 
-Display badges with custom styling:
-`[trust_badges style="grid" size="medium"]`
+You can create and manage badge groups in the plugin settings under **Settings -> Trust Badges**.
 
 = WooCommerce Integration =
 

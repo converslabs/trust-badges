@@ -6,6 +6,8 @@
 		"dev": "NODE_ENV=development vite build --watch",
 		"build": "NODE_ENV=production vite build",
 		"release": "node -r ts-node/register scripts/build.js",
+		"deploy": "bash scripts/svn.sh",
+		"deploy:wp-org": "bash scripts/svn.sh",
 		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
 		"preview": "vite preview"
 	},
