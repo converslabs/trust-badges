@@ -53,11 +53,11 @@ Alternatively, you can:
 
 == Screenshots ==
 
-1. trust-badge-admin.png - **Admin Dashboard Overview** – Manage and customize your trust badges easily from the WordPress admin panel.
-2. trust-badge-badge-selection.png - **Badge Selection Panel** – Choose from hundreds of pre-designed trust badges or upload your own custom badges.
-3. trust-badge-settings.png - **Settings Panel** – Customize badge styles, sizes, positions, and display options with an intuitive interface.
-4. trust-badge-product-page.png - **Product Page Display** – Example of trust badges displayed on a WooCommerce product page to boost customer confidence.
-5. trust-basge-docs.png - **Documentation & Help** – Comprehensive documentation and help section for easy setup and customization.
+1. Trust Badge Product Page Display
+2. Badge Selection Panel  
+3. Settings Panel
+4. Documentation & Help
+5. Admin Dashboard Overview
 
 == Usage ==
 
