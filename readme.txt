@@ -2,9 +2,9 @@
 Contributors: converswp, parvezvai, shamsbd71
 Author URL: https://converswp.com/trust-badges/
 Tags: badges, marketing, icons, trust, payment
-Requires at least: 4.7
-Tested up to: 6.8
-Stable tag: 1.1.0
+Requires at least: 5.8
+Tested up to: 7.0
+Stable tag: 1.2.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -72,35 +72,34 @@ After activation, go to the **Settings -> Trust Badges** section in the WordPres
 The plugin uses badge groups to organize different sets of badges. Each group can have different settings, selected badges, and display options.
 
 Display badges by group ID:
-`[trust_badges id="1"]`
+`[trust_badges id="product_page"]`
+`[trust_badges id="cart"]`
+`[trust_badges id="footer"]`
 
-Display badges from different groups:
-`[trust_badges id="2"]`
-
-Display badges without specifying ID (defaults to group 1):
+Display badges without specifying an ID (defaults to the footer group):
 `[trust_badges]`
 
-**Available Badge Groups:**
-* **Group 1 (Product Page)**: Badges for product pages with payment methods
-* **Group 2 (Footer)**: Badges for footer display with trust signals  
-* **Group 3 (Cart Page)**: Badges for cart pages with checkout assurance
+**Built-in Badge Groups:**
+* **product_page**: Badges for product pages with payment methods
+* **cart**: Badges for cart pages with checkout assurance
+* **footer**: Badges for footer display with trust signals
+
+Groups you create yourself use the ID shown next to them in the settings screen. Numeric IDs (for example `[trust_badges id="1"]`) are also accepted and resolve to the matching group.
 
 You can create and manage badge groups in the plugin settings under **Settings -> Trust Badges**.
 
 = WooCommerce Integration =
 
 The plugin automatically integrates with WooCommerce and displays badges on:
-* Product pages
-* Cart page
-* Checkout page
-* Shop page
+* Product pages (after the add-to-cart form)
+* Cart page (both the classic cart and the Cart block)
 
 = Easy Digital Downloads Integration =
 
-For EDD users, badges can be displayed on:
-* Download pages
-* Checkout page
-* Purchase confirmation page
+For EDD users, badges are displayed on:
+* Download pages (after the purchase link)
+
+Badges can be placed anywhere else, including checkout, using the shortcode.
 
 == Frequently Asked Questions ==
 
@@ -138,7 +137,7 @@ The plugin is optimized for performance. Badges are loaded efficiently and won't
 
 == Requirements ==
 
-* **WordPress Version:** 4.7 or higher
+* **WordPress Version:** 5.8 or higher
 * **WooCommerce or Easy Digital Downloads (Optional but recommended)**
 * **PHP Version:** 7.4 or higher
 
@@ -147,6 +146,47 @@ The plugin is optimized for performance. Badges are loaded efficiently and won't
 For support, please visit the [plugin support page](https://converswp.com/trust-badges/) or create an issue on our [GitHub repository](https://github.com/converswp/trust-badges).
 
 == Changelog ==
+
+= 1.2.0 =
+
+**Security**
+
+* Removed the unauthenticated `/badges` REST endpoint, which exposed every badge group's stored configuration to anonymous visitors.
+* Removed an IP-keyed rate limiter that wrote a transient per request from a spoofable `X-Forwarded-For` header, allowing the options table to be flooded.
+* Client IP detection now trusts only `REMOTE_ADDR`; sites behind a reverse proxy can opt in via the new `trust_badges_client_ip` filter.
+* Database error messages are logged instead of being returned in REST responses.
+* Group IDs are validated against a strict character set before use in markup, CSS selectors and queries.
+* Settings payloads are recursively sanitised and depth-limited before being stored.
+* Deleting a group now re-reads the `is_default` flag from the database rather than trusting a cached value.
+* Added direct-file-access guards to all PHP files.
+
+**Performance**
+
+* Badge lookups no longer re-read and re-parse the 459-entry badge manifest once per badge. The manifest is parsed at most once per request and cached; badge rendering dropped from roughly 1 ms per badge to effectively zero.
+* `assets/badges.json` is 50% smaller and no longer embeds absolute URLs.
+* The admin bundle is now minified and ships without its source map, removing about 3 MB from the settings screen.
+* The checkout-group cleanup no longer runs a database query on every page load; it runs once per version.
+* `wp-admin/includes/plugin.php` is no longer loaded on every front-end request.
+* Groups that do not exist are now negatively cached instead of being re-queried on every page load.
+* Badge images decode asynchronously.
+
+**Fixes**
+
+* Removed a global `woocommerce_should_load_cart_block` / `woocommerce_should_load_checkout_block` override that disabled the WooCommerce Cart and Checkout blocks site-wide.
+* The "mono" and "mono-card" badge styles now render: their CSS mask was being stripped before output.
+* Saving settings now clears the front-end cache, so changes appear immediately instead of after an hour.
+* Shortcode IDs now resolve correctly. `[trust_badges id="footer"]` and numeric IDs both work; previously neither did.
+* Unknown badge IDs are skipped instead of causing a fatal error.
+* Removed two REST routes whose callbacks did not exist and which referenced a database column that was never created.
+* Fixed a `wpdb::prepare()` call with no placeholders that triggered a `_doing_it_wrong()` notice on WordPress 6.2+.
+* Added missing array-key guards that raised warnings, and could fatal, on PHP 8.
+* `dbDelta()` can now upgrade the schema on existing installs.
+* Corrected the shortcode and integration documentation, which described placements and group IDs that did not exist.
+
+**Compatibility**
+
+* Tested up to WordPress 7.0.
+* Minimum WordPress version raised to 5.8.
 
 = 1.1.0 =
 * Page support: Product, Cart

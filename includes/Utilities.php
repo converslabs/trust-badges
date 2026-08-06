@@ -1,48 +1,50 @@
 <?php
 namespace TrustBadges;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Utilities {
 	/**
 	 * Sanitize and validate IP address
 	 */
 	public static function sanitize_ip_address( $ip ) {
 		$ip = filter_var( $ip, FILTER_VALIDATE_IP );
-		return $ip ?: '0.0.0.0';
+		return $ip ? $ip : '0.0.0.0';
 	}
 
 	/**
 	 * Sanitize and validate nonce
 	 */
 	public static function sanitize_nonce( $nonce ) {
-		return preg_replace( '/[^a-zA-Z0-9]/', '', $nonce );
+		return preg_replace( '/[^a-zA-Z0-9]/', '', (string) $nonce );
 	}
 
 	/**
-	 * Get client IP address safely
+	 * Get the client IP address.
+	 *
+	 * Only REMOTE_ADDR is trusted. The X-Forwarded-For family of headers is
+	 * attacker-controlled unless the site sits behind a proxy that is known to
+	 * overwrite them, so a site that does must opt in via the filter below.
+	 *
+	 * @return string
 	 */
 	public static function get_client_ip() {
-		$ip_sources = array(
-			'HTTP_CLIENT_IP',
-			'HTTP_X_FORWARDED_FOR',
-			'HTTP_X_FORWARDED',
-			'HTTP_X_CLUSTER_CLIENT_IP',
-			'HTTP_FORWARDED_FOR',
-			'HTTP_FORWARDED',
-			'REMOTE_ADDR',
-		);
+		$ip = isset( $_SERVER['REMOTE_ADDR'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+			: '';
 
-		foreach ( $ip_sources as $key ) {
-			if ( array_key_exists( $key, $_SERVER ) ) {
-				$ips = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
-				foreach ( explode( ',', $ips ) as $ip ) {
-					$ip = trim( $ip );
-					if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-						return self::sanitize_ip_address( $ip );
-					}
-				}
-			}
-		}
+		/**
+		 * Filters the detected client IP.
+		 *
+		 * Sites behind a trusted reverse proxy can use this to read the real
+		 * client address out of the appropriate forwarded header.
+		 *
+		 * @param string $ip The IP derived from REMOTE_ADDR.
+		 */
+		$ip = apply_filters( 'trust_badges_client_ip', $ip );
 
-		return '0.0.0.0';
+		return self::sanitize_ip_address( $ip );
 	}
 }

@@ -1,42 +1,36 @@
 <?php
 namespace TrustBadges;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 
 class RESTAPI {
-	private $namespace    = 'trust-badges/v1';
-	private $cache_expiry = 3600; // 1 hour cache
+	private $namespace = 'trust-badges/v1';
 
 	// Utility method for handling database errors
 	private function handle_db_error( $wpdb, $context = '' ) {
 		if ( $wpdb->last_error ) {
+			trust_badges_log_error(
+				'Database error',
+				array(
+					'context' => $context,
+					'error'   => $wpdb->last_error,
+				)
+			);
+
+			// The raw driver message is deliberately not returned to the client.
 			return new WP_Error(
 				'database_error',
-				'A database error occurred: ' . $wpdb->last_error,
+				__( 'A database error occurred.', 'trust-badges' ),
 				array( 'status' => 500 )
 			);
 		}
 		return null;
-	}
-
-	// Rate limiting check
-	private function check_rate_limit() {
-		$ip        = Utilities::get_client_ip();
-		$cache_key = 'trust_badges_rate_limit_' . md5( $ip );
-		$requests  = get_transient( $cache_key );
-
-		if ( $requests > 100 ) { // 100 requests per hour
-			return new WP_Error(
-				'rate_limit_exceeded',
-				'Too many requests. Please try again later.',
-				array( 'status' => 429 )
-			);
-		}
-
-		set_transient( $cache_key, ( $requests ? $requests + 1 : 1 ), HOUR_IN_SECONDS );
-		return true;
 	}
 
 	/**
@@ -46,7 +40,7 @@ class RESTAPI {
 		try {
 			// Register settings endpoint
 			register_rest_route(
-				'trust-badges/v1',
+				$this->namespace,
 				'/settings',
 				array(
 					array(
@@ -64,7 +58,7 @@ class RESTAPI {
 
 			// Register group settings endpoint
 			register_rest_route(
-				'trust-badges/v1',
+				$this->namespace,
 				'/settings/group',
 				array(
 					'methods'             => 'POST',
@@ -79,28 +73,6 @@ class RESTAPI {
 				)
 			);
 
-			// Register delete group endpoint
-			register_rest_route(
-				'trust-badges/v1',
-				'/settings/group/(?P<id>[a-zA-Z0-9-]+)',
-				array(
-					'methods'             => 'DELETE',
-					'callback'            => array( $this, 'delete_group' ),
-					'permission_callback' => array( $this, 'check_permissions' ),
-				)
-			);
-
-			// Get all badges
-			register_rest_route(
-				$this->namespace,
-				'/badges',
-				array(
-					'methods'             => 'GET',
-					'callback'            => array( $this, 'get_badges' ),
-					'permission_callback' => array( $this, 'get_badges_permissions_check' ),
-				)
-			);
-
 			// Add installed plugins endpoint
 			register_rest_route(
 				$this->namespace,
@@ -108,79 +80,36 @@ class RESTAPI {
 				array(
 					'methods'             => 'GET',
 					'callback'            => array( $this, 'get_installed_plugins' ),
-					'permission_callback' => array( $this, 'get_settings_permissions_check' ),
+					'permission_callback' => array( $this, 'check_permissions' ),
 				)
 			);
 
-			// Create badge
+			// Individual group operations
 			register_rest_route(
 				$this->namespace,
-				'/badges',
-				array(
-					'methods'             => 'POST',
-					'callback'            => array( $this, 'create_badge' ),
-					'permission_callback' => array( $this, 'create_badge_permissions_check' ),
-					'args'                => array(
-						'name'     => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-						'settings' => array(
-							'required' => true,
-							'type'     => 'object',
-						),
-					),
-				)
-			);
-
-			// Update badge
-			register_rest_route(
-				$this->namespace,
-				'/badges/(?P<id>\d+)',
-				array(
-					'methods'             => 'PUT',
-					'callback'            => array( $this, 'update_badge' ),
-					'permission_callback' => array( $this, 'update_badge_permissions_check' ),
-					'args'                => array(
-						'id' => array(
-							'required' => true,
-							'type'     => 'integer',
-						),
-					),
-				)
-			);
-
-			// Delete badge
-			register_rest_route(
-				$this->namespace,
-				'/badges/(?P<id>\d+)',
-				array(
-					'methods'             => 'DELETE',
-					'callback'            => array( $this, 'delete_badge' ),
-					'permission_callback' => array( $this, 'delete_badge_permissions_check' ),
-					'args'                => array(
-						'id' => array(
-							'required' => true,
-							'type'     => 'integer',
-						),
-					),
-				)
-			);
-
-			// Add new routes for individual group operations
-			register_rest_route(
-				$this->namespace,
-				'/settings/group/(?P<id>[a-zA-Z0-9-_]+)',
+				'/settings/group/(?P<id>[a-zA-Z0-9_-]+)',
 				array(
 					array(
 						'methods'             => 'GET',
 						'callback'            => array( $this, 'get_group' ),
-						'permission_callback' => array( $this, 'get_settings_permissions_check' ),
+						'permission_callback' => array( $this, 'check_permissions' ),
 						'args'                => array(
 							'id' => array(
-								'required' => true,
-								'type'     => 'string',
+								'required'          => true,
+								'type'              => 'string',
+								'sanitize_callback' => array( Renderer::class, 'sanitize_group_id' ),
+							),
+						),
+					),
+					array(
+						'methods'             => 'DELETE',
+						'callback'            => array( $this, 'delete_group' ),
+						'permission_callback' => array( $this, 'check_permissions' ),
+						'args'                => array(
+							'id' => array(
+								'required'          => true,
+								'type'              => 'string',
+								'sanitize_callback' => array( Renderer::class, 'sanitize_group_id' ),
 							),
 						),
 					),
@@ -248,6 +177,50 @@ class RESTAPI {
 	}
 
 	/**
+	 * Recursively sanitise a settings payload before it is persisted.
+	 *
+	 * The settings object is free-form (the admin UI adds keys over time), so
+	 * rather than an allowlist every scalar is sanitised in place and the
+	 * structure is depth-limited to stop pathological payloads.
+	 *
+	 * @param mixed $value Value to sanitise.
+	 * @param int   $depth Current recursion depth.
+	 * @return mixed
+	 */
+	public static function sanitize_settings( $value, $depth = 0 ) {
+		if ( $depth > 10 ) {
+			return null;
+		}
+
+		if ( is_array( $value ) ) {
+			$clean = array();
+
+			foreach ( $value as $key => $item ) {
+				if ( ! is_int( $key ) ) {
+					// Note: sanitize_key() must not be used here. It lowercases,
+					// and every settings key is camelCase (headerText,
+					// selectedBadges, ...), so it would silently rename them all.
+					$key = preg_replace( '/[^A-Za-z0-9_-]/', '', $key );
+
+					if ( '' === $key ) {
+						continue;
+					}
+				}
+
+				$clean[ $key ] = self::sanitize_settings( $item, $depth + 1 );
+			}
+
+			return $clean;
+		}
+
+		if ( is_bool( $value ) || is_int( $value ) || is_float( $value ) || null === $value ) {
+			return $value;
+		}
+
+		return sanitize_text_field( (string) $value );
+	}
+
+	/**
 	 * Save group settings with improved error handling
 	 *
 	 * @param WP_REST_Request $request
@@ -268,24 +241,45 @@ class RESTAPI {
 				);
 			}
 
+			$raw_group_id = isset( $group['id'] ) ? (string) $group['id'] : '';
+			$group_id     = Renderer::sanitize_group_id( $raw_group_id );
+
+			// Reject rather than silently rewrite: quietly mangling the ID would
+			// create a second group under a name the caller never asked for.
+			if ( '' === $group_id || $group_id !== $raw_group_id ) {
+				return new WP_Error(
+					'invalid_group_id',
+					__( 'Group IDs may only contain letters, numbers, hyphens and underscores.', 'trust-badges' ),
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( ! isset( $group['settings'] ) || ! is_array( $group['settings'] ) ) {
+				return new WP_Error(
+					'invalid_group_settings',
+					__( 'Group settings must be provided as an object.', 'trust-badges' ),
+					array( 'status' => 400 )
+				);
+			}
+
 			// Start transaction
 			$wpdb->query( 'START TRANSACTION' );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
 			try {
 				// Prepare data for database
 				$data = array(
-					'group_name' => sanitize_text_field( $group['name'] ),
-					'is_active'  => isset( $group['isActive'] ) ? (bool) $group['isActive'] : true,
-					'settings'   => wp_json_encode( $group['settings'] ),
+					'group_name' => sanitize_text_field( isset( $group['name'] ) ? $group['name'] : $group_id ),
+					'is_active'  => isset( $group['isActive'] ) ? (int) (bool) $group['isActive'] : 1,
+					'settings'   => wp_json_encode( self::sanitize_settings( $group['settings'] ) ),
 				);
 
-				$where = array( 'group_id' => sanitize_text_field( $group['id'] ) );
+				$where = array( 'group_id' => $group_id );
 
 				// Check if group exists
 				$existing = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 					$wpdb->prepare(
 						'SELECT COUNT(*) FROM `' . esc_sql( $table_name ) . '` WHERE group_id = %s',
-						$group['id']
+						$group_id
 					)
 				);
 
@@ -294,8 +288,8 @@ class RESTAPI {
 					$result = $wpdb->update( $table_name, $data, $where );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				} else {
 					// Insert new group
-					$data['group_id']   = sanitize_text_field( $group['id'] );
-					$data['is_default'] = isset( $group['isDefault'] ) ? (bool) $group['isDefault'] : false;
+					$data['group_id']   = $group_id;
+					$data['is_default'] = isset( $group['isDefault'] ) ? (int) (bool) $group['isDefault'] : 0;
 					$result             = $wpdb->insert( $table_name, $data );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				}
 
@@ -311,17 +305,17 @@ class RESTAPI {
 				// Commit transaction
 				$wpdb->query( 'COMMIT' );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
-				// Clear cache
-				wp_cache_delete( 'trust_badges_settings' );
+				// Clear cache so the front end picks the change up immediately
+				Renderer::flush_cache( $group_id );
 
 				// Return success response with updated group data
 				$updated_group = array(
-					'id'             => $group['id'],
+					'id'             => $group_id,
 					'name'           => $data['group_name'],
-					'isActive'       => $data['is_active'],
-					'isDefault'      => isset( $data['is_default'] ) ? $data['is_default'] : false,
+					'isActive'       => (bool) $data['is_active'],
+					'isDefault'      => isset( $data['is_default'] ) ? (bool) $data['is_default'] : false,
 					'settings'       => json_decode( $data['settings'], true ),
-					'requiredPlugin' => isset( $group['requiredPlugin'] ) ? $group['requiredPlugin'] : null,
+					'requiredPlugin' => isset( $group['requiredPlugin'] ) ? sanitize_text_field( $group['requiredPlugin'] ) : null,
 				);
 
 				return rest_ensure_response(
@@ -345,131 +339,28 @@ class RESTAPI {
 		}
 	}
 
-	// Permission checks with nonce verification
-	public function get_badges_permissions_check( $request ) {
-		return true; // Public access for viewing badges
-	}
-
-	public function create_badge_permissions_check( $request ) {
-		return current_user_can( 'manage_options' ) &&
-				check_ajax_referer( 'trust_badges_nonce', 'nonce', false );
-	}
-
-	public function update_badge_permissions_check( $request ) {
-		return current_user_can( 'manage_options' ) &&
-				check_ajax_referer( 'trust_badges_nonce', 'nonce', false );
-	}
-
-	public function delete_badge_permissions_check( $request ) {
-		return current_user_can( 'manage_options' ) &&
-				check_ajax_referer( 'trust_badges_nonce', 'nonce', false );
-	}
-
-	public function get_settings_permissions_check( $request ) {
-		return current_user_can( 'manage_options' );
-	}
-
-	public function update_settings_permissions_check( $request ) {
-		return current_user_can( 'manage_options' ) &&
-				check_ajax_referer( 'trust_badges_nonce', 'nonce', false );
-	}
-
-	// Badge management methods
-	public function get_badges( $request ) {
-		// Check rate limiting
-		$rate_limit_check = $this->check_rate_limit();
-		if ( is_wp_error( $rate_limit_check ) ) {
-			return $rate_limit_check;
-		}
-
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'converswp_trust_badges';
-
-		// Try to get from cache first
-		$cache_key = 'trust_badges_all';
-		$badges    = wp_cache_get( $cache_key );
-
-		if ( false === $badges ) {
-			$results = $wpdb->get_results(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-				$wpdb->prepare(
-					'SELECT * FROM `' . esc_sql( $table_name ) . '` WHERE is_active = %d',
-					1
-				)
-			);
-
-			if ( $error = $this->handle_db_error( $wpdb, 'get_badges' ) ) {
-				return $error;
-			}
-
-			$badges = array_map(
-				function ( $row ) {
-					return array(
-						'id'       => $row->id,
-						'name'     => $row->name,
-						'settings' => json_decode( $row->settings, true ),
-						'isActive' => (bool) $row->is_active,
-					);
-				},
-				$results
-			);
-
-			wp_cache_set( $cache_key, $badges, '', $this->cache_expiry );
-		}
-
-		return new WP_REST_Response( $badges, 200 );
-	}
-
-	public function create_badge( $request ) {
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'converswp_trust_badges';
-
-		$name     = sanitize_text_field( $request->get_param( 'name' ) );
-		$settings = $request->get_param( 'settings' );
-
-		if ( empty( $name ) || empty( $settings ) ) {
-			return new WP_Error(
-				'invalid_data',
-				'Name and settings are required fields',
-				array( 'status' => 400 )
-			);
-		}
-
-		$data = array(
-			'name'       => $name,
-			'settings'   => wp_json_encode( $settings ),
-			'is_active'  => 1,
-			'created_at' => current_time( 'mysql' ),
-		);
-
-		$result = $wpdb->insert( $table_name, $data );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-
-		if ( $error = $this->handle_db_error( $wpdb, 'create_badge' ) ) {
-			return $error;
-		}
-
-		// Clear cache
-		wp_cache_delete( 'trust_badges_all' );
-
-		return new WP_REST_Response(
-			array(
-				'id'       => $wpdb->insert_id,
-				'name'     => $name,
-				'settings' => $settings,
-				'isActive' => true,
-			),
-			201
-		);
-	}
-
 	public function get_settings() {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'converswp_trust_badges';
 
-		$groups = $wpdb->get_results(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-			$wpdb->prepare(
+		$cache_key = 'all_groups';
+		$groups    = wp_cache_get( $cache_key, Renderer::CACHE_GROUP );
+
+		if ( false === $groups ) {
+			// No placeholders here, so prepare() must not be used - WordPress
+			// raises _doing_it_wrong() for a prepare() call with no arguments.
+			$groups = $wpdb->get_results(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
 				'SELECT * FROM `' . esc_sql( $table_name ) . '` ORDER BY id ASC'
-			)
-		);
+			);
+
+			if ( $error = $this->handle_db_error( $wpdb, 'get_settings' ) ) {
+				return $error;
+			}
+
+			$groups = is_array( $groups ) ? $groups : array();
+
+			wp_cache_set( $cache_key, $groups, Renderer::CACHE_GROUP, HOUR_IN_SECONDS );
+		}
 
 		if ( ! $groups ) {
 			return new WP_REST_Response( array(), 200 );
@@ -506,15 +397,25 @@ class RESTAPI {
 
 		try {
 			foreach ( $groups as $group ) {
+				if ( ! is_array( $group ) ) {
+					continue;
+				}
+
+				$group_id = Renderer::sanitize_group_id( isset( $group['id'] ) ? $group['id'] : '' );
+
+				if ( '' === $group_id || ! isset( $group['settings'] ) || ! is_array( $group['settings'] ) ) {
+					throw new \Exception( __( 'Invalid group data provided.', 'trust-badges' ) );
+				}
+
 				$data = array(
-					'group_name' => sanitize_text_field( $group['name'] ),
-					'is_active'  => (bool) $group['isActive'],
-					'settings'   => wp_json_encode( $group['settings'] ),
+					'group_name' => sanitize_text_field( isset( $group['name'] ) ? $group['name'] : $group_id ),
+					'is_active'  => isset( $group['isActive'] ) ? (int) (bool) $group['isActive'] : 1,
+					'settings'   => wp_json_encode( self::sanitize_settings( $group['settings'] ) ),
 				);
 
-				$where = array( 'group_id' => sanitize_text_field( $group['id'] ) );
+				$where = array( 'group_id' => $group_id );
 
-				$result = $wpdb->update( $table_name, $data, $where );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				$wpdb->update( $table_name, $data, $where );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
 				if ( $error = $this->handle_db_error( $wpdb, 'save_settings' ) ) {
 					throw new \Exception( $error->get_error_message() );
@@ -524,7 +425,7 @@ class RESTAPI {
 			$wpdb->query( 'COMMIT' );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
 			// Clear cache
-			wp_cache_delete( 'trust_badges_settings' );
+			Renderer::flush_cache();
 
 			return new WP_REST_Response(
 				array(
@@ -541,7 +442,11 @@ class RESTAPI {
 	public function get_group( $request ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'converswp_trust_badges';
-		$group_id   = sanitize_text_field( $request['id'] );
+		$group_id   = Renderer::sanitize_group_id( $request['id'] );
+
+		if ( '' === $group_id ) {
+			return new WP_Error( 'invalid_group_id', __( 'A valid group ID is required.', 'trust-badges' ), array( 'status' => 400 ) );
+		}
 
 		$result = $wpdb->get_row(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$wpdb->prepare(
@@ -578,23 +483,24 @@ class RESTAPI {
 	public function delete_group( $request ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'converswp_trust_badges';
-		$group_id   = sanitize_text_field( $request['id'] );
+		$group_id   = Renderer::sanitize_group_id( $request['id'] );
 
-		// Check cache first
-		$cache_key  = 'trust_badges_group_' . $group_id;
-		$is_default = wp_cache_get( $cache_key );
+		if ( '' === $group_id ) {
+			return new WP_Error( 'invalid_group_id', __( 'A valid group ID is required.', 'trust-badges' ), array( 'status' => 400 ) );
+		}
 
-		if ( false === $is_default ) {
-			// Cache miss - query database
-			$is_default = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-				$wpdb->prepare(
-					'SELECT is_default FROM `' . esc_sql( $table_name ) . '` WHERE group_id = %s',
-					$group_id
-				)
-			);
+		// Read the flag straight from the database: this is a destructive,
+		// admin-only operation, so a stale cached value must not decide whether
+		// a default group may be deleted.
+		$is_default = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				'SELECT is_default FROM `' . esc_sql( $table_name ) . '` WHERE group_id = %s',
+				$group_id
+			)
+		);
 
-			// Cache the result for 1 hour
-			wp_cache_set( $cache_key, $is_default, '', HOUR_IN_SECONDS );
+		if ( null === $is_default ) {
+			return new WP_Error( 'not_found', __( 'Group not found.', 'trust-badges' ), array( 'status' => 404 ) );
 		}
 
 		if ( $is_default ) {
@@ -625,18 +531,21 @@ class RESTAPI {
 		}
 
 		// Clear all related caches
-		wp_cache_delete( $cache_key );
-		wp_cache_delete( 'trust_badges_settings' );
+		Renderer::flush_cache( $group_id );
 
 		return new WP_REST_Response(
 			array(
-				'message' => 'Group deleted successfully',
+				'message' => __( 'Group deleted successfully.', 'trust-badges' ),
 			),
 			200
 		);
 	}
 
 	public function get_installed_plugins() {
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
 		return new WP_REST_Response(
 			array(
 				'woocommerce' => is_plugin_active( 'woocommerce/woocommerce.php' ),

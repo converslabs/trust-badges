@@ -1,10 +1,33 @@
 <?php
 namespace TrustBadges;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class TrustBadge {
 	protected $loader;
 	protected $plugin_name;
 	protected $version;
+
+	/**
+	 * Badge group each supported integration hook renders.
+	 *
+	 * Registering these unconditionally is safe: the WooCommerce and EDD hooks
+	 * simply never fire when those plugins are not installed. It also avoids
+	 * loading wp-admin/includes/plugin.php on every front-end request just to
+	 * call is_plugin_active().
+	 *
+	 * @var array<string, string>
+	 */
+	private static $integration_hooks = array(
+		'woocommerce_after_add_to_cart_form'          => 'product_page',
+		'woocommerce_cart_collaterals'                => 'cart',
+		'woocommerce_before_cart'                     => 'cart',
+		'woocommerce_blocks_cart_block_after_content' => 'cart',
+		'edd_purchase_link_end'                       => 'product_page',
+		'wp_footer'                                   => 'footer',
+	);
 
 	public function __construct() {
 		$this->version     = TRUST_BADGES_VERSION;
@@ -14,151 +37,121 @@ class TrustBadge {
 		$this->define_admin_hooks();
 		$this->define_rest_api();
 
-		add_filter( 'woocommerce_should_load_cart_block', '__return_false' );
-		add_filter( 'woocommerce_should_load_checkout_block', '__return_false' );
-
-		// Add WooCommerce hooks if WooCommerce is active
-		if ( \is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
-			// on woocommerce_after_add_to_cart_form call handle_badge_display and pass the hook and plugin name
+		foreach ( self::$integration_hooks as $hook => $group_id ) {
 			add_action(
-				'woocommerce_after_add_to_cart_form',
-				function () {
-					$this->handle_badge_display( 'woocommerce_after_add_to_cart_form', 'product_page' );
+				$hook,
+				function () use ( $group_id ) {
+					$this->handle_badge_display( $group_id );
 				}
 			);
-
-			// Checkout hooks disabled
-			// add_action(
-			// 	'woocommerce_pay_order_after_submit',
-			// 	function () {
-			// 		$this->handle_badge_display( 'woocommerce_pay_order_after_submit', 'checkout' );
-			// 	}
-			// );
-
-			// Add cart page hooks
-			add_action(
-				'woocommerce_cart_collaterals',
-				function () {
-					$this->handle_badge_display( 'woocommerce_cart_collaterals', 'cart' );
-				}
-			);
-
-			// Add cart page hook for empty cart
-			add_action(
-				'woocommerce_before_cart',
-				function () {
-					$this->handle_badge_display( 'woocommerce_before_cart', 'cart' );
-				}
-			);
-
-			// Add cart block hook for WooCommerce blocks
-			add_action(
-				'woocommerce_blocks_cart_block_after_content',
-				function () {
-					$this->handle_badge_display( 'woocommerce_blocks_cart_block_after_content', 'cart' );
-				}
-			);
-
 		}
 
-		// Add EDD hooks if EDD is active
-		if ( \is_plugin_active( 'easy-digital-downloads/easy-digital-downloads.php' ) ) {
-			add_action(
-				'edd_purchase_link_end',
-				function () {
-					$this->handle_badge_display( 'edd_purchase_link_end', 'product_page' );
-				}
-			);
-			// EDD checkout hook disabled
-			// add_action(
-			// 	'edd_checkout_before_purchase_form',
-			// 	function () {
-			// 		$this->handle_badge_display( 'edd_checkout_before_purchase_form', 'checkout' );
-			// 	}
-			// );
+		add_shortcode( 'trust_badges', array( $this, 'render_shortcode' ) );// [trust_badges id="footer"]
+
+		// One-off data migrations, gated on a stored schema version so they do
+		// not run a query on every single page load.
+		add_action( 'admin_init', array( $this, 'maybe_migrate' ) );
+	}
+
+	/**
+	 * Run pending data migrations once per version.
+	 *
+	 * @since 1.2.0
+	 */
+	public function maybe_migrate() {
+		if ( get_option( 'trust_badges_db_version' ) === TRUST_BADGES_VERSION ) {
+			return;
 		}
 
-		// Add footer hook for displaying badges
-		add_action(
-			'wp_footer',
-			function () {
-					$this->handle_badge_display( 'wp_footer', 'footer' );
-			}
-		);
-
-		add_shortcode( 'trust_badges', array( $this, 'render_shortcode' ) );// [trust_badges id="2"]
-		
-		// Remove checkout badge group from database if it exists
 		$this->remove_checkout_badge_group();
+
+		update_option( 'trust_badges_db_version', TRUST_BADGES_VERSION, false );
 	}
 
 	/**
 	 * Remove the checkout badge group from database
+	 *
+	 * The checkout placement was withdrawn in 1.1.0; this clears the leftover
+	 * row on sites that were configured before then.
 	 *
 	 * @since 1.0.0
 	 */
 	private function remove_checkout_badge_group() {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'converswp_trust_badges';
-		
-		// Check if checkout group exists
-		$exists = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM `" . esc_sql( $table_name ) . "` WHERE group_id = %s",
-			'checkout'
-		) );
-		
-		if ( $exists ) {
-			// Delete the checkout group
-			$wpdb->delete(
-				$table_name,
-				array( 'group_id' => 'checkout' ),
-				array( '%s' )
-			);
-			
-			// Clear cache
-			wp_cache_delete( 'trust_badges_group_checkout' );
-			wp_cache_delete( 'trust_badges_all' );
+
+		$deleted = $wpdb->delete(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$table_name,
+			array( 'group_id' => 'checkout' ),
+			array( '%s' )
+		);
+
+		if ( $deleted ) {
+			Renderer::flush_cache( 'checkout' );
 		}
 	}
 
-	public function handle_badge_display( $hook, $group_id ) {
-		// plugin can be woocommerce or edd
-		if ( $hook === 'woocommerce_after_add_to_cart_form' ) {
-			echo wp_kses_post( $this->display_badges_by_position( 'showAfterAddToCart', $group_id ) );
-		} elseif ( $hook === 'woocommerce_cart_collaterals' ) {
-			echo wp_kses_post( $this->display_badges_by_position( 'woocommerce_cart_collaterals', $group_id ) );
-		} elseif ( $hook === 'woocommerce_before_cart' ) {
-			echo wp_kses_post( $this->display_badges_by_position( 'woocommerce_before_cart', $group_id ) );
-		} elseif ( $hook === 'woocommerce_blocks_cart_block_after_content' ) {
-			echo wp_kses_post( $this->display_badges_by_position( 'woocommerce_blocks_cart_block_after_content', $group_id ) );
-		} elseif ( $hook === 'edd_purchase_link_end' ) {
-			echo wp_kses_post( $this->display_badges_by_position( 'edd_purchase_link_end', $group_id ) );
-		} else {
-			echo wp_kses_post( $this->display_badges_by_position( $hook, $group_id ) );
+	/**
+	 * Echo the badge markup for a group.
+	 *
+	 * @param string $group_id Badge group to render.
+	 */
+	public function handle_badge_display( $group_id ) {
+		$html = Renderer::renderBadgeById( $group_id );
+
+		if ( ! $html ) {
+			return;
 		}
+
+		echo wp_kses( $html, self::allowed_badge_html() );
+	}
+
+	/**
+	 * Markup the badge renderer is allowed to output.
+	 *
+	 * wp_kses_post() strips the CSS mask properties the "mono" badge styles
+	 * depend on, so an explicit, narrower allowlist is used instead.
+	 *
+	 * @return array
+	 */
+	public static function allowed_badge_html() {
+		$attrs = array(
+			'id'    => true,
+			'class' => true,
+			'style' => true,
+		);
+
+		return array(
+			'div' => $attrs,
+			'img' => array_merge(
+				$attrs,
+				array(
+					'src'      => true,
+					'alt'      => true,
+					'decoding' => true,
+				)
+			),
+		);
 	}
 
 	// Function to render the trust badges shortcode
 	public function render_shortcode( $attributes ) {
 		// if doing ajax or rest api, we need to include the renderer
 		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-			return;
+			return '';
 		}
 
-		// Extract the 'id' attribute, defaulting to 1 if not provided
 		$attributes = shortcode_atts(
 			array(
-				'id' => '1',
+				'id' => 'footer',
 			),
-			$attributes
+			$attributes,
+			'trust_badges'
 		);
 
-		// Sanitize and get the ID
-		$id = intval( $attributes['id'] );
+		$html = Renderer::renderBadgeById( $attributes['id'] );
 
-		// now get the badge from ids
-		// Return the output with the dynamic ID
-		return Renderer::renderBadgeById( $id );
+		return $html ? wp_kses( $html, self::allowed_badge_html() ) : '';
 	}
 
 	private function load_dependencies() {
@@ -208,18 +201,6 @@ class TrustBadge {
 		echo '<div id="trust-badges-app"></div>';
 	}
 
-
-	/**
-	 * Helper function to display badges based on position and plugin
-	 */
-	private function display_badges_by_position( $position, $group_id ) {
-		// wp_footer. footer
-		if ( ! $group_id ) {
-			$group_id = Renderer::getGroupIdByPosition( $position );
-		}
-
-		return Renderer::renderBadgeById( $group_id );
-	}
 
 	public static function admin_enqueue_scripts( $hook ) {
 		// Only load on plugin admin page
@@ -281,7 +262,7 @@ class TrustBadge {
 				'pluginUrl'   => TRUST_BADGES_PLUGIN_URL,
 				'mediaTitle'  => __( 'Select or Upload Badge Image', 'trust-badges' ),
 				'mediaButton' => __( 'Use this image', 'trust-badges' ),
-				'debug'       => WP_DEBUG,
+				'debug'       => defined( 'WP_DEBUG' ) && WP_DEBUG,
 				'restNonce'   => $rest_nonce, // Use the same REST nonce
 			);
 

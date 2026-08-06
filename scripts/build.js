@@ -7,22 +7,12 @@ const archiver = require('archiver');
 
 // Clean the release folder
 const cleanReleaseFolder = () => {
-    return new Promise((resolve, reject) => {
-        const releaseDir = path.resolve(__dirname, '../release');
-        if (fs.existsSync(releaseDir)) {
-            fs.readdir(releaseDir, (err, files) => {
-                if (err) reject(err);
-                for (const file of files) {
-                    fs.unlink(path.join(releaseDir, file), err => {
-                        if (err) reject(err);
-                    });
-                }
-                resolve();
-            });
-        } else {
-            resolve();
-        }
-    });
+    // rm -rf: the release folder contains both zips and an extracted
+    // trust-badges/ directory, and fs.unlink cannot remove directories.
+    const releaseDir = path.resolve(__dirname, '../release');
+    fs.rmSync(releaseDir, { recursive: true, force: true });
+    fs.mkdirSync(releaseDir, { recursive: true });
+    return Promise.resolve();
 };
 
 // Run npm install if node_modules doesn't exist
@@ -56,7 +46,74 @@ const buildProject = () => {
 };
 
 // Zip the plugin folder
-const zipPlugin = (version) => {
+// The version lives in four places. They drifting apart is how v1.1.0 shipped
+// in a file named trust-badges-v1.0.0.zip, so the build refuses to run when
+// they disagree.
+const assertVersionsMatch = (version) => {
+    const root = path.resolve(__dirname, '..');
+    const pluginPhp = fs.readFileSync(path.join(root, 'trust-badges.php'), 'utf8');
+    const readme = fs.readFileSync(path.join(root, 'readme.txt'), 'utf8');
+
+    const found = {
+        'package.json': version,
+        'trust-badges.php header': (pluginPhp.match(/^\s*\*\s*Version:\s*(.+)$/m) || [])[1]?.trim(),
+        'TRUST_BADGES_VERSION': (pluginPhp.match(/TRUST_BADGES_VERSION',\s*'([^']+)'/) || [])[1],
+        'readme.txt stable tag': (readme.match(/^Stable tag:\s*(.+)$/m) || [])[1]?.trim(),
+    };
+
+    const mismatched = Object.entries(found).filter(([, v]) => v !== version);
+    if (mismatched.length) {
+        throw new Error(
+            'Version mismatch across release files:\n' +
+            Object.entries(found).map(([k, v]) => `  ${k}: ${v ?? '(not found)'}`).join('\n')
+        );
+    }
+
+    if (!new RegExp(`^=\\s*${version.replace(/\./g, '\\.')}\\s*=$`, 'm').test(readme)) {
+        throw new Error(`readme.txt has no changelog entry for version ${version}`);
+    }
+};
+
+// Files that must never end up in a distributed build. Hidden files, source
+// maps and VCS checkouts are all rejected by the WordPress.org plugin review.
+const EXCLUDED = [
+    '**/.DS_Store',
+    '**/Thumbs.db',
+    '**/*.map',
+    '**/.svn/**',
+    '**/.git/**',
+];
+
+// Staged inside release/trust-badges/ as well as zipped, because scripts/svn.sh
+// copies from that directory when tagging a release.
+const stagePlugin = () => {
+    const root = path.resolve(__dirname, '..');
+    const stageDir = path.resolve(root, 'release/trust-badges');
+    fs.mkdirSync(stageDir, { recursive: true });
+
+    const skip = (src) =>
+        !/(?:\.DS_Store|Thumbs\.db|\.map)$/.test(src) &&
+        !/[/\\]\.(?:svn|git)(?:[/\\]|$)/.test(src);
+
+    for (const dir of ['assets', 'includes', 'vendor']) {
+        const from = path.resolve(root, dir);
+        if (fs.existsSync(from)) {
+            fs.cpSync(from, path.join(stageDir, dir), { recursive: true, filter: skip });
+        }
+    }
+
+    for (const file of ['trust-badges.php', 'composer.json', 'readme.txt']) {
+        const from = path.resolve(root, file);
+        if (!fs.existsSync(from)) {
+            throw new Error(`Required release file is missing: ${file}`);
+        }
+        fs.copyFileSync(from, path.join(stageDir, file));
+    }
+
+    return stageDir;
+};
+
+const zipPlugin = (version, stageDir) => {
     return new Promise((resolve, reject) => {
         const output = fs.createWriteStream(path.resolve(__dirname, `../release/trust-badges-v${version}.zip`));
         const archive = archiver('zip', { zlib: { level: 9 } });
@@ -65,14 +122,8 @@ const zipPlugin = (version) => {
         archive.on('error', reject);
         archive.pipe(output);
 
-        // Add specific directories and files
-        archive.directory(path.resolve(__dirname, '../assets'), 'assets');
-        archive.directory(path.resolve(__dirname, '../includes'), 'includes');
-        archive.directory(path.resolve(__dirname, '../vendor'), 'vendor');
-        archive.directory(path.resolve(__dirname, '../assets/uncompressed'), 'assets/uncompressed');
-        archive.file(path.resolve(__dirname, '../README.md'), { name: 'readme.md' });
-        archive.file(path.resolve(__dirname, '../trust-badges.php'), { name: 'trust-badges.php' });
-        archive.file(path.resolve(__dirname, '../composer.json'), { name: 'composer.json' });
+        // Zip the staged tree so the zip and the SVN payload are identical.
+        archive.glob('**/*', { cwd: stageDir, dot: false, ignore: EXCLUDED }, { prefix: 'trust-badges' });
 
         archive.finalize();
     });
@@ -110,15 +161,14 @@ const main = async () => {
         const packageJson = require(path.resolve(__dirname, '../package.json'));
         const version = packageJson.version;
 
-        // Ensure release directory exists
-        const releaseDir = path.resolve(__dirname, '../release');
-        if (!fs.existsSync(releaseDir)) {
-            fs.mkdirSync(releaseDir);
-        }
+        assertVersionsMatch(version);
+
+        console.log('Staging plugin files...');
+        const stageDir = stagePlugin();
 
         console.log('Creating zip package...');
-        await zipPlugin(version);
-        console.log('Build and packaging completed successfully!');
+        await zipPlugin(version, stageDir);
+        console.log(`Build and packaging completed successfully! (v${version})`);
     } catch (error) {
         console.error('Build failed:', error);
         process.exit(1);

@@ -5,6 +5,7 @@
 /dist
 /assets/css
 /assets/js
+*.map
 
 # IDE
 .idea
