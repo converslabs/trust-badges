@@ -64,12 +64,33 @@ if [ "$CHANGE_TYPE" = "assets" ]; then
     echo "Pushing readme.txt and .wordpress-org assets..."
     cp "$RELEASE_DIR/readme.txt" trunk/readme.txt
 
+    # Only the filenames WordPress.org actually recognises. A blanket copy is
+    # how stale, differently-named screenshots accumulate in assets/ forever.
     if [ -d "$PLUGIN_DIR/.wordpress-org" ]; then
         mkdir -p assets
-        cp -R "$PLUGIN_DIR/.wordpress-org/." assets/
+        for ASSET in "$PLUGIN_DIR"/.wordpress-org/banner-*.png \
+                     "$PLUGIN_DIR"/.wordpress-org/banner-*.jpg \
+                     "$PLUGIN_DIR"/.wordpress-org/icon-*.png \
+                     "$PLUGIN_DIR"/.wordpress-org/icon-*.svg \
+                     "$PLUGIN_DIR"/.wordpress-org/screenshot-*.png \
+                     "$PLUGIN_DIR"/.wordpress-org/screenshot-*.jpg; do
+            [ -e "$ASSET" ] && cp "$ASSET" assets/
+        done
+
+        if [ -d "$PLUGIN_DIR/.wordpress-org/blueprints" ]; then
+            mkdir -p assets/blueprints
+            cp "$PLUGIN_DIR"/.wordpress-org/blueprints/*.json assets/blueprints/
+        fi
     fi
 
     svn add --force assets trunk/readme.txt
+
+    echo
+    echo "About to commit the following:"
+    svn status assets trunk/readme.txt
+    echo
+    echo "Press Enter to commit, or Ctrl-C to abort."
+    read -r _
     svn commit -m "Update assets and readme.txt"
     exit 0
 fi
@@ -96,17 +117,34 @@ if [ "$CHANGE_TYPE" = "tag" ]; then
         fi
     done
 
-    # Refresh trunk to exactly match the staged build.
+    # Empty trunk (except .svn) so anything that is not part of the staged
+    # build cannot survive into the release. Copying the staged items over the
+    # top of whatever was already there is how a stray .wordpress-org/ or an
+    # old source map ends up published.
+    find trunk -mindepth 1 -maxdepth 1 ! -name '.svn' -exec rm -rf {} +
+
     for ITEM in "${FILES[@]}"; do
-        rm -rf "trunk/${ITEM:?}"
         cp -R "$RELEASE_DIR/$ITEM" trunk/
     done
 
-    svn add --force trunk
-    # Stage deletions for anything removed from trunk since the last release.
+    # Belt and braces: the staging step already filters these, but never let
+    # them reach WordPress.org.
+    find trunk \( -name '.DS_Store' -o -name 'Thumbs.db' -o -name '*.map' \
+        -o -name '.git*' -o -name 'node_modules' -o -name '.wordpress-org' \) \
+        -not -path '*/.svn/*' -prune -exec rm -rf {} + 2>/dev/null || true
+
+    # Stage deletions first, then additions, so removed files are dropped.
     svn status trunk | awk '/^!/ {print $2}' | while read -r MISSING; do
         svn rm --force "$MISSING"
     done
+    svn add --force trunk
+
+    echo
+    echo "About to commit the following to trunk:"
+    svn status trunk | head -40
+    echo
+    echo "Press Enter to commit, or Ctrl-C to abort."
+    read -r _
 
     svn commit -m "Release version $VERSION"
 
