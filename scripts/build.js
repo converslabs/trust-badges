@@ -95,11 +95,23 @@ const stagePlugin = () => {
         !/(?:\.DS_Store|Thumbs\.db|\.map)$/.test(src) &&
         !/[/\\]\.(?:svn|git)(?:[/\\]|$)/.test(src);
 
+    // All three are required. vendor/ in particular is produced by
+    // `composer install`, not by `npm install`, so it can legitimately be
+    // missing - and a zip without vendor/autoload.php fatals on activation
+    // with "Class not found". Fail loudly rather than shipping that.
     for (const dir of ['assets', 'includes', 'vendor']) {
         const from = path.resolve(root, dir);
-        if (fs.existsSync(from)) {
-            fs.cpSync(from, path.join(stageDir, dir), { recursive: true, filter: skip });
+        if (!fs.existsSync(from)) {
+            throw new Error(
+                `Required release directory is missing: ${dir}/` +
+                (dir === 'vendor' ? ' — run `composer install` first.' : '')
+            );
         }
+        fs.cpSync(from, path.join(stageDir, dir), { recursive: true, filter: skip });
+    }
+
+    if (!fs.existsSync(path.join(stageDir, 'vendor/autoload.php'))) {
+        throw new Error('vendor/autoload.php is missing from the staged build — run `composer install` first.');
     }
 
     for (const file of ['trust-badges.php', 'composer.json', 'readme.txt']) {

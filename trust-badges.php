@@ -8,7 +8,7 @@
  * Author: ConversWP
  * Author URI: https://converswp.com
  * Text Domain: trust-badges
- * Requires at least: 5.8
+ * Requires at least: 4.7
  * Requires PHP: 7.4
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -36,6 +36,10 @@ define('TRUST_BADGES_PLUGIN_URL', plugin_dir_url(__FILE__));
 add_action('plugins_loaded', function () {
     $plugin = new TrustBadge();
     $plugin->run();
+
+    // Exposed so tooling and tests can reach the running instance instead of
+    // constructing a second one, which would register every hook twice.
+    $GLOBALS['trust_badges_plugin'] = $plugin;
 });
 
 // Plugin activation with improved error handling

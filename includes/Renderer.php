@@ -13,11 +13,23 @@ class Renderer {
 	const CACHE_GROUP = 'trust_badges';
 
 	/**
+	 * Option holding the cache-invalidation salt.
+	 */
+	const CACHE_SALT_OPTION = 'trust_badges_cache_salt';
+
+	/**
 	 * In-request memo of the badge id => filename map.
 	 *
 	 * @var array|null
 	 */
 	private static $badge_map = null;
+
+	/**
+	 * In-request memo of the cache salt.
+	 *
+	 * @var string|null
+	 */
+	private static $cache_salt = null;
 
 	/**
 	 * Normalise a group ID so it is safe to use in an HTML id and a CSS selector.
@@ -47,7 +59,7 @@ class Renderer {
 			return $group_id;
 		}
 
-		$cache_key = 'resolved_' . $group_id;
+		$cache_key = self::cache_key( 'resolved_' . $group_id );
 		$resolved  = wp_cache_get( $cache_key, self::CACHE_GROUP );
 
 		if ( false === $resolved ) {
@@ -177,13 +189,51 @@ class Renderer {
 	}
 
 	/**
+	 * Salt mixed into every cache key.
+	 *
+	 * Bumping this option invalidates all of the plugin's cache entries at once
+	 * on any object cache backend, including those with no group-flush support
+	 * (wp_cache_flush_group() only exists from WordPress 6.1). Without it, a
+	 * persistent cache on an older site would keep serving stale badges for up
+	 * to an hour after a save.
+	 *
+	 * @return string
+	 */
+	private static function cache_salt() {
+		if ( null === self::$cache_salt ) {
+			self::$cache_salt = (string) get_option( self::CACHE_SALT_OPTION, '1' );
+		}
+
+		return self::$cache_salt;
+	}
+
+	/**
+	 * Build a namespaced, salted cache key.
+	 *
+	 * @param string $key Logical key name.
+	 * @return string
+	 */
+	private static function cache_key( $key ) {
+		return $key . '_v' . self::cache_salt();
+	}
+
+	/**
 	 * Cache key for a single badge group row.
 	 *
 	 * @param string $group_id Sanitised group ID.
 	 * @return string
 	 */
 	public static function group_cache_key( $group_id ) {
-		return 'group_' . $group_id;
+		return self::cache_key( 'group_' . $group_id );
+	}
+
+	/**
+	 * Cache key for the full group list used by the settings endpoint.
+	 *
+	 * @return string
+	 */
+	public static function all_groups_cache_key() {
+		return self::cache_key( 'all_groups' );
 	}
 
 	/**
@@ -192,30 +242,19 @@ class Renderer {
 	 * Called whenever badge groups are written through the REST API so the
 	 * front end never serves stale badge markup.
 	 *
-	 * @param string $group_id Optional single group to flush. Flushes all when empty.
+	 * @param string $group_id Unused. Kept for backwards compatibility with
+	 *                         callers that flushed a single group.
 	 */
 	public static function flush_cache( $group_id = '' ) {
 		self::$badge_map = null;
 
-		// Preferred path: drop the whole group in one call. This also clears the
-		// resolved_* entries that map numeric shortcode IDs onto slugs, which
-		// targeted deletes cannot find (the numeric ID is not known here).
-		if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
-			wp_cache_flush_group( self::CACHE_GROUP );
-			return;
-		}
+		// Bump the salt so every existing key becomes unreachable. This is the
+		// one approach that works on every object cache backend and WordPress
+		// version, rather than only where wp_cache_flush_group() exists.
+		$next = (string) ( (int) self::cache_salt() + 1 );
 
-		// Fallback for object caches without group flushing: delete the keys we
-		// can name. Without a persistent object cache these are per-request
-		// anyway, so the resolved_* entries cannot go stale across requests.
-		wp_cache_delete( 'all_groups', self::CACHE_GROUP );
-
-		$group_id = self::sanitize_group_id( $group_id );
-
-		if ( '' !== $group_id ) {
-			wp_cache_delete( self::group_cache_key( $group_id ), self::CACHE_GROUP );
-			wp_cache_delete( 'resolved_' . $group_id, self::CACHE_GROUP );
-		}
+		update_option( self::CACHE_SALT_OPTION, $next, false );
+		self::$cache_salt = $next;
 	}
 
 	/**
@@ -327,19 +366,23 @@ class Renderer {
 					continue;
 				}
 
-				$badge_url = plugins_url( 'assets/images/badges/' . $filename, __DIR__ );
+				$badge_url   = plugins_url( 'assets/images/badges/' . $filename, __DIR__ );
+				$badge_class = self::badge_class( $badge_id );
 
-				// Add badge index and margin style to each badge container
-				$html .= '<div class="badge-container" style="--badge-index: ' . (int) $index . ';' . $margin_style . '">';
+				// The badge index drives the animation stagger. It is applied
+				// from the stylesheet via :nth-child() rather than a CSS custom
+				// property, because wp_kses() only preserves custom properties
+				// on WordPress 6.1 and newer.
+				$html .= '<div class="badge-container" style="' . $margin_style . '">';
 				++$index;
 
 				if ( in_array( $badge_style, array( 'mono', 'mono-card' ), true ) ) {
-					// The mask image is passed as a custom property and applied
-					// from the stylesheet: wp_kses() strips a literal
-					// "mask: url(...)" declaration, but preserves url() inside a
-					// custom property.
-					$html .= '<div class="badge-image" style="';
-					$html .= '--badge-mask: url(' . esc_url( $badge_url ) . ');';
+					// The mask image is emitted into the enqueued stylesheet,
+					// keyed by this per-badge class. A literal "mask: url(...)"
+					// in a style attribute is stripped by wp_kses() on every
+					// WordPress version, and a custom property carrying the URL
+					// only survives on 6.1+.
+					$html .= '<div class="badge-image ' . esc_attr( $badge_class ) . '" style="';
 					$html .= 'background-color: ' . esc_attr( $badge_color ) . ';';
 					$html .= 'width: ' . (int) $mobile_size . 'px;';
 					$html .= 'height: ' . (int) $mobile_size . 'px;';
@@ -433,8 +476,6 @@ class Renderer {
         ' . $html_id . ' .style-mono-card .badge-image {
             width: ' . (int) $mobile_size . 'px !important;
             height: ' . (int) $mobile_size . 'px !important;
-            -webkit-mask-image: var(--badge-mask);
-            mask-image: var(--badge-mask);
             -webkit-mask-size: contain;
             mask-size: contain;
             -webkit-mask-repeat: no-repeat;
@@ -480,8 +521,15 @@ class Renderer {
         ' . $html_id . ' .align-center .trust-badges-wrapper { justify-content: center; }
         ' . $html_id . ' .align-right .trust-badges-wrapper { justify-content: flex-end; }
 
+        /* Per-badge mask images for the mono styles */
+        ' . self::get_mask_styles( $html_id, $settings ) . '
+
         /* Animation styles */
         ' . wp_strip_all_tags( $animation_styles ) . '
+
+        /* Animation stagger - must come after the animation shorthand above,
+           which would otherwise reset animation-delay back to 0s. */
+        ' . self::get_stagger_styles( $html_id, $settings, $animation ) . '
         ';
 
 		// Register and enqueue main styles (only once)
@@ -514,6 +562,81 @@ class Renderer {
 			$unique_style_handle,
 			wp_strip_all_tags($custom_css)
 		);
+	}
+
+	/**
+	 * Mask-image rules for each selected badge, for the mono styles.
+	 *
+	 * These live in the stylesheet rather than in a style attribute because
+	 * wp_kses() strips "mask: url(...)" from attributes on every WordPress
+	 * version, and only preserves a custom property carrying the URL on 6.1+.
+	 * Stylesheets are not run through kses, so this works everywhere.
+	 *
+	 * @param string $html_id  Escaped container selector.
+	 * @param array  $settings Group settings.
+	 * @return string
+	 */
+	public static function get_mask_styles( $html_id, $settings ) {
+		$badge_style = isset( $settings['badgeStyle'] ) ? $settings['badgeStyle'] : 'original';
+
+		if ( ! in_array( $badge_style, array( 'mono', 'mono-card' ), true ) ) {
+			return '';
+		}
+
+		if ( empty( $settings['selectedBadges'] ) || ! is_array( $settings['selectedBadges'] ) ) {
+			return '';
+		}
+
+		$rules = '';
+		$seen  = array();
+
+		foreach ( $settings['selectedBadges'] as $badge_id ) {
+			$filename = self::get_badge_filename( $badge_id );
+
+			if ( '' === $filename || isset( $seen[ $badge_id ] ) ) {
+				continue;
+			}
+
+			$seen[ $badge_id ] = true;
+			$url               = plugins_url( 'assets/images/badges/' . $filename, __DIR__ );
+
+			$rules .= $html_id . ' .' . self::badge_class( $badge_id ) . ' {
+                -webkit-mask-image: url(' . esc_url( $url ) . ');
+                mask-image: url(' . esc_url( $url ) . ');
+            }
+            ';
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * Per-position animation delays.
+	 *
+	 * Replaces the --badge-index custom property, which wp_kses() drops on
+	 * WordPress versions below 6.1.
+	 *
+	 * @param string $html_id   Escaped container selector.
+	 * @param array  $settings  Group settings.
+	 * @param string $animation Animation name, empty when disabled.
+	 * @return string
+	 */
+	public static function get_stagger_styles( $html_id, $settings, $animation ) {
+		if ( empty( $animation ) || empty( $settings['selectedBadges'] ) || ! is_array( $settings['selectedBadges'] ) ) {
+			return '';
+		}
+
+		$rules = '';
+		$count = count( $settings['selectedBadges'] );
+
+		for ( $i = 0; $i < $count; $i++ ) {
+			$rules .= $html_id . ' .badge-container:nth-child(' . ( $i + 1 ) . ') {
+                animation-delay: ' . number_format( $i * 0.1, 2, '.', '' ) . 's;
+            }
+            ';
+		}
+
+		return $rules;
 	}
 
 	/**
@@ -625,7 +748,6 @@ class Renderer {
 				$styles .= $html_id . '
                     .badge-fade .badge-container {
                         animation: badgeFadeIn 0.5s ease forwards;
-                        animation-delay: calc(var(--badge-index, 0) * 0.1s);
                     }
                     @keyframes badgeFadeIn {
                         0% { opacity: 0; }
@@ -639,7 +761,6 @@ class Renderer {
                     .badge-slide .badge-container {
                         transform: translateY(20px);
                         animation: badgeSlideIn 0.5s ease forwards;
-                        animation-delay: calc(var(--badge-index, 0) * 0.1s);
                     }
                     @keyframes badgeSlideIn {
                         0% { 
@@ -659,7 +780,6 @@ class Renderer {
                     .badge-scale .badge-container {
                         transform: scale(0.8);
                         animation: badgeScaleIn 0.5s ease forwards;
-                        animation-delay: calc(var(--badge-index, 0) * 0.1s);
                     }
                     @keyframes badgeScaleIn {
                         0% {
@@ -678,7 +798,6 @@ class Renderer {
 				$styles .= $html_id . '
                     .badge-bounce .badge-container {
                         animation: badgeBounceIn 0.6s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
-                        animation-delay: calc(var(--badge-index, 0) * 0.1s);
                     }
                     @keyframes badgeBounceIn {
                         0% {
@@ -703,6 +822,19 @@ class Renderer {
 		}
 
 		return $styles;
+	}
+
+	/**
+	 * CSS class used to attach a mask image to a single badge.
+	 *
+	 * The "badge-img-" prefix also guarantees the class never starts with a
+	 * digit, which several badge IDs do.
+	 *
+	 * @param string $badge_id Badge identifier.
+	 * @return string
+	 */
+	public static function badge_class( $badge_id ) {
+		return 'badge-img-' . preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $badge_id );
 	}
 
 	/**

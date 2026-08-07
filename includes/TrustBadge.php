@@ -11,6 +11,23 @@ class TrustBadge {
 	protected $version;
 
 	/**
+	 * Groups already emitted this request, keyed by group ID.
+	 *
+	 * @var array<string, bool>
+	 */
+	private static $rendered = array();
+
+	/**
+	 * Forget which groups have been emitted.
+	 *
+	 * Only useful outside a normal page request - for tests, or for tooling
+	 * that renders several previews in one process.
+	 */
+	public static function reset_rendered() {
+		self::$rendered = array();
+	}
+
+	/**
 	 * Badge group each supported integration hook renders.
 	 *
 	 * Registering these unconditionally is safe: the WooCommerce and EDD hooks
@@ -64,8 +81,50 @@ class TrustBadge {
 		}
 
 		$this->remove_checkout_badge_group();
+		$this->backfill_cart_badge_group();
 
 		update_option( 'trust_badges_db_version', TRUST_BADGES_VERSION, false );
+	}
+
+	/**
+	 * Create the "cart" group on sites upgrading from a version that never had one.
+	 *
+	 * The cart hooks have always rendered the group with ID "cart", but no
+	 * release ever created it, so those placements could not work. It is
+	 * inserted **inactive** here: an existing site sees no front-end change, it
+	 * just gains a group it can switch on from the settings screen.
+	 *
+	 * @since 1.2.0
+	 */
+	private function backfill_cart_badge_group() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'converswp_trust_badges';
+
+		$exists = $wpdb->get_var(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM `' . esc_sql( $table_name ) . '` WHERE group_id = %s',
+				'cart'
+			)
+		);
+
+		if ( $exists ) {
+			return;
+		}
+
+		$wpdb->insert(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$table_name,
+			array(
+				'group_id'        => 'cart',
+				'group_name'      => 'Cart',
+				'is_default'      => 1,
+				'is_active'       => 0,
+				'required_plugin' => 'woocommerce',
+				'settings'        => wp_json_encode( Activator::cart_group_settings() ),
+			),
+			array( '%s', '%s', '%d', '%d', '%s', '%s' )
+		);
+
+		Renderer::flush_cache();
 	}
 
 	/**
@@ -94,14 +153,34 @@ class TrustBadge {
 	/**
 	 * Echo the badge markup for a group.
 	 *
-	 * @param string $group_id Badge group to render.
+	 * Before 1.2.0 this took ( $hook, $group_id ). That signature is still
+	 * accepted so any theme or plugin calling it directly keeps working.
+	 *
+	 * @param string      $group_id Badge group to render, or the hook name when
+	 *                              called with the pre-1.2.0 signature.
+	 * @param string|null $legacy   Deprecated. The group ID, when called with
+	 *                              the pre-1.2.0 two-argument signature.
 	 */
-	public function handle_badge_display( $group_id ) {
+	public function handle_badge_display( $group_id, $legacy = null ) {
+		if ( null !== $legacy ) {
+			$group_id = $legacy;
+		}
+
+		// woocommerce_before_cart and woocommerce_cart_collaterals both fire on
+		// the classic cart page and both map to the "cart" group. Render each
+		// group at most once per request so the markup is not duplicated (which
+		// would also repeat the element id and the inline stylesheet).
+		if ( isset( self::$rendered[ $group_id ] ) ) {
+			return;
+		}
+
 		$html = Renderer::renderBadgeById( $group_id );
 
 		if ( ! $html ) {
 			return;
 		}
+
+		self::$rendered[ $group_id ] = true;
 
 		echo wp_kses( $html, self::allowed_badge_html() );
 	}
@@ -141,15 +220,30 @@ class TrustBadge {
 			return '';
 		}
 
+		// Was an ID written in the shortcode itself, or are we falling back to
+		// the default? Checked before shortcode_atts() fills the default in.
+		$id_supplied = is_array( $attributes ) && isset( $attributes['id'] );
+
+		// The default has always been "1", which is the ID the settings screen
+		// assigns to the first custom group. Existing sites using a bare
+		// [trust_badges] rely on it, so it must not change.
 		$attributes = shortcode_atts(
 			array(
-				'id' => 'footer',
+				'id' => '1',
 			),
 			$attributes,
 			'trust_badges'
 		);
 
 		$html = Renderer::renderBadgeById( $attributes['id'] );
+
+		// Only when no ID was given and group "1" does not exist - a fresh
+		// install that never created a custom group - fall back to the footer
+		// group. Sites that do have a group "1", and anyone who wrote an
+		// explicit ID, behave exactly as before.
+		if ( ! $html && ! $id_supplied ) {
+			$html = Renderer::renderBadgeById( 'footer' );
+		}
 
 		return $html ? wp_kses( $html, self::allowed_badge_html() ) : '';
 	}

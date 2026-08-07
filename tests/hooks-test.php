@@ -90,8 +90,13 @@ printf( "  (EDD is %s on this site)\n", $edd_active ? 'active' : 'inactive' );
 $check( 'edd_purchase_link_end registered', false !== has_action( 'edd_purchase_link_end' ) );
 
 echo "\n== 3. each hook renders its mapped group ==\n";
-$plugin = new TrustBadge();
+// Reuse the instance the plugin already built on plugins_loaded. Constructing a
+// second TrustBadge would re-run add_action() for all six hooks and
+// add_shortcode(), leaving the process doubly hooked.
+$plugin = $GLOBALS['trust_badges_plugin'];
 foreach ( $hooks as $hook => $group ) {
+	TrustBadge::reset_rendered();
+
 	ob_start();
 	$plugin->handle_badge_display( $group );
 	$output = ob_get_clean();
@@ -101,6 +106,26 @@ foreach ( $hooks as $hook => $group ) {
 		false !== strpos( $output, "convers-trust-badges-{$group}" )
 	);
 }
+
+echo "\n== 3b. a group is emitted only once per request ==\n";
+// woocommerce_before_cart and woocommerce_cart_collaterals both fire on the
+// classic cart page; the badge block must not be duplicated.
+TrustBadge::reset_rendered();
+ob_start();
+$plugin->handle_badge_display( 'cart' );
+$first = ob_get_clean();
+ob_start();
+$plugin->handle_badge_display( 'cart' );
+$second = ob_get_clean();
+$check( 'first cart hook renders', false !== strpos( $first, 'convers-trust-badges-cart' ) );
+$check( 'second cart hook renders nothing', '' === $second );
+
+echo "\n== 3c. pre-1.2.0 two-argument call signature still works ==\n";
+TrustBadge::reset_rendered();
+ob_start();
+$plugin->handle_badge_display( 'woocommerce_before_cart', 'cart' );
+$legacy = ob_get_clean();
+$check( 'handle_badge_display( $hook, $group_id )', false !== strpos( $legacy, 'convers-trust-badges-cart' ) );
 
 echo "\n== 4. shortcode ==\n";
 foreach ( $groups as $group ) {

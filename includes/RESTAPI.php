@@ -343,7 +343,7 @@ class RESTAPI {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'converswp_trust_badges';
 
-		$cache_key = 'all_groups';
+		$cache_key = Renderer::all_groups_cache_key();
 		$groups    = wp_cache_get( $cache_key, Renderer::CACHE_GROUP );
 
 		if ( false === $groups ) {

@@ -1,7 +1,7 @@
 === Trust Badges – Payment Icons & Secure Checkout Seals for WooCommerce ===
 Contributors: converswp, parvezvai, shamsbd71
 Tags: trust badges, woocommerce, payment icons, trust seal, checkout
-Requires at least: 5.8
+Requires at least: 4.7
 Tested up to: 7.0
 Stable tag: 1.2.0
 Requires PHP: 7.4
@@ -23,8 +23,8 @@ Version 1.2.0 is a substantial security, performance and correctness release. Hi
 * **Faster front end.** The badge manifest is now parsed once per request instead of once per badge, and results are cached. Badge rendering went from roughly 1 ms per badge to effectively zero.
 * **Lighter admin.** The settings screen bundle is minified and no longer ships a source map — about 3 MB less to download.
 * **Fixed: WooCommerce Cart and Checkout blocks.** A leftover filter in earlier versions disabled WooCommerce's Cart and Checkout blocks across the whole site. It has been removed.
-* **Fixed: monochrome badge styles.** The "mono" and "mono-card" styles now render correctly; their CSS mask was previously being stripped before output.
-* **Fixed: shortcodes.** `[trust_badges id="footer"]` and numeric IDs both resolve now. Previously neither did.
+* **Fixed: monochrome badge styles.** The "mono" and "mono-card" styles now render correctly on every supported WordPress version; their CSS mask was previously being stripped before output.
+* **Shortcodes now accept named groups too.** `[trust_badges id="1"]` and a bare `[trust_badges]` behave exactly as before; `[trust_badges id="footer"]` and other named groups now work as well, where previously they rendered nothing.
 * **Fixed: settings changes appear immediately** instead of after a one-hour cache delay.
 * **Security.** Removed an unauthenticated REST endpoint that exposed badge configuration to anonymous visitors, and hardened input validation throughout.
 
@@ -95,15 +95,17 @@ Display badges by group ID:
 `[trust_badges id="cart"]`
 `[trust_badges id="footer"]`
 
-Display badges without specifying an ID (defaults to the footer group):
+Display badges without specifying an ID:
 `[trust_badges]`
+
+A bare `[trust_badges]` uses group `1` — the ID given to the first custom group you create — exactly as it always has. Only if no group `1` exists does it fall back to the footer group.
 
 **Built-in Badge Groups:**
 * **product_page**: Badges for product pages with payment methods
 * **cart**: Badges for cart pages with checkout assurance
 * **footer**: Badges for footer display with trust signals
 
-Groups you create yourself use the ID shown next to them in the settings screen. Numeric IDs (for example `[trust_badges id="1"]`) are also accepted and resolve to the matching group.
+Groups you create yourself are numbered (`1`, `2`, `3`, …) and that number is the ID to use: `[trust_badges id="2"]`. The built-in groups above can now be referenced by name as well.
 
 You can create and manage badge groups in the plugin settings under **Settings -> Trust Badges**.
 
@@ -180,7 +182,7 @@ Yes, all interface strings use the `trust-badges` text domain.
 
 == Requirements ==
 
-* **WordPress:** 5.8 or higher (tested up to 7.0)
+* **WordPress:** 4.7 or higher (tested up to 7.0)
 * **PHP:** 7.4 or higher
 * **WooCommerce or Easy Digital Downloads:** optional — only needed for automatic placement
 
@@ -221,9 +223,11 @@ Recommended for all users. Fixes a bug that disabled the WooCommerce Cart and Ch
 **Fixes**
 
 * Removed a global `woocommerce_should_load_cart_block` / `woocommerce_should_load_checkout_block` override that disabled the WooCommerce Cart and Checkout blocks site-wide.
-* The "mono" and "mono-card" badge styles now render: their CSS mask was being stripped before output.
+* The "mono" and "mono-card" badge styles now render: their CSS mask was being stripped by wp_kses() before output. The mask is now applied from the enqueued stylesheet, which works on every supported WordPress version.
 * Saving settings now clears the front-end cache, so changes appear immediately instead of after an hour.
-* Shortcode IDs now resolve correctly. `[trust_badges id="footer"]` and numeric IDs both work; previously neither did.
+* Shortcodes now also accept the built-in group names. `[trust_badges id="1"]` and a bare `[trust_badges]` are unchanged; `[trust_badges id="footer"]`, `"cart"` and `"product_page"` now work too, where previously they rendered nothing.
+* Added the missing "cart" badge group. The cart hooks have always looked for a group with this ID but no release ever created one, so cart placement could not work. Existing sites receive it switched off, so nothing changes until you enable it.
+* The cart badge block is no longer emitted twice on the classic cart page, where two hooks fire.
 * Unknown badge IDs are skipped instead of causing a fatal error.
 * Removed two REST routes whose callbacks did not exist and which referenced a database column that was never created.
 * Fixed a `wpdb::prepare()` call with no placeholders that triggered a `_doing_it_wrong()` notice on WordPress 6.2+.
@@ -234,7 +238,7 @@ Recommended for all users. Fixes a bug that disabled the WooCommerce Cart and Ch
 **Compatibility**
 
 * Tested up to WordPress 7.0.
-* Minimum WordPress version raised to 5.8.
+* Minimum supported WordPress version is unchanged at 4.7.
 
 = 1.1.0 =
 * Page support: Product, Cart

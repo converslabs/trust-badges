@@ -26,6 +26,45 @@ class Activator {
 		}
 	}
 
+	/**
+	 * Default settings for the "cart" badge group.
+	 *
+	 * Shared by the activation seed and the upgrade backfill in TrustBadge so
+	 * the two cannot drift apart.
+	 *
+	 * @param bool $woocommerce_active Whether WooCommerce is active.
+	 * @return array
+	 */
+	public static function cart_group_settings( $woocommerce_active = false ) {
+		return array(
+			'showHeader'       => true,
+			'headerText'       => 'Secure Checkout With',
+			'fontSize'         => '18',
+			'alignment'        => 'center',
+			'badgeAlignment'   => 'center',
+			'position'         => 'center',
+			'textColor'        => '#000000',
+			'badgeStyle'       => 'original',
+			'badgeSizeDesktop' => 'medium',
+			'badgeSizeMobile'  => 'small',
+			'badgeColor'       => '#0066FF',
+			'customMargin'     => false,
+			'marginTop'        => '0',
+			'marginBottom'     => '0',
+			'marginLeft'       => '0',
+			'marginRight'      => '0',
+			'animation'        => 'fade',
+			'woocommerce'      => (bool) $woocommerce_active,
+			'selectedBadges'   => array(
+				'mastercardcolor',
+				'visa1color',
+				'paypal1color',
+				'applepaycolor',
+				'stripecolor',
+			),
+		);
+	}
+
 	public static function updateDB() {
 		global $wpdb;
 
@@ -121,6 +160,14 @@ class Activator {
 						),
 					)
 				),
+			),
+			array(
+				'group_id'        => 'cart',
+				'group_name'      => 'Cart',
+				'is_default'      => 1,
+				'is_active'       => $woocommerce_active ? 1 : 0,
+				'required_plugin' => 'woocommerce',
+				'settings'        => wp_json_encode( self::cart_group_settings( $woocommerce_active ) ),
 			),
 			array(
 				'group_id'        => 'footer',
