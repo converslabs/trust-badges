@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: Trust Badges
+ * Plugin Name: Trust Badges – Payment Icons & Secure Checkout Seals for WooCommerce
  * Plugin URI: https://converswp.com/trust-badges
  * Description: Trust Badges adds customizable trust icons and badges to WooCommerce and EDD, boosting customer confidence and sales.
  * Version: 1.2.0
