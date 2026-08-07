@@ -9,8 +9,11 @@ export default defineConfig({
 	plugins: [react()],
 	build: {
 		outDir: "assets",
-		minify: false,
-		sourcemap: true,
+		// Production builds ship minified and without a source map: the
+		// unminified bundle was ~1 MB and the map another ~2 MB, both served
+		// to every admin visiting the settings screen.
+		minify: process.env.NODE_ENV !== "development",
+		sourcemap: process.env.NODE_ENV === "development",
 		emptyOutDir: false,
 		manifest: false,
 		rollupOptions: {

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "landingPage": "/wp-admin/options-general.php?page=trust-badges",
+  "preferredVersions": {
+    "php": "8.0",
+    "wp": "latest"
+  },
+  "phpExtensionBundles": ["kitchen-sink"],
+  "features": {
+    "networking": true
+  },
+  "steps": [
+    {
+      "step": "installPlugin",
+      "pluginZipFile": {
+        "resource": "wordpress.org/plugins",
+        "slug": "woocommerce"
+      },
+      "options": {
+        "activate": true
+      }
+    },
+    {
+      "step": "installPlugin",
+      "pluginZipFile": {
+        "resource": "url",
+        "url": "https://downloads.wordpress.org/plugin/trust-badges.zip"
+      },
+      "options": {
+        "activate": true
+      }
+    },
+    {
+      "step": "setSiteOptions",
+      "options": {
+        "woocommerce_onboarding_profile": "a:1:{s:7:\"skipped\";b:1;}",
+        "woocommerce_currency": "USD",
+        "woocommerce_default_country": "US:CA",
+        "woocommerce_store_address": "123 Trust Badge Street",
+        "woocommerce_store_address_2": "Suite 100",
+        "woocommerce_store_city": "San Francisco",
+        "woocommerce_default_postcode": "94105",
+        "woocommerce_store_postcode": "94105"
+      }
+    }
+  ]
+}

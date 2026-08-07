@@ -5,6 +5,7 @@
 /dist
 /assets/css
 /assets/js
+*.map
 
 # IDE
 .idea
@@ -47,3 +48,5 @@ yarn-error.log*
 .idea/vcs.xml
 .idea/misc.xml
 .idea/.gitignore
+
+svn

@@ -1,6 +1,10 @@
 <?php
 namespace TrustBadges;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Activator {
 
 	public static function activate() {
@@ -22,13 +26,55 @@ class Activator {
 		}
 	}
 
+	/**
+	 * Default settings for the "cart" badge group.
+	 *
+	 * Shared by the activation seed and the upgrade backfill in TrustBadge so
+	 * the two cannot drift apart.
+	 *
+	 * @param bool $woocommerce_active Whether WooCommerce is active.
+	 * @return array
+	 */
+	public static function cart_group_settings( $woocommerce_active = false ) {
+		return array(
+			'showHeader'       => true,
+			'headerText'       => 'Secure Checkout With',
+			'fontSize'         => '18',
+			'alignment'        => 'center',
+			'badgeAlignment'   => 'center',
+			'position'         => 'center',
+			'textColor'        => '#000000',
+			'badgeStyle'       => 'original',
+			'badgeSizeDesktop' => 'medium',
+			'badgeSizeMobile'  => 'small',
+			'badgeColor'       => '#0066FF',
+			'customMargin'     => false,
+			'marginTop'        => '0',
+			'marginBottom'     => '0',
+			'marginLeft'       => '0',
+			'marginRight'      => '0',
+			'animation'        => 'fade',
+			'woocommerce'      => (bool) $woocommerce_active,
+			'selectedBadges'   => array(
+				'mastercardcolor',
+				'visa1color',
+				'paypal1color',
+				'applepaycolor',
+				'stripecolor',
+			),
+		);
+	}
+
 	public static function updateDB() {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'converswp_trust_badges';
 		$charset_collate = $wpdb->get_charset_collate();
 
-		$sql = "CREATE TABLE IF NOT EXISTS $table_name (
+		// dbDelta() parses this statement itself and requires the exact
+		// "CREATE TABLE <name> (" form - "IF NOT EXISTS" makes it fail to
+		// recognise the table and skip column upgrades on existing installs.
+		$sql = "CREATE TABLE $table_name (
             id bigint(20) NOT NULL AUTO_INCREMENT,
             group_id varchar(50) NOT NULL,
             group_name varchar(255) NOT NULL,
@@ -67,59 +113,24 @@ class Activator {
 		}
 
 		// Check if required plugins are active
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
 		$woocommerce_active = is_plugin_active( 'woocommerce/woocommerce.php' );
 		$edd_active         = is_plugin_active( 'easy-digital-downloads/easy-digital-downloads.php' );
 
-		// Insert default groups if they don't exist
+		// Insert default groups if they don't exist.
+		// Note: the "checkout" placement was withdrawn in 1.1.0 and is no
+		// longer seeded here.
 		$default_groups = array(
-			array(
-				'group_id'        => 'checkout',
-				'group_name'      => 'Checkout',
-				'is_default'      => 1,
-				'is_active'       => $woocommerce_active || $edd_active ? 1 : 0,
-				'required_plugin' => 'woocommerce',
-				'settings'        => json_encode(
-					array(
-						'showHeader'                    => true,
-						'headerText'                    => 'Secure Checkout With',
-						'fontSize'                      => '18',
-						'alignment'                     => 'left',
-						'badgeAlignment'                => 'left',
-						'position'                      => 'center',
-						'textColor'                     => '#000000',
-						'badgeStyle'                    => 'original',
-						'badgeSizeDesktop'              => 'medium',
-						'badgeSizeMobile'               => 'small',
-						'badgeColor'                    => '#0066FF',
-						'customMargin'                  => false,
-						'marginTop'                     => '0',
-						'marginBottom'                  => '0',
-						'marginLeft'                    => '0',
-						'marginRight'                   => '0',
-						'animation'                     => 'fade',
-						'woocommerce'                   => $woocommerce_active,
-						'edd'                           => $edd_active,
-						'checkoutBeforeOrderReview'     => $woocommerce_active,
-						'eddCheckoutBeforePurchaseForm' => $edd_active,
-						'selectedBadges'                => array(
-							'mastercardcolor',
-							'visa1color',
-							'paypal1color',
-							'applepaycolor',
-							'stripecolor',
-							'amazonpay2color',
-							'americanexpress1color',
-						),
-					)
-				),
-			),
 			array(
 				'group_id'        => 'product_page',
 				'group_name'      => 'Product Page',
 				'is_default'      => 1,
 				'is_active'       => $woocommerce_active || $edd_active ? 1 : 0,
 				'required_plugin' => 'woocommerce',
-				'settings'        => json_encode(
+				'settings'        => wp_json_encode(
 					array(
 						'showHeader'         => true,
 						'headerText'         => 'Secure Payment Methods',
@@ -151,12 +162,20 @@ class Activator {
 				),
 			),
 			array(
+				'group_id'        => 'cart',
+				'group_name'      => 'Cart',
+				'is_default'      => 1,
+				'is_active'       => $woocommerce_active ? 1 : 0,
+				'required_plugin' => 'woocommerce',
+				'settings'        => wp_json_encode( self::cart_group_settings( $woocommerce_active ) ),
+			),
+			array(
 				'group_id'        => 'footer',
 				'group_name'      => 'Footer',
 				'is_default'      => 1,
 				'is_active'       => 1,
 				'required_plugin' => null,
-				'settings'        => json_encode(
+				'settings'        => wp_json_encode(
 					array(
 						'showHeader'       => true,
 						'headerText'       => 'Payment Options',
@@ -186,9 +205,21 @@ class Activator {
 		);
 
 		foreach ( $default_groups as $group ) {
+			// Sanitise per field: running sanitize_text_field() across the whole
+			// row would also run over the encoded settings JSON, and passing the
+			// null required_plugin through it is deprecated on PHP 8.1+.
+			$row = array(
+				'group_id'        => sanitize_key( $group['group_id'] ),
+				'group_name'      => sanitize_text_field( $group['group_name'] ),
+				'is_default'      => (int) $group['is_default'],
+				'is_active'       => (int) $group['is_active'],
+				'required_plugin' => null === $group['required_plugin'] ? null : sanitize_text_field( $group['required_plugin'] ),
+				'settings'        => $group['settings'],
+			);
+
 			$wpdb->replace(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				$table_name,
-				array_map( 'sanitize_text_field', $group ),
+				$row,
 				array( '%s', '%s', '%d', '%d', '%s', '%s' )
 			);
 		}
